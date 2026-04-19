@@ -10,6 +10,8 @@ export default function SignInPage() {
                     </span>
                 </div>
                 <SignIn
+                    forceRedirectUrl="/dashboard"
+                    fallbackRedirectUrl="/dashboard"
                     appearance={{
                         elements: {
                             formButtonPrimary:

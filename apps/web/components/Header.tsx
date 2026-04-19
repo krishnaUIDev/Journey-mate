@@ -27,7 +27,7 @@ export function Header({
             {/* Mobile Nav toggle and tools */}
             <div className="flex md:hidden items-center gap-4">
                 <Show when="signed-out">
-                    <SignInButton mode="modal">
+                    <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                         <button className="text-sm font-bold text-navy dark:text-offwhite">Log in</button>
                     </SignInButton>
                 </Show>
@@ -107,12 +107,12 @@ export function Header({
                     </button>
 
                     <Show when="signed-out">
-                        <SignInButton mode="modal">
+                        <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                             <button className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium cursor-pointer mx-2">
                                 <FormattedMessage id="nav.logIn" />
                             </button>
                         </SignInButton>
-                        <SignUpButton mode="modal">
+                        <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                             <button className="bg-navy dark:bg-sand dark:text-navy text-white px-6 py-2 rounded-full font-bold hover:bg-forest dark:hover:bg-white transition-all text-sm shadow-sm">
                                 <FormattedMessage id="nav.signUp" />
                             </button>

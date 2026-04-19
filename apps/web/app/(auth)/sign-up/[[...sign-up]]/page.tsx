@@ -10,6 +10,8 @@ export default function SignUpPage() {
                     </span>
                 </div>
                 <SignUp
+                    forceRedirectUrl="/dashboard"
+                    fallbackRedirectUrl="/dashboard"
                     appearance={{
                         elements: {
                             formButtonPrimary:
