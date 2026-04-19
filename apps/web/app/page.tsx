@@ -53,7 +53,7 @@ export default function Page() {
       <main className="min-h-screen">
         {/* Navigation */}
         <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="relative w-10 h-10 overflow-hidden rounded-lg">
               <Image
                 src="/logo.png"
@@ -144,9 +144,9 @@ export default function Page() {
         </section>
 
         {/* Features Section */}
-        <section className="relative z-10 py-24 px-8 bg-gray-50 dark:bg-deep-navy transition-colors">
+        <section className="relative z-10 pt-12 pb-24 px-8 bg-gray-50 dark:bg-deep-navy transition-colors">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="text-4xl md:text-5xl font-bold text-navy dark:text-offwhite mb-4">
                 <FormattedMessage id="features.title" />
               </h2>
@@ -206,7 +206,7 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
               <div className="col-span-2">
-                <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-2 mb-6">
                   <div className="relative w-10 h-10 overflow-hidden rounded-lg">
                     <Image
                       src="/logo.png"
