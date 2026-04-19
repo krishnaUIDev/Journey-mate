@@ -1,58 +1,69 @@
-# Turborepo Tailwind CSS starter
+# Journey-mate ✈️🤝
 
-This Turborepo starter is maintained by the Turborepo core team.
+**Don't Travel Alone. Find Your Perfect Mate.**
 
-## Using this example
+Journey-mate is a mission-driven platform designed to connect travelers with verified companions, ensuring safer, more comfortable, and friendship-filled journeys. Whether it's navigating complex airports, seeking comfort during long flights, or simply wanting a friendly face by your side, Journey-mate is here to help.
 
-Run the following command:
+**100% free, forever.**
+
+---
+
+## 🌟 Core Features
+
+- **✅ Verified Mates**: Every companion undergoes a thorough vetting process for your peace of mind.
+- **📍 Airport Meetups**: Coordination for help with check-in, security, and finding gates.
+- **📱 Live Tracking**: Keep loved ones informed with real-time flight status and arrival notifications.
+- **🌍 Global Community**: Building a worldwide network of assisted travel, powered by compassion.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** (>=18)
+- **pnpm** (preferred package manager)
+
+### Installation
 
 ```sh
-npx create-turbo@latest -e with-tailwind
+# Clone the repository
+git clone git@github.com:krishnaUIDev/Journey-mate.git
+cd Journey-mate
+
+# Install dependencies
+pnpm install
 ```
 
-## What's inside?
+### Development
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `web`: another [Next.js](https://nextjs.org/) app with [Tailwind CSS](https://tailwindcss.com/)
-- `ui`: a stub React component library with [Tailwind CSS](https://tailwindcss.com/) shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Building packages/ui
-
-This example is set up to produce compiled styles for `ui` components into the `dist` directory. The component `.tsx` files are consumed by the Next.js apps directly using `transpilePackages` in `next.config.ts`. This was chosen for several reasons:
-
-- Make sharing one `tailwind.config.ts` to apps and packages as easy as possible.
-- Make package compilation simple by only depending on the Next.js Compiler and `tailwindcss`.
-- Ensure Tailwind classes do not overwrite each other. The `ui` package uses a `ui-` prefix for it's classes.
-- Maintain clear package export boundaries.
-
-Another option is to consume `packages/ui` directly from source without building. If using this option, you will need to update the `tailwind.config.ts` in your apps to be aware of your package locations, so it can find all usages of the `tailwindcss` class names for CSS compilation.
-
-For example, in [tailwind.config.ts](packages/tailwind-config/tailwind.config.ts):
-
-```js
-  content: [
-    // app content
-    `src/**/*.{js,ts,jsx,tsx}`,
-    // include packages if not transpiling
-    "../../packages/ui/*.{js,ts,jsx,tsx}",
-  ],
+```sh
+# Run the web application
+pnpm run dev --filter web
 ```
 
-If you choose this strategy, you can remove the `tailwindcss` and `autoprefixer` dependencies from the `ui` package.
+The application will be available at `http://localhost:3000`.
 
-### Utilities
+## 🏗️ Technical Stack
 
-This Turborepo has some additional tools already setup for you:
+This project is a modern monorepo built with [Turborepo](https://turbo.build/):
 
-- [Tailwind CSS](https://tailwindcss.com/) for styles
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+- **[Next.js](https://nextjs.org/)**: React framework for the web frontend.
+- **[Tailwind CSS](https://tailwindcss.com/)**: Utility-first CSS for premium, responsive design.
+- **[pnpm](https://pnpm.io/)**: Fast, disk-efficient package management.
+- **[packages/ui](./packages/ui)**: Shared, accessible React component library.
+- **[i18n](./apps/web/i18n)**: Built-in multi-language support (English, Hindi, Telugu, Tamil, Kannada, Bengali).
+
+## 📁 Project Structure
+
+```text
+.
+├── apps
+│   └── web          # The main Next.js landing page & dashboard
+├── packages
+│   ├── ui           # Shared component library
+│   ├── eslint-config # Shared linting configuration
+│   └── typescript-config # Shared TS configurations
+└── README.md
+```
+
+---
+
+Built with ❤️ for travelers everywhere.
