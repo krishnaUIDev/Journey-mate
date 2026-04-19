@@ -57,7 +57,7 @@ export default function Page() {
             Journey<span className="text-forest dark:text-sand/80">-mate</span>
           </div>
 
-          <div className="hidden md:flex items-center gap-8 font-medium text-navy dark:text-offwhite/80 lg:px-4">
+          <div className="hidden md:flex items-center gap-6 font-medium text-navy dark:text-offwhite/80 lg:px-4">
             <a href="#" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
               <FormattedMessage id="nav.howItWorks" />
             </a>
@@ -68,11 +68,11 @@ export default function Page() {
               <FormattedMessage id="nav.logIn" />
             </a>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <select
                 value={locale}
                 onChange={handleLocaleChange}
-                className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer border-none dark:text-offwhite/80 p-0 m-0 w-auto min-w-[30px]"
+                className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer border-none dark:text-offwhite/80 p-0 m-0 w-auto"
               >
                 <option value="en">English</option>
                 <option value="hi">हिंदी (Hindi)</option>
@@ -101,7 +101,7 @@ export default function Page() {
         </nav>
 
         {/* Hero Section */}
-        <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+        <section className="relative min-h-[95vh] flex items-center justify-center overflow-hidden py-20 px-4">
           <div className="absolute inset-0 z-0 scale-105">
             <Image
               src="/hero-premium.png"
@@ -122,7 +122,7 @@ export default function Page() {
             <p className="text-xl md:text-2xl mb-10 text-offwhite/95 max-w-3xl mx-auto font-medium leading-relaxed [text-shadow:_0_2px_8px_rgba(0,0,0,0.4)]">
               <FormattedMessage id="hero.subtitle" />
             </p>
-            <div className="flex flex-col sm:flex-row gap-5 justify-center mt-8 px-4">
+            <div className="flex flex-col sm:flex-row gap-5 justify-center mt-12 px-4">
               <a href="/dashboard" className="bg-sand text-navy px-8 md:px-12 py-4 md:py-5 rounded-full font-bold text-lg md:text-xl hover:bg-white hover:scale-105 transition-all shadow-2xl flex items-center justify-center whitespace-nowrap">
                 <FormattedMessage id="hero.cta" />
               </a>
