@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TripCard } from "@repo/ui";
 import { UserButton, Show } from "@clerk/nextjs";
+import { IntlProvider, FormattedMessage } from "react-intl";
+import { messages } from "../../i18n/messages";
+import { TripCreationModal } from "../../components/TripCreationModal";
+
+type Locale = keyof typeof messages;
 
 const MOCK_TRIPS = [
     {
@@ -30,80 +35,132 @@ const MOCK_TRIPS = [
 
 export default function Dashboard() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [theme, setTheme] = useState<"light" | "dark">("light");
+    const [locale, setLocale] = useState<Locale>("en");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [trips, setTrips] = useState(MOCK_TRIPS);
 
-    const filteredTrips = MOCK_TRIPS.filter((trip) =>
+    useEffect(() => {
+        // Theme initialization
+        const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        const initialTheme = savedTheme || systemTheme;
+        setTheme(initialTheme);
+        if (initialTheme === "dark") {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+
+        // Locale initialization
+        const savedLocale = localStorage.getItem("locale") as Locale | null;
+        if (savedLocale && messages[savedLocale]) {
+            setLocale(savedLocale);
+        }
+    }, []);
+
+    const filteredTrips = trips.filter((trip) =>
         trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleCreateTrip = (newTrip: any) => {
+        const tripWithMeta = {
+            ...newTrip,
+            image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=2070&auto=format&fit=crop",
+            date: `${newTrip.startDate} - ${newTrip.endDate}`
+        };
+        setTrips([tripWithMeta, ...trips]);
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans">
-            {/* Sidebar / Top Nav */}
-            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5">
-                <div className="text-xl font-bold tracking-tight text-navy dark:text-offwhite">
-                    Journey<span className="text-forest dark:text-sand/80">-mate</span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search destinations..."
-                            className="pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-white/10 border-none text-sm focus:ring-2 focus:ring-navy dark:focus:ring-sand transition-all w-64"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <svg
-                            className="absolute left-3 top-2.5 text-gray-400"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+        <IntlProvider messages={messages[locale]} locale={locale} defaultLocale="en">
+            <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans transition-colors duration-300">
+                {/* Sidebar / Top Nav */}
+                <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5">
+                    <div className="text-xl font-bold tracking-tight text-navy dark:text-offwhite">
+                        Journey<span className="text-forest dark:text-sand/80">-mate</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder={messages[locale]["dashboard.search"] as string}
+                                className="pl-10 pr-4 py-2 rounded-full bg-gray-100 dark:bg-white/10 border-none text-sm focus:ring-2 focus:ring-navy dark:focus:ring-sand transition-all w-64"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <svg
+                                className="absolute left-3 top-2.5 text-gray-400"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <circle cx="11" cy="11" r="8" />
+                                <path d="m21 21-4.3-4.3" />
+                            </svg>
+                        </div>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-sm"
                         >
-                            <circle cx="11" cy="11" r="8" />
-                            <path d="m21 21-4.3-4.3" />
-                        </svg>
-                    </div>
-                    <button className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2 rounded-full font-bold text-sm">
-                        + New Trip
-                    </button>
-                    <Show when="signed-in">
-                        <UserButton />
-                    </Show>
-                </div>
-            </nav>
-
-            <main className="max-w-7xl mx-auto px-8 py-12">
-                <div className="flex justify-between items-end mb-10">
-                    <div>
-                        <h1 className="text-4xl font-bold text-navy dark:text-offwhite mb-2">My Journeys</h1>
-                        <p className="text-gray-500 dark:text-offwhite/50">Manage and plan your upcoming adventures.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-4 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-medium">
-                            Upcoming
+                            <FormattedMessage id="dashboard.newTrip" />
                         </button>
-                        <button className="px-4 py-2 rounded-lg text-gray-500 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5">
-                            Past
-                        </button>
+                        <Show when="signed-in">
+                            <UserButton />
+                        </Show>
                     </div>
-                </div>
+                </nav>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {filteredTrips.map((trip) => (
-                        <TripCard key={trip.destination} {...trip} />
-                    ))}
-                </div>
-
-                {filteredTrips.length === 0 && (
-                    <div className="text-center py-20">
-                        <p className="text-gray-400">No trips found for "{searchTerm}"</p>
+                <main className="max-w-7xl mx-auto px-8 py-12">
+                    <div className="flex justify-between items-end mb-10">
+                        <div>
+                            <h1 className="text-4xl font-bold text-navy dark:text-offwhite mb-2">
+                                <FormattedMessage id="dashboard.title" />
+                            </h1>
+                            <p className="text-gray-500 dark:text-offwhite/50">
+                                <FormattedMessage id="dashboard.subtitle" />
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button className="px-4 py-2 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm font-medium">
+                                <FormattedMessage id="dashboard.upcoming" />
+                            </button>
+                            <button className="px-4 py-2 rounded-lg text-gray-500 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5">
+                                <FormattedMessage id="dashboard.past" />
+                            </button>
+                        </div>
                     </div>
-                )}
-            </main>
-        </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredTrips.map((trip, idx) => (
+                            <TripCard key={`${trip.destination}-${idx}`} {...trip} />
+                        ))}
+                    </div>
+
+                    {filteredTrips.length === 0 && (
+                        <div className="text-center py-20">
+                            <p className="text-gray-400">
+                                <FormattedMessage
+                                    id="dashboard.noTrips"
+                                    values={{ searchTerm }}
+                                />
+                            </p>
+                        </div>
+                    )}
+                </main>
+
+                <TripCreationModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onFinish={handleCreateTrip}
+                />
+            </div>
+        </IntlProvider>
     );
 }
