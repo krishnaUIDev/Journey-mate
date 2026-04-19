@@ -62,7 +62,14 @@ export default function Page() {
                 className="object-contain dark:brightness-200 dark:contrast-150"
               />
             </div>
-            <span className="text-xl font-bold text-navy dark:text-offwhite tracking-tight">
+            <span
+              className="text-xl font-bold text-navy dark:text-offwhite tracking-tight"
+              style={{
+                textShadow: theme === "light"
+                  ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
+                  : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
+              }}
+            >
               Journey<span className="text-forest dark:text-sand/80">-mate</span>
             </span>
           </div>
@@ -117,7 +124,7 @@ export default function Page() {
               src="/hero-premium.png"
               alt="Travelers in an airport"
               fill
-              className="object-cover brightness-75 dark:brightness-50 blur-[3px]"
+              className="object-cover brightness-75 dark:brightness-50 blur-[8px]"
               priority
             />
             {/* Advanced Dynamic Overlays for Visibility */}
@@ -215,7 +222,14 @@ export default function Page() {
                       className="object-contain dark:brightness-200 dark:contrast-150"
                     />
                   </div>
-                  <span className="text-2xl font-bold text-navy dark:text-offwhite">
+                  <span
+                    className="text-2xl font-bold text-navy dark:text-offwhite"
+                    style={{
+                      textShadow: theme === "light"
+                        ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
+                        : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
+                    }}
+                  >
                     Journey<span className="text-forest dark:text-sand/80">-mate</span>
                   </span>
                 </div>
