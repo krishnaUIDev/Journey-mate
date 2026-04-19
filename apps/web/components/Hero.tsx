@@ -1,0 +1,44 @@
+"use client";
+
+import Image from "next/image";
+import { FormattedMessage } from "react-intl";
+
+export function Hero() {
+    return (
+        <section className="relative h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden py-10 px-4 [clip-path:inset(0)]">
+            <div className="absolute inset-0 z-0 scale-105">
+                <Image
+                    src="/hero-premium.png"
+                    alt="Travelers in an airport"
+                    fill
+                    className="object-cover brightness-75 dark:brightness-50 blur-[8px]"
+                    priority
+                />
+                {/* Advanced Dynamic Overlays for Visibility */}
+                <div className="absolute inset-0 bg-gradient-to-b from-navy/40 via-transparent to-navy/60 dark:from-deep-navy/70 dark:via-transparent dark:to-deep-navy/80" />
+                <div className="absolute inset-0 bg-black/20" />
+            </div>
+
+            <div className="relative z-10 text-center max-w-4xl animate-fade-in group">
+                <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest animate-shimmer bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/10 to-transparent">
+                    <FormattedMessage id="hero.badge" />
+                </div>
+                <h1 className="text-5xl md:text-8xl font-black text-white mb-8 leading-[1.05] tracking-tight [text-wrap:balance]">
+                    <FormattedMessage id="hero.title" />
+                </h1>
+                <p className="text-xl md:text-2xl text-white/90 mb-12 font-medium max-w-2xl mx-auto leading-relaxed [text-wrap:balance]">
+                    <FormattedMessage id="hero.subtitle" />
+                </p>
+                <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                    <button className="group relative bg-white text-navy px-10 py-5 rounded-full font-bold text-lg hover:bg-navy hover:text-white transition-all duration-500 shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] transform hover:-translate-y-1 overflow-hidden">
+                        <span className="relative z-10 font-bold"><FormattedMessage id="hero.ctaPrimary" /></span>
+                        <div className="absolute inset-0 bg-navy scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                    </button>
+                    <button className="bg-transparent border-2 border-white/40 backdrop-blur-md text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-white/10 hover:border-white transition-all duration-300 transform hover:-translate-y-1">
+                        <FormattedMessage id="hero.ctaSecondary" />
+                    </button>
+                </div>
+            </div>
+        </section>
+    );
+}
