@@ -24,10 +24,10 @@ export function Hero() {
                 <div className="inline-block px-4 py-1.5 mb-6 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold uppercase tracking-widest animate-shimmer bg-[length:200%_100%] bg-gradient-to-r from-transparent via-white/10 to-transparent">
                     <FormattedMessage id="hero.badge" />
                 </div>
-                <h1 className="text-5xl md:text-8xl font-black text-white mb-8 leading-[1.05] tracking-tight [text-wrap:balance]">
+                <h1 className="text-4xl md:text-6xl font-black text-white mb-8 leading-[1.1] tracking-tight [text-wrap:balance]">
                     <FormattedMessage id="hero.title" />
                 </h1>
-                <p className="text-xl md:text-2xl text-white/90 mb-12 font-medium max-w-2xl mx-auto leading-relaxed [text-wrap:balance]">
+                <p className="text-lg md:text-xl text-white/90 mb-12 font-medium max-w-2xl mx-auto leading-relaxed [text-wrap:balance]">
                     <FormattedMessage id="hero.subtitle" />
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
