@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { AirportAutocomplete } from "./AirportAutocomplete";
 
 export function PostJourneyModal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -45,28 +46,18 @@ export function PostJourneyModal() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">From</label>
-                            <input
-                                required
-                                type="text"
-                                placeholder="e.g. HYD"
-                                className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-2xl text-navy dark:text-offwhite font-bold focus:ring-2 focus:ring-forest/50 outline-none transition-all"
-                                value={from}
-                                onChange={(e) => setFrom(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">To</label>
-                            <input
-                                required
-                                type="text"
-                                placeholder="e.g. JFK"
-                                className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-2xl text-navy dark:text-offwhite font-bold focus:ring-2 focus:ring-forest/50 outline-none transition-all"
-                                value={to}
-                                onChange={(e) => setTo(e.target.value)}
-                            />
-                        </div>
+                        <AirportAutocomplete
+                            label="From"
+                            placeholder="e.g. HYD"
+                            value={from}
+                            onChange={setFrom}
+                        />
+                        <AirportAutocomplete
+                            label="To"
+                            placeholder="e.g. JFK"
+                            value={to}
+                            onChange={setTo}
+                        />
                     </div>
 
                     <div className="space-y-2">

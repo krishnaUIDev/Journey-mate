@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
+import { AirportAutocomplete } from "./AirportAutocomplete";
 
 interface JourneyPost {
     id: string;
@@ -94,26 +95,18 @@ export function JourneyFeed() {
             {/* Advanced Search Bar */}
             <div className="bg-white dark:bg-white/5 p-4 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/10 mb-16 flex flex-col lg:flex-row gap-4 items-center">
                 <div className="flex-1 flex gap-4 w-full">
-                    <div className="flex-1 px-6 py-3 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                        <span className="block text-[10px] uppercase font-black text-gray-400 mb-1">Coming From</span>
-                        <input
-                            type="text"
-                            placeholder="e.g. HYD"
-                            className="bg-transparent border-none text-navy dark:text-offwhite font-bold p-0 focus:outline-none focus:ring-0 text-sm w-full"
-                            value={searchFrom}
-                            onChange={(e) => setSearchFrom(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex-1 px-6 py-3 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                        <span className="block text-[10px] uppercase font-black text-gray-400 mb-1">Going To</span>
-                        <input
-                            type="text"
-                            placeholder="e.g. JFK"
-                            className="bg-transparent border-none text-navy dark:text-offwhite font-bold p-0 focus:outline-none focus:ring-0 text-sm w-full"
-                            value={searchTo}
-                            onChange={(e) => setSearchTo(e.target.value)}
-                        />
-                    </div>
+                    <AirportAutocomplete
+                        label="Coming From"
+                        placeholder="e.g. HYD"
+                        value={searchFrom}
+                        onChange={setSearchFrom}
+                    />
+                    <AirportAutocomplete
+                        label="Going To"
+                        placeholder="e.g. JFK"
+                        value={searchTo}
+                        onChange={setSearchTo}
+                    />
                 </div>
                 <div className="w-full lg:w-48 px-6 py-3 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
                     <span className="block text-[10px] uppercase font-black text-gray-400 mb-1">On Date</span>
