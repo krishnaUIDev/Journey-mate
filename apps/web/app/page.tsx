@@ -53,8 +53,18 @@ export default function Page() {
       <main className="min-h-screen">
         {/* Navigation */}
         <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
-          <div className="text-xl font-bold tracking-tight text-navy dark:text-offwhite lg:px-4">
-            Journey<span className="text-forest dark:text-sand/80">-mate</span>
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 overflow-hidden rounded-lg">
+              <Image
+                src="/logo.png"
+                alt="Journey-mate Logo"
+                fill
+                className="object-contain dark:brightness-200 dark:contrast-150"
+              />
+            </div>
+            <span className="text-xl font-bold text-navy dark:text-offwhite tracking-tight">
+              Journey<span className="text-forest dark:text-sand/80">-mate</span>
+            </span>
           </div>
 
           <div className="hidden md:flex items-center gap-6 font-medium text-navy dark:text-offwhite/80 lg:px-4">
@@ -196,8 +206,18 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
               <div className="col-span-2">
-                <div className="text-2xl font-bold text-navy dark:text-offwhite mb-6">
-                  Journey<span className="text-forest dark:text-sand/80">-mate</span>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="relative w-10 h-10 overflow-hidden rounded-lg">
+                    <Image
+                      src="/logo.png"
+                      alt="Journey-mate Logo"
+                      fill
+                      className="object-contain dark:brightness-200 dark:contrast-150"
+                    />
+                  </div>
+                  <span className="text-2xl font-bold text-navy dark:text-offwhite">
+                    Journey<span className="text-forest dark:text-sand/80">-mate</span>
+                  </span>
                 </div>
                 <p className="text-gray-500 dark:text-offwhite/50 max-w-xs leading-relaxed mb-6">
                   Connecting travelers for safer, more comfortable journeys. Join thousands of verified companions today.
