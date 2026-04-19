@@ -6,7 +6,7 @@ import { SignUpButton, SignInButton } from "@clerk/nextjs";
 
 export function Hero() {
     return (
-        <section className="relative h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden py-10 px-4 [clip-path:inset(0)]">
+        <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-20 px-4 [clip-path:inset(0)]">
             <div className="absolute inset-0 z-0 scale-105">
                 <Image
                     src="/hero-premium.png"
@@ -32,9 +32,9 @@ export function Hero() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                     <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                        <button className="group relative bg-white text-navy px-10 py-5 rounded-full font-bold text-lg hover:bg-navy hover:text-white transition-all duration-500 shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(255,255,255,0.5)] transform hover:-translate-y-1 overflow-hidden">
-                            <span className="relative z-10 font-bold"><FormattedMessage id="hero.ctaPrimary" /></span>
-                            <div className="absolute inset-0 bg-navy scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                        <button className="group relative bg-emerald-600 text-white px-10 py-5 rounded-full font-black text-lg hover:bg-emerald-700 transition-all duration-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transform hover:-translate-y-1 overflow-hidden">
+                            <span className="relative z-10 font-black tracking-wide"><FormattedMessage id="hero.ctaPrimary" /></span>
+                            <div className="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
                         </button>
                     </SignUpButton>
                     <SignInButton mode="modal" forceRedirectUrl="/dashboard">
