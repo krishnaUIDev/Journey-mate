@@ -15,6 +15,7 @@ type Locale = keyof typeof messages;
 
 const MOCK_TRIPS = [
     {
+        id: "trip-1",
         destination: "Paris, France",
         date: "June 15 - June 22, 2024",
         image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop",
@@ -22,6 +23,7 @@ const MOCK_TRIPS = [
         description: "Experience the city of lights! Planning to visit the Eiffel Tower, Louvre, and charming cafes in Montmartre.",
     },
     {
+        id: "trip-2",
         destination: "Bali, Indonesia",
         date: "July 10 - July 25, 2024",
         image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=2038&auto=format&fit=crop",
@@ -29,6 +31,7 @@ const MOCK_TRIPS = [
         description: "Relaxing getaway in Ubud and Seminyak. Yoga retreats, beach clubs, and exploring tropical rainforests.",
     },
     {
+        id: "trip-3",
         destination: "Tokyo, Japan",
         date: "September 5 - September 15, 2024",
         image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=2094&auto=format&fit=crop",
@@ -87,6 +90,7 @@ export default function Dashboard() {
     const handleCreateTrip = (newTrip: any) => {
         const tripWithMeta = {
             ...newTrip,
+            id: `trip-${Date.now()}`,
             image: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?q=80&w=2070&auto=format&fit=crop",
             date: `${newTrip.startDate} - ${newTrip.endDate}`
         };
@@ -185,8 +189,12 @@ export default function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {filteredTrips.map((trip, idx) => (
-                            <TripCard key={`${trip.destination}-${idx}`} {...trip} />
+                        {filteredTrips.map((trip) => (
+                            <TripCard
+                                key={trip.id}
+                                {...trip}
+                                href={`/dashboard/trips/${trip.id}`}
+                            />
                         ))}
                     </div>
 

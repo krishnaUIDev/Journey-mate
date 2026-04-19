@@ -1,14 +1,16 @@
 import React from "react";
 
 interface TripCardProps {
+    id: string;
     destination: string;
     date: string;
     image: string;
     budget: string;
     description: string;
+    href?: string;
 }
 
-export const TripCard = ({ destination, date, image, budget, description }: TripCardProps) => {
+export const TripCard = ({ id, destination, date, image, budget, description, href }: TripCardProps) => {
     return (
         <div className="bg-white dark:bg-white/5 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all border border-gray-100 dark:border-white/10 group">
             <div className="relative h-48 overflow-hidden">
@@ -29,9 +31,18 @@ export const TripCard = ({ destination, date, image, budget, description }: Trip
                 <p className="text-gray-600 dark:text-offwhite/70 text-sm line-clamp-2 mb-4">
                     {description}
                 </p>
-                <button className="w-full py-3 bg-navy dark:bg-sand text-white dark:text-navy rounded-xl font-bold hover:bg-forest dark:hover:bg-white transition-colors text-sm">
-                    View Details
-                </button>
+                {href ? (
+                    <a
+                        href={href}
+                        className="block w-full py-3 bg-navy dark:bg-sand text-white dark:text-navy rounded-xl font-bold hover:bg-forest dark:hover:bg-white transition-colors text-sm text-center"
+                    >
+                        View Details
+                    </a>
+                ) : (
+                    <button className="w-full py-3 bg-navy dark:bg-sand text-white dark:text-navy rounded-xl font-bold hover:bg-forest dark:hover:bg-white transition-colors text-sm">
+                        View Details
+                    </button>
+                )}
             </div>
         </div>
     );
