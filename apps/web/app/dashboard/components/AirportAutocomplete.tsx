@@ -1,7 +1,25 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { AIRPORTS, Airport } from "../../../data/airports";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+    Autocomplete,
+    TextField,
+    CircularProgress,
+    Box,
+    Typography,
+    Paper,
+    styled
+} from "@mui/material";
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import LocationCityIcon from '@mui/icons-material/LocationCity';
+
+interface AirportApiResponse {
+    code: string;
+    name: string;
+    city_name: string;
+    country_name: string;
+    type: string;
+}
 
 interface AirportAutocompleteProps {
     value: string;
@@ -11,94 +29,174 @@ interface AirportAutocompleteProps {
     className?: string;
 }
 
+// Custom Paper component for glassmorphic effect
+const CustomPaper = styled(Paper)(({ theme }) => ({
+    background: 'rgba(255, 255, 255, 0.95)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '1.5rem',
+    marginTop: '0.5rem',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+    border: '1px solid rgba(0,0,0,0.05)',
+    '&.dark': {
+        background: 'rgba(5, 8, 16, 0.95)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    }
+}));
+
 export function AirportAutocomplete({ value, onChange, placeholder, label, className = "" }: AirportAutocompleteProps) {
-    const [suggestions, setSuggestions] = useState<Airport[]>([]);
-    const [isOpen, setIsOpen] = useState(false);
-    const [highlightIndex, setHighlightIndex] = useState(-1);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [open, setOpen] = useState(false);
+    const [options, setOptions] = useState<AirportApiResponse[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [inputValue, setInputValue] = useState("");
 
+    const fetchAirports = async (term: string) => {
+        if (term.length < 2) {
+            setOptions([]);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `https://autocomplete.travelpayouts.com/places2?locale=en&types[]=airport&term=${encodeURIComponent(term)}`
+            );
+            const data = await response.json();
+            setOptions(data as AirportApiResponse[]);
+        } catch (error) {
+            console.error("Error fetching airports:", error);
+            setOptions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Simple debounce
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const input = e.target.value;
-        onChange(input);
-
-        if (input.length > 0) {
-            const filtered = AIRPORTS.filter(airport =>
-                airport.city.toLowerCase().includes(input.toLowerCase()) ||
-                airport.iata.toLowerCase().includes(input.toLowerCase()) ||
-                airport.name.toLowerCase().includes(input.toLowerCase())
-            ).slice(0, 5);
-            setSuggestions(filtered);
-            setIsOpen(true);
-            setHighlightIndex(-1);
-        } else {
-            setSuggestions([]);
-            setIsOpen(false);
-        }
-    };
-
-    const handleSelect = (airport: Airport) => {
-        onChange(`${airport.city} (${airport.iata})`);
-        setIsOpen(false);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (!isOpen) return;
-
-        if (e.key === "ArrowDown") {
-            setHighlightIndex(prev => Math.min(prev + 1, suggestions.length - 1));
-        } else if (e.key === "ArrowUp") {
-            setHighlightIndex(prev => Math.max(prev - 1, 0));
-        } else if (e.key === "Enter" && highlightIndex >= 0 && suggestions[highlightIndex]) {
-            handleSelect(suggestions[highlightIndex] as Airport);
-        } else if (e.key === "Escape") {
-            setIsOpen(false);
-        }
-    };
+        const timeoutId = setTimeout(() => {
+            if (inputValue) fetchAirports(inputValue);
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [inputValue]);
 
     return (
-        <div ref={containerRef} className={`relative flex-1 ${className}`}>
-            <span className="block text-[10px] uppercase font-black text-gray-400 mb-1 ml-2">{label}</span>
-            <input
-                type="text"
-                placeholder={placeholder}
-                className="w-full px-6 py-3 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-2xl text-navy dark:text-offwhite font-bold focus:ring-2 focus:ring-forest/50 outline-none transition-all text-sm"
-                value={value}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => value.length > 0 && setIsOpen(true)}
+        <Box className={`flex-1 ${className}`}>
+            <Typography variant="caption" sx={{
+                display: 'block',
+                textTransform: 'uppercase',
+                fontWeight: 900,
+                color: 'text.secondary',
+                mb: 0.5,
+                ml: 1,
+                fontSize: '10px',
+                letterSpacing: '0.05em'
+            }}>
+                {label}
+            </Typography>
+            <Autocomplete
+                open={open}
+                onOpen={() => setOpen(true)}
+                onClose={() => setOpen(false)}
+                isOptionEqualToValue={(option, value) => option.code === value.code}
+                getOptionLabel={(option) =>
+                    typeof option === 'string' ? option : `${option.city_name} (${option.code})`
+                }
+                options={options}
+                loading={loading}
+                value={options.find(opt => `${opt.city_name} (${opt.code})` === value) || null}
+                onChange={(_, newValue) => {
+                    if (newValue && typeof newValue !== 'string') {
+                        onChange(`${newValue.city_name} (${newValue.code})`);
+                    } else if (!newValue) {
+                        onChange("");
+                    }
+                }}
+                onInputChange={(_, newInputValue) => {
+                    setInputValue(newInputValue);
+                }}
+                filterOptions={(x) => x} // Disable built-in filtering, using API
+                slots={{
+                    paper: (props) => <CustomPaper {...props} className={document.documentElement.classList.contains('dark') ? 'dark' : ''} />
+                }}
+                renderInput={(params) => {
+                    return (
+                        <TextField
+                            {...params}
+                            placeholder={placeholder}
+                            variant="standard"
+                            sx={{
+                                px: 3,
+                                py: 1.2,
+                                bgcolor: 'rgba(0,0,0,0.03)',
+                                '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                borderRadius: '1rem',
+                                fontSize: '0.875rem',
+                                fontWeight: 700,
+                                border: '1px solid transparent',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                    bgcolor: 'rgba(0,0,0,0.05)',
+                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
+                                },
+                                '&.Mui-focused': {
+                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                    boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
+                                }
+                            }}
+                            slotProps={{
+                                input: {
+                                    ...(params.slotProps?.input || {}),
+                                    disableUnderline: true,
+                                    endAdornment: (
+                                        <React.Fragment>
+                                            {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                            {(params.slotProps?.input as any)?.endAdornment}
+                                        </React.Fragment>
+                                    ),
+                                }
+                            }}
+                        />
+                    )
+                }}
+                renderOption={(props, option) => {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { key, ...optionProps } = props;
+                    return (
+                        <Box component="li" key={option.code} {...optionProps} sx={{
+                            px: 3,
+                            py: 1.5,
+                            borderBottom: '1px solid rgba(0,0,0,0.05)',
+                            '.dark &': { borderColor: 'rgba(255,255,255,0.05)' },
+                            '&:last-child': { borderBottom: 'none' }
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                                <Box sx={{
+                                    p: 1,
+                                    borderRadius: '0.75rem',
+                                    bgcolor: 'rgba(16, 185, 129, 0.1)',
+                                    color: '#10B981'
+                                }}>
+                                    <FlightTakeoffIcon sx={{ fontSize: 18 }} />
+                                </Box>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="subtitle2" sx={{
+                                        fontWeight: 800,
+                                        color: 'text.primary',
+                                        '.dark &': { color: 'white' }
+                                    }}>
+                                        {option.city_name} <Box component="span" sx={{ color: '#10B981' }}>({option.code})</Box>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -0.2 }}>
+                                        {option.name}
+                                    </Typography>
+                                </Box>
+                                <Typography variant="caption" sx={{ fontWeight: 900, color: 'text.disabled', letterSpacing: '0.05em' }}>
+                                    {option.country_name}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    );
+                }}
             />
-
-            {isOpen && suggestions.length > 0 && (
-                <div className="absolute z-[110] left-0 right-0 mt-2 bg-white dark:bg-deep-navy border border-gray-100 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    {suggestions.map((airport, index) => (
-                        <div
-                            key={airport.iata}
-                            className={`px-6 py-4 cursor-pointer transition-colors flex items-center justify-between ${index === highlightIndex ? "bg-forest/10 dark:bg-sand/10" : "hover:bg-gray-50 dark:hover:bg-white/5"
-                                }`}
-                            onClick={() => handleSelect(airport)}
-                            onMouseEnter={() => setHighlightIndex(index)}
-                        >
-                            <div>
-                                <p className="font-bold text-navy dark:text-offwhite text-sm">
-                                    {airport.city} <span className="text-forest dark:text-sand/60">({airport.iata})</span>
-                                </p>
-                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-tight line-clamp-1">{airport.name}</p>
-                            </div>
-                            <span className="text-xs text-gray-300 dark:text-white/20 font-black tracking-tighter">SELECT</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
+        </Box>
     );
 }

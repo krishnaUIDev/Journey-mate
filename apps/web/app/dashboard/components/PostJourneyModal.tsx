@@ -1,13 +1,14 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { AirportAutocomplete } from "./AirportAutocomplete";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs, { Dayjs } from "dayjs";
+import { Box, Typography, TextField } from "@mui/material";
 
 export function PostJourneyModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
-    const [date, setDate] = useState("");
+    const [date, setDate] = useState<Dayjs | null>(dayjs());
     const [description, setDescription] = useState("");
 
     useEffect(() => {
@@ -20,12 +21,12 @@ export function PostJourneyModal() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        alert(`Journey Posted! ${from} to ${to} on ${date}.`);
+        alert(`Journey Posted! ${from} to ${to} on ${date?.format('YYYY-MM-DD')}.`);
         setIsOpen(false);
         // Reset form
         setFrom("");
         setTo("");
-        setDate("");
+        setDate(dayjs());
         setDescription("");
     };
 
@@ -60,16 +61,54 @@ export function PostJourneyModal() {
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">Date of Journey</label>
-                        <input
-                            required
-                            type="date"
-                            className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-2xl text-navy dark:text-offwhite font-bold focus:ring-2 focus:ring-forest/50 outline-none transition-all"
+                    <Box sx={{ spaceY: 0.5 }}>
+                        <Typography variant="caption" sx={{
+                            display: 'block',
+                            textTransform: 'uppercase',
+                            fontWeight: 900,
+                            color: 'text.secondary',
+                            mb: 0.5,
+                            ml: 1,
+                            fontSize: '10px',
+                            letterSpacing: '0.05em'
+                        }}>
+                            Date of Journey
+                        </Typography>
+                        <DatePicker
                             value={date}
-                            onChange={(e) => setDate(e.target.value)}
+                            onChange={(newValue) => setDate(newValue)}
+                            slotProps={{
+                                textField: {
+                                    fullWidth: true,
+                                    variant: 'standard',
+                                    slotProps: {
+                                        input: {
+                                            disableUnderline: true,
+                                            sx: {
+                                                px: 3,
+                                                py: 1.2,
+                                                bgcolor: 'rgba(0,0,0,0.03)',
+                                                '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                                borderRadius: '1rem',
+                                                fontSize: '0.875rem',
+                                                fontWeight: 700,
+                                                border: '1px solid transparent',
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    bgcolor: 'rgba(0,0,0,0.05)',
+                                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
+                                                },
+                                                '&.Mui-focused': {
+                                                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                                                    boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }}
                         />
-                    </div>
+                    </Box>
 
                     <div className="space-y-2">
                         <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">A Little About Your Trip</label>

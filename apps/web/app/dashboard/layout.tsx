@@ -9,6 +9,8 @@ import { ThemeToggle } from "../../components/ThemeToggle";
 import { LocaleSelector } from "../../components/LocaleSelector";
 import { UserButton, Show } from "@clerk/nextjs";
 import { PostJourneyModal } from "./components/PostJourneyModal";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 type Locale = keyof typeof messages;
 
@@ -42,62 +44,64 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <IntlProvider messages={messages[locale]} locale={locale} defaultLocale="en">
-            <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans transition-colors duration-300">
-                {/* Global Dashboard Header */}
-                <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
-                    <div className="flex items-center gap-8">
-                        <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">
-                            <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
-                                <Image
-                                    src="/logo.png"
-                                    alt="Journey-mate Logo"
-                                    fill
-                                    className="object-contain dark:brightness-200 dark:contrast-150"
-                                />
-                            </div>
-                            <span className="text-xl font-bold text-navy dark:text-offwhite tracking-tight">
-                                Journey<span className="text-forest dark:text-sand/80 font-bold">-mate</span>
-                            </span>
-                        </Link>
-                    </div>
-
-                    <div className="flex items-center gap-4 lg:gap-8">
-                        {/* Post a Journey Button */}
-                        <button
-                            className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95"
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-post-trip'))}
-                        >
-                            Post a Journey
-                        </button>
-
-                        {/* Emergency SOS Button */}
-                        <button
-                            className="hidden sm:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all items-center gap-2"
-                            onClick={() => alert("SOS Triggered! Emergency services and family notified.")}
-                        >
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                            </span>
-                            SOS
-                        </button>
-
-                        <div className="flex items-center gap-3 lg:gap-5 ml-2 lg:ml-4 border-l border-gray-100 dark:border-white/10 pl-4 lg:pl-8">
-                            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                            <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
-                            <Show when="signed-in">
-                                <UserButton />
-                            </Show>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans transition-colors duration-300">
+                    {/* Global Dashboard Header */}
+                    <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
+                        <div className="flex items-center gap-8">
+                            <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">
+                                <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
+                                    <Image
+                                        src="/logo.png"
+                                        alt="Journey-mate Logo"
+                                        fill
+                                        className="object-contain dark:brightness-200 dark:contrast-150"
+                                    />
+                                </div>
+                                <span className="text-xl font-bold text-navy dark:text-offwhite tracking-tight">
+                                    Journey<span className="text-forest dark:text-sand/80 font-bold">-mate</span>
+                                </span>
+                            </Link>
                         </div>
-                    </div>
-                </nav>
 
-                <main>
-                    {children}
-                </main>
+                        <div className="flex items-center gap-4 lg:gap-8">
+                            {/* Post a Journey Button */}
+                            <button
+                                className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95"
+                                onClick={() => window.dispatchEvent(new CustomEvent('open-post-trip'))}
+                            >
+                                Post a Journey
+                            </button>
 
-                <PostJourneyModal />
-            </div>
+                            {/* Emergency SOS Button */}
+                            <button
+                                className="hidden sm:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all items-center gap-2"
+                                onClick={() => alert("SOS Triggered! Emergency services and family notified.")}
+                            >
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                SOS
+                            </button>
+
+                            <div className="flex items-center gap-3 lg:gap-5 ml-2 lg:ml-4 border-l border-gray-100 dark:border-white/10 pl-4 lg:pl-8">
+                                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                                <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                                <Show when="signed-in">
+                                    <UserButton />
+                                </Show>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main>
+                        {children}
+                    </main>
+
+                    <PostJourneyModal />
+                </div>
+            </LocalizationProvider>
         </IntlProvider>
     );
 }

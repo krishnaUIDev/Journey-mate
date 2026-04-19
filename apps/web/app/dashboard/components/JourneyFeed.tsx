@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { AirportAutocomplete } from "./AirportAutocomplete";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs, { Dayjs } from "dayjs";
+import { Box, Typography } from "@mui/material";
 
 interface JourneyPost {
     id: string;
@@ -67,14 +70,14 @@ const MOCK_JOURNEYS: JourneyPost[] = [
 export function JourneyFeed() {
     const [searchFrom, setSearchFrom] = useState("");
     const [searchTo, setSearchTo] = useState("");
-    const [searchDate, setSearchDate] = useState("");
+    const [searchDate, setSearchDate] = useState<Dayjs | null>(dayjs());
     const [filteredJourneys, setFilteredJourneys] = useState(MOCK_JOURNEYS);
 
     const handleSearch = () => {
         const results = MOCK_JOURNEYS.filter(journey => {
             const matchFrom = !searchFrom || journey.from.toLowerCase().includes(searchFrom.toLowerCase());
             const matchTo = !searchTo || journey.to.toLowerCase().includes(searchTo.toLowerCase());
-            const matchDate = !searchDate || journey.date === searchDate;
+            const matchDate = !searchDate || journey.date === searchDate.format('YYYY-MM-DD');
             return matchFrom && matchTo && matchDate;
         });
         setFilteredJourneys(results);
@@ -108,15 +111,54 @@ export function JourneyFeed() {
                         onChange={setSearchTo}
                     />
                 </div>
-                <div className="w-full lg:w-48 px-6 py-3 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
-                    <span className="block text-[10px] uppercase font-black text-gray-400 mb-1">On Date</span>
-                    <input
-                        type="date"
-                        className="bg-transparent border-none text-navy dark:text-offwhite font-bold p-0 focus:outline-none focus:ring-0 text-sm w-full"
+                <Box className="w-full lg:w-56" sx={{ px: 2 }}>
+                    <Typography variant="caption" sx={{
+                        display: 'block',
+                        textTransform: 'uppercase',
+                        fontWeight: 900,
+                        color: 'text.secondary',
+                        mb: 0.5,
+                        ml: 1,
+                        fontSize: '10px',
+                        letterSpacing: '0.05em'
+                    }}>
+                        On Date
+                    </Typography>
+                    <DatePicker
                         value={searchDate}
-                        onChange={(e) => setSearchDate(e.target.value)}
+                        onChange={(newValue) => setSearchDate(newValue)}
+                        slotProps={{
+                            textField: {
+                                fullWidth: true,
+                                variant: 'standard',
+                                slotProps: {
+                                    input: {
+                                        disableUnderline: true,
+                                        sx: {
+                                            px: 3,
+                                            py: 1.2,
+                                            bgcolor: 'rgba(0,0,0,0.03)',
+                                            '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                            borderRadius: '1rem',
+                                            fontSize: '0.875rem',
+                                            fontWeight: 700,
+                                            border: '1px solid transparent',
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                bgcolor: 'rgba(0,0,0,0.05)',
+                                                '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
+                                            },
+                                            '&.Mui-focused': {
+                                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                                boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }}
                     />
-                </div>
+                </Box>
                 <button
                     onClick={handleSearch}
                     className="w-full lg:w-auto bg-navy dark:bg-sand text-white dark:text-navy px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-forest transition-all shadow-lg active:scale-95"
