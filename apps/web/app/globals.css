@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1A2D42;
+  --color-sand: #EADBC8;
+  --color-forest: #2C4A3E;
+  --color-offwhite: #F8F4F0;
+  
+  --font-sora: "Sora", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-offwhite text-navy font-sans;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sora;
+  }
+}
