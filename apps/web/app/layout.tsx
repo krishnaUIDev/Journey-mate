@@ -9,14 +9,20 @@ export const metadata: Metadata = {
   description: "Connect with verified travel companions for a safer and more enjoyable journey.",
 };
 
+import {
+  ClerkProvider
+} from '@clerk/nextjs';
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={sora.className} suppressHydrationWarning>{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={sora.className} suppressHydrationWarning>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

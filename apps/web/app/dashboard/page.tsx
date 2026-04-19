@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { TripCard } from "@repo/ui";
+import { UserButton, Show } from "@clerk/nextjs";
 
 const MOCK_TRIPS = [
     {
@@ -69,6 +70,9 @@ export default function Dashboard() {
                     <button className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2 rounded-full font-bold text-sm">
                         + New Trip
                     </button>
+                    <Show when="signed-in">
+                        <UserButton />
+                    </Show>
                 </div>
             </nav>
 
