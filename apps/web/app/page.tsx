@@ -150,6 +150,66 @@ export default function Page() {
           </div>
         </section>
 
+        {/* Mission Section */}
+        <section className="py-20 bg-white dark:bg-black transition-colors overflow-hidden">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+              <div className="flex-1 order-2 lg:order-1">
+                <h2 className="text-sm font-bold tracking-[0.2em] text-forest dark:text-sand uppercase mb-6">
+                  <FormattedMessage id="mission.header" />
+                </h2>
+                <div className="space-y-12">
+                  <div className="relative pl-14 group">
+                    <div className="absolute left-0 top-0.5 w-10 h-10 rounded-2xl bg-sand/20 dark:bg-sand/10 flex items-center justify-center text-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-sm">🛡️</div>
+                    <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3">
+                      <FormattedMessage id="mission.safety.title" />
+                    </h3>
+                    <p className="text-gray-500 dark:text-offwhite/50 leading-relaxed text-lg">
+                      <FormattedMessage id="mission.safety.desc" />
+                    </p>
+                  </div>
+
+                  <div className="relative pl-14 group">
+                    <div className="absolute left-0 top-0.5 w-10 h-10 rounded-2xl bg-forest/20 dark:bg-forest/10 flex items-center justify-center text-xl group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300 shadow-sm">📍</div>
+                    <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3">
+                      <FormattedMessage id="mission.peace.title" />
+                    </h3>
+                    <p className="text-gray-500 dark:text-offwhite/50 leading-relaxed text-lg">
+                      <FormattedMessage id="mission.peace.desc" />
+                    </p>
+                  </div>
+
+                  <div className="relative pl-14 group">
+                    <div className="absolute left-0 top-0.5 w-10 h-10 rounded-2xl bg-navy/20 dark:bg-navy/10 flex items-center justify-center text-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-sm">❤️</div>
+                    <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3">
+                      <FormattedMessage id="mission.community.title" />
+                    </h3>
+                    <p className="text-gray-500 dark:text-offwhite/50 leading-relaxed text-lg">
+                      <FormattedMessage id="mission.community.desc" />
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 order-1 lg:order-2 w-full lg:w-auto">
+                <div className="aspect-[4/5] relative rounded-[4rem] overflow-hidden lg:rotate-3 hover:rotate-0 transition-transform duration-1000 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] dark:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]">
+                  <Image
+                    src="/mission-visual.png"
+                    alt="Journey-mate Mission"
+                    fill
+                    className="object-cover scale-105 hover:scale-100 transition-transform duration-1000"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/80 via-transparent to-transparent opacity-60" />
+                  <div className="absolute bottom-12 left-12 right-12">
+                    <div className="text-white text-xl font-medium italic leading-relaxed drop-shadow-lg">
+                      "Building a self-sustaining network of human kindness."
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section */}
         <section className="relative z-10 pt-12 pb-24 px-8 bg-gray-50 dark:bg-deep-navy transition-colors">
           <div className="max-w-7xl mx-auto">

@@ -17,7 +17,14 @@ export const messages = {
         "features.tracking.title": "Live Tracking",
         "features.tracking.desc": "Keep your family informed with real-time flight tracking and arrival notifications.",
         "quote.text": "\"Journey-mate made it possible for my grandmother to fly across the world safely. It's more than just assistance; it's a connection.\"",
-        "quote.author": "SARAH JENKINS, FREQUENT TRAVELER"
+        "quote.author": "SARAH JENKINS, FREQUENT TRAVELER",
+        "mission.header": "Three Core Goals",
+        "mission.safety.title": "Safety & dignity for older travelers",
+        "mission.safety.desc": "Empowering seniors with mobility issues or cognitive needs to fly independently and confidently with a trained companion.",
+        "mission.peace.title": "Peace of mind for families",
+        "mission.peace.desc": "Live tracking and milestone notifications so you never have to worry while your loved ones are in the air.",
+        "mission.community.title": "Community-powered care",
+        "mission.community.desc": "A self-sustaining network of frequent flyers volunteering their travel time to build a kinder, more connected world."
     },
     hi: {
         "nav.howItWorks": "यह कैसे काम करता है",
