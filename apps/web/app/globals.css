@@ -1,20 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #1A2D42;
-  --color-sand: #EADBC8;
-  --color-forest: #2C4A3E;
-  --color-offwhite: #F8F4F0;
   --font-sora: "Sora", sans-serif;
+  --font-inter: "Inter", sans-serif;
+
+  --color-offwhite: #F8F4F0;
+  --color-navy: #0B1120;
+  --color-sand: #D9D2C5;
+  --color-deep-navy: #050810;
 }
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Glassmorphism utility */
 .glass-panel {
   background: rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(10px) saturate(120%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+@variant dark {
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px);
+  }
+
+  body {
+    background-color: var(--color-deep-navy);
+    color: var(--color-offwhite);
+  }
 }
 
 .glass-button {
@@ -42,7 +59,11 @@
 
 @layer base {
   body {
-    @apply bg-offwhite text-navy font-sans;
+    @apply bg-offwhite text-navy font-sans transition-colors duration-300;
+  }
+
+  @dark body {
+    @apply bg-deep-navy text-offwhite;
   }
 
   h1,
