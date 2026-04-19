@@ -6,7 +6,7 @@ import { SignUpButton, SignInButton } from "@clerk/nextjs";
 
 export function Hero() {
     return (
-        <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-20 px-4 [clip-path:inset(0)]">
+        <section className="relative min-h-[calc(100vh-80px)] flex items-center justify-center py-20 px-4 overflow-hidden [clip-path:inset(0)]">
             <div className="absolute inset-0 z-0 scale-105">
                 <Image
                     src="/hero-premium.png"

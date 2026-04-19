@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <body className={sora.className} suppressHydrationWarning>{children}</body>
+        <body className={`${sora.className} overflow-x-hidden`} suppressHydrationWarning>{children}</body>
       </html>
     </ClerkProvider>
   );
