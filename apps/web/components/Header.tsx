@@ -8,6 +8,9 @@ import {
     SignUpButton,
     UserButton
 } from "@clerk/nextjs";
+import Link from "next/link";
+import { ThemeToggle } from "./ThemeToggle";
+import { LocaleSelector } from "./LocaleSelector";
 
 interface HeaderProps {
     theme: "light" | "dark";
@@ -34,22 +37,12 @@ export function Header({
                 <Show when="signed-in">
                     <UserButton />
                 </Show>
-                <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                    aria-label="Toggle theme"
-                >
-                    {theme === "light" ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
-                    )}
-                </button>
+                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
             </div>
 
             {/* Brand Logo & Name */}
-            <div className="hidden md:flex items-center gap-2">
-                <div className="relative w-10 h-10 overflow-hidden rounded-lg">
+            <Link href="/" className="hidden md:flex items-center gap-2 group cursor-pointer">
+                <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
                     <Image
                         src="/logo.png"
                         alt="Journey-mate Logo"
@@ -65,9 +58,9 @@ export function Header({
                             : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
                     }}
                 >
-                    Journey<span className="text-forest dark:text-sand/80">-mate</span>
+                    Journey<span className="text-forest dark:text-sand/80 text-xl font-bold">-mate</span>
                 </span>
-            </div>
+            </Link>
 
             {/* Desktop Nav Group */}
             <div className="hidden md:flex items-center gap-8">
@@ -81,30 +74,8 @@ export function Header({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <select
-                        value={locale}
-                        onChange={handleLocaleChange}
-                        className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer border-none dark:text-offwhite/80 p-0 m-0 w-auto"
-                    >
-                        <option value="en">English</option>
-                        <option value="hi">हिंदी (Hindi)</option>
-                        <option value="te">తెలుగు (Telugu)</option>
-                        <option value="ta">தமிழ் (Tamil)</option>
-                        <option value="kn">ಕನ್ನಡ (Kannada)</option>
-                        <option value="bn">বাংলা (Bengali)</option>
-                    </select>
-
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                        aria-label="Toggle theme"
-                    >
-                        {theme === "light" ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" /></svg>
-                        )}
-                    </button>
+                    <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
                     <Show when="signed-out">
                         <SignInButton mode="modal" forceRedirectUrl="/dashboard">

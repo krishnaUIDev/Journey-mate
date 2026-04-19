@@ -4,8 +4,12 @@ import React, { useState, useEffect } from "react";
 import { TripCard } from "@repo/ui";
 import { UserButton, Show } from "@clerk/nextjs";
 import { IntlProvider, FormattedMessage } from "react-intl";
+import Link from "next/link";
 import { messages } from "../../i18n/messages";
 import { TripCreationModal } from "../../components/TripCreationModal";
+import Image from "next/image";
+import { ThemeToggle } from "../../components/ThemeToggle";
+import { LocaleSelector } from "../../components/LocaleSelector";
 
 type Locale = keyof typeof messages;
 
@@ -59,6 +63,23 @@ export default function Dashboard() {
         }
     }, []);
 
+    const toggleTheme = () => {
+        const nextTheme = theme === "light" ? "dark" : "light";
+        setTheme(nextTheme);
+        localStorage.setItem("theme", nextTheme);
+        if (nextTheme === "dark") {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    };
+
+    const handleLocaleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const nextLocale = e.target.value as Locale;
+        setLocale(nextLocale);
+        localStorage.setItem("locale", nextLocale);
+    };
+
     const filteredTrips = trips.filter((trip) =>
         trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -76,12 +97,31 @@ export default function Dashboard() {
         <IntlProvider messages={messages[locale]} locale={locale} defaultLocale="en">
             <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans transition-colors duration-300">
                 {/* Sidebar / Top Nav */}
-                <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5">
-                    <div className="text-xl font-bold tracking-tight text-navy dark:text-offwhite">
-                        Journey<span className="text-forest dark:text-sand/80">-mate</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative">
+                <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
+                    {/* Brand Logo & Name */}
+                    <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+                        <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
+                            <Image
+                                src="/logo.png"
+                                alt="Journey-mate Logo"
+                                fill
+                                className="object-contain dark:brightness-200 dark:contrast-150"
+                            />
+                        </div>
+                        <span
+                            className="text-xl font-bold text-navy dark:text-offwhite tracking-tight"
+                            style={{
+                                textShadow: theme === "light"
+                                    ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
+                                    : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
+                            }}
+                        >
+                            Journey<span className="text-forest dark:text-sand/80 text-xl font-bold">-mate</span>
+                        </span>
+                    </Link>
+
+                    <div className="flex items-center gap-6">
+                        <div className="relative hidden md:block">
                             <input
                                 type="text"
                                 placeholder={messages[locale]["dashboard.search"] as string}
@@ -105,15 +145,22 @@ export default function Dashboard() {
                                 <path d="m21 21-4.3-4.3" />
                             </svg>
                         </div>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-sm"
-                        >
-                            <FormattedMessage id="dashboard.newTrip" />
-                        </button>
-                        <Show when="signed-in">
-                            <UserButton />
-                        </Show>
+
+                        <div className="flex items-center gap-4">
+                            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                            <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+
+                            <button
+                                onClick={() => setIsModalOpen(true)}
+                                className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-all shadow-md transform hover:-translate-y-0.5 active:translate-y-0"
+                            >
+                                <FormattedMessage id="dashboard.newTrip" />
+                            </button>
+
+                            <Show when="signed-in">
+                                <UserButton />
+                            </Show>
+                        </div>
                     </div>
                 </nav>
 
