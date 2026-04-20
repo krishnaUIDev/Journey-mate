@@ -48,6 +48,12 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
     const [options, setOptions] = useState<AirportApiResponse[]>([]);
     const [loading, setLoading] = useState(false);
     const [inputValue, setInputValue] = useState("");
+    const [selectedOption, setSelectedOption] = useState<AirportApiResponse | null>(null);
+
+    // Sync internal object state if string value is cleared
+    useEffect(() => {
+        if (!value) setSelectedOption(null);
+    }, [value]);
 
     const fetchAirports = async (term: string) => {
         if (term.length < 2) {
@@ -58,7 +64,7 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
         setLoading(true);
         try {
             const response = await fetch(
-                `https://autocomplete.travelpayouts.com/places2?locale=en&types[]=airport&term=${encodeURIComponent(term)}`
+                `https://autocomplete.travelpayouts.com/places2?locale=en&types[]=airport&types[]=city&term=${encodeURIComponent(term)}`
             );
             const data = await response.json();
             setOptions(data as AirportApiResponse[]);
@@ -78,6 +84,12 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
         return () => clearTimeout(timeoutId);
     }, [inputValue]);
 
+    // Ensure currently selected option is always in the list to prevent clearing
+    const displayOptions = [...options];
+    if (selectedOption && !displayOptions.find(opt => opt.code === selectedOption.code)) {
+        displayOptions.unshift(selectedOption);
+    }
+
     return (
         <Box className={`flex-1 ${className}`}>
             <Typography variant="caption" sx={{
@@ -96,17 +108,19 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                 open={open}
                 onOpen={() => setOpen(true)}
                 onClose={() => setOpen(false)}
-                isOptionEqualToValue={(option, value) => option.code === value.code}
+                isOptionEqualToValue={(option, val) => option?.code === val?.code}
                 getOptionLabel={(option) =>
-                    typeof option === 'string' ? option : `${option.city_name} (${option.code})`
+                    typeof option === 'string' ? option : `${option.city_name || option.name} (${option.code})`
                 }
-                options={options}
+                options={displayOptions}
                 loading={loading}
-                value={options.find(opt => `${opt.city_name} (${opt.code})` === value) || null}
+                value={selectedOption && `${selectedOption.city_name || selectedOption.name} (${selectedOption.code})` === value ? selectedOption : null}
                 onChange={(_, newValue) => {
                     if (newValue && typeof newValue !== 'string') {
-                        onChange(`${newValue.city_name} (${newValue.code})`);
+                        setSelectedOption(newValue);
+                        onChange(`${newValue.city_name || newValue.name} (${newValue.code})`);
                     } else if (!newValue) {
+                        setSelectedOption(null);
                         onChange("");
                     }
                 }}
@@ -115,48 +129,52 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                 }}
                 filterOptions={(x) => x} // Disable built-in filtering, using API
                 slots={{
-                    paper: (props) => <CustomPaper {...props} className={document.documentElement.classList.contains('dark') ? 'dark' : ''} />
-                }}
-                renderInput={(params) => {
-                    return (
-                        <TextField
-                            {...params}
-                            placeholder={placeholder}
-                            variant="standard"
-                            sx={{
-                                px: 3,
-                                py: 1.2,
-                                bgcolor: 'rgba(0,0,0,0.03)',
-                                '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                                borderRadius: '1rem',
-                                fontSize: '0.875rem',
-                                fontWeight: 700,
-                                border: '1px solid transparent',
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                    bgcolor: 'rgba(0,0,0,0.05)',
-                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
-                                },
-                                '&.Mui-focused': {
-                                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                                    boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
-                                }
-                            }}
-                            slotProps={{
-                                input: {
-                                    ...(params.slotProps?.input || {}),
-                                    disableUnderline: true,
-                                    endAdornment: (
-                                        <React.Fragment>
-                                            {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                                            {(params.slotProps?.input as any)?.endAdornment}
-                                        </React.Fragment>
-                                    ),
-                                }
-                            }}
+                    paper: (props) => (
+                        <CustomPaper
+                            {...props}
+                            className={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : ''}
                         />
                     )
                 }}
+                renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        placeholder={placeholder}
+                        variant="standard"
+                        slotProps={{
+                            ...params.slotProps,
+                            input: {
+                                ...(params.slotProps?.input || {}),
+                                disableUnderline: true,
+                                endAdornment: (
+                                    <React.Fragment>
+                                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                                        {params.slotProps?.input?.endAdornment}
+                                    </React.Fragment>
+                                ),
+                                sx: {
+                                    px: 3,
+                                    py: 1.2,
+                                    bgcolor: 'rgba(0,0,0,0.03)',
+                                    '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                    borderRadius: '1rem',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 700,
+                                    border: '1px solid transparent',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        bgcolor: 'rgba(0,0,0,0.05)',
+                                        '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
+                                    },
+                                    '&.Mui-focused': {
+                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
+                                    }
+                                }
+                            }
+                        }}
+                    />
+                )}
                 renderOption={(props, option) => {
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { key, ...optionProps } = props;
@@ -172,10 +190,10 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                                 <Box sx={{
                                     p: 1,
                                     borderRadius: '0.75rem',
-                                    bgcolor: 'rgba(16, 185, 129, 0.1)',
-                                    color: '#10B981'
+                                    bgcolor: option.type === 'city' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                    color: option.type === 'city' ? '#3B82F6' : '#10B981'
                                 }}>
-                                    <FlightTakeoffIcon sx={{ fontSize: 18 }} />
+                                    {option.type === 'city' ? <LocationCityIcon sx={{ fontSize: 18 }} /> : <FlightTakeoffIcon sx={{ fontSize: 18 }} />}
                                 </Box>
                                 <Box sx={{ flex: 1 }}>
                                     <Typography variant="subtitle2" sx={{
@@ -183,7 +201,7 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                                         color: 'text.primary',
                                         '.dark &': { color: 'white' }
                                     }}>
-                                        {option.city_name} <Box component="span" sx={{ color: '#10B981' }}>({option.code})</Box>
+                                        {option.city_name || option.name} <Box component="span" sx={{ color: '#10B981' }}>({option.code})</Box>
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: -0.2 }}>
                                         {option.name}

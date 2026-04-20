@@ -73,18 +73,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 Post a Journey
                             </button>
 
-                            {/* Emergency SOS Button */}
-                            <button
-                                className="hidden sm:flex bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-600/20 active:scale-95 transition-all items-center gap-2"
-                                onClick={() => alert("SOS Triggered! Emergency services and family notified.")}
-                            >
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                </span>
-                                SOS
-                            </button>
-
                             <div className="flex items-center gap-3 lg:gap-5 ml-2 lg:ml-4 border-l border-gray-100 dark:border-white/10 pl-4 lg:pl-8">
                                 <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
                                 <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
