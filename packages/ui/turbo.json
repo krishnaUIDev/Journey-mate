@@ -1,17 +1,59 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["build:styles", "build:components"]
+      "dependsOn": [
+        "build:styles",
+        "build:components"
+      ]
     },
     "build:styles": {
-      "outputs": ["dist/**"]
+      "env": [
+        "CLERK_SIGN_IN_URL",
+        "CLERK_SIGN_UP_URL",
+        "CLERK_PUBLISHABLE_KEY",
+        "CLERK_SECRET_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_PUBLISHABLE_KEY",
+        "AVIATIONSTACK_API_KEY",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_AVIATIONSTACK_API_KEY",
+        "NEXT_PUBLIC_MAPKIT_JS_TOKEN"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "build:components": {
-      "outputs": ["dist/**"]
+      "env": [
+        "CLERK_SIGN_IN_URL",
+        "CLERK_SIGN_UP_URL",
+        "CLERK_PUBLISHABLE_KEY",
+        "CLERK_SECRET_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_PUBLISHABLE_KEY",
+        "AVIATIONSTACK_API_KEY",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_AVIATIONSTACK_API_KEY",
+        "NEXT_PUBLIC_MAPKIT_JS_TOKEN"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "dev": {
-      "with": ["dev:styles", "dev:components"]
+      "with": [
+        "dev:styles",
+        "dev:components"
+      ]
     },
     "dev:styles": {
       "cache": false,
