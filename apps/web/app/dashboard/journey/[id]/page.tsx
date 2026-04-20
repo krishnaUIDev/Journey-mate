@@ -43,163 +43,167 @@ export default function JourneyDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-offwhite dark:bg-navy p-6 lg:p-12">
-            <div className="max-w-6xl mx-auto">
-                {/* Header Navigation */}
-                <header className="flex items-center justify-between mb-8">
-                    <IconButton
-                        onClick={() => router.back()}
-                        className="bg-white dark:bg-white/5 shadow-sm hover:scale-110 transition-all"
+        <div className="relative min-h-screen bg-[#F2F2F7] dark:bg-black text-navy dark:text-white transition-colors duration-500 overflow-hidden font-inter">
+            {/* 1. Full-Screen Background Map Layer */}
+            <div className="absolute inset-0 z-0">
+                {/* Background Dot Grid */}
+                <div className="absolute inset-0 opacity-20 dark:opacity-40" style={{
+                    backgroundImage: 'radial-gradient(circle, #8E8E93 1px, transparent 1px)',
+                    backgroundSize: '32px 32px'
+                }} />
+
+                {/* Immersive Route Line */}
+                <div className="absolute inset-0 flex items-center justify-center p-8 lg:p-32">
+                    <div className="w-full max-w-7xl relative h-[400px]">
+                        <svg className="w-full h-full" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
+                                    <stop offset="50%" stopColor="#10B981" stopOpacity="1" />
+                                    <stop offset="100%" stopColor="#D9D2C5" stopOpacity="0.2" />
+                                </linearGradient>
+                            </defs>
+                            {/* Curved Connection Path */}
+                            <path
+                                d="M 100 200 Q 500 50 900 200"
+                                stroke="url(#routeGradient)"
+                                strokeWidth="3"
+                                fill="none"
+                                strokeDasharray="10 6"
+                                className="animate-[lineShimmer_15s_linear_infinite]"
+                            />
+                            {/* Origin & Destination Nodes */}
+                            <g className="origin-node">
+                                <circle cx="100" cy="200" r="10" className="fill-white dark:fill-navy stroke-forest stroke-[4]" />
+                                <circle cx="100" cy="200" r="20" className="fill-forest/20 animate-pulse" />
+                            </g>
+                            <g className="destination-node">
+                                <circle cx="900" cy="200" r="10" className="fill-white dark:fill-navy stroke-sand stroke-[4]" />
+                                <circle cx="900" cy="200" r="20" className="fill-sand/20 animate-pulse" />
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2. Top-Floating Navigation Overlay */}
+            <header className="absolute top-0 left-0 w-full p-8 flex justify-between items-center z-50">
+                <IconButton
+                    onClick={() => router.back()}
+                    sx={{
+                        bgcolor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)', scale: 1.1 },
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                >
+                    <BackIcon sx={{ color: 'white' }} />
+                </IconButton>
+                <div className="flex gap-4">
+                    <Button
+                        variant="contained"
+                        startIcon={<ShareIcon />}
+                        sx={{
+                            bgcolor: 'white', color: 'navy.main', borderRadius: '1.2rem', px: 3, py: 1.2, fontWeight: 900,
+                            fontSize: '0.75rem', textTransform: 'none', shadow: '0 10px 30px rgba(0,0,0,0.1)'
+                        }}
                     >
-                        <BackIcon sx={{ color: 'text.primary' }} />
-                    </IconButton>
-                    <div className="flex gap-4">
-                        <IconButton className="bg-white dark:bg-white/5 shadow-sm hover:scale-110 transition-all">
-                            <ShareIcon sx={{ color: 'text.primary' }} />
-                        </IconButton>
+                        Share
+                    </Button>
+                </div>
+            </header>
+
+            {/* 3. Central Dynamic Route Information */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none z-10 px-4">
+                <div className="flex items-center justify-center gap-4 lg:gap-16 mb-4">
+                    <div className="text-right">
+                        <Typography variant="h1" className="text-8xl lg:text-[12rem] font-black tracking-tighter leading-none opacity-10 dark:opacity-20 select-none">
+                            {journey.from.split(' (')[1]?.replace(')', '') || journey.from}
+                        </Typography>
                     </div>
-                </header>
+                    <div className="bg-sand/20 dark:bg-white/10 p-4 rounded-[2rem] backdrop-blur-xl border border-white/10 pointer-events-auto">
+                        <Typography className="text-xs font-black tracking-[0.4em] text-navy dark:text-white uppercase mb-2">FLIGHT</Typography>
+                        <Typography variant="h4" className="font-black text-navy dark:text-white tracking-widest">{journey.flightNumber}</Typography>
+                    </div>
+                    <div className="text-left">
+                        <Typography variant="h1" className="text-8xl lg:text-[12rem] font-black tracking-tighter leading-none opacity-10 dark:opacity-20 select-none">
+                            {journey.to.split(' (')[1]?.replace(')', '') || journey.to}
+                        </Typography>
+                    </div>
+                </div>
+                <Typography className="text-sm font-bold text-gray-500 uppercase tracking-[0.5em] mt-4">Verified Live Status • Active Route</Typography>
+            </div>
 
-                <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
-                    {/* Main Content Area */}
-                    <div className="lg:col-span-7 space-y-8">
-                        {/* Hero Route Card */}
-                        <div className="bg-white dark:bg-white/5 p-10 rounded-[3rem] shadow-xl border border-white/20 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-forest to-sand opacity-30" />
-
-                            <div className="flex items-center justify-between mb-12 relative z-10">
-                                <div className="text-center group">
-                                    <h2 className="text-6xl font-black text-navy dark:text-offwhite group-hover:scale-105 transition-transform">{journey.from}</h2>
-                                    <p className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mt-2">DEPARTURE</p>
-                                </div>
-
-                                <div className="flex-1 flex flex-col items-center px-8">
-                                    <div className="w-full h-[2px] bg-navy/10 dark:bg-white/10 relative rounded-full overflow-hidden">
-                                        <div className="absolute top-0 left-0 h-full w-full bg-navy dark:bg-white animate-[shimmer_3s_infinite]" />
+            {/* 4. Anchored Bottom Information Panel (Flighty Style) */}
+            <div className="absolute bottom-0 left-0 w-full z-40 p-6 lg:p-12">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid lg:grid-cols-12 gap-6 items-stretch">
+                        {/* Companion & Fast Actions Card */}
+                        <div className="lg:col-span-4 bg-white/70 dark:bg-black/60 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-white dark:border-white/10 shadow-2xl flex flex-col justify-between">
+                            <div className="flex items-center gap-5">
+                                <div className="relative">
+                                    <div className="w-20 h-20 rounded-[2rem] overflow-hidden border-4 border-white/40 shadow-xl ring-4 ring-forest/20">
+                                        <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
                                     </div>
-                                    <div className="mt-4 bg-navy dark:bg-sand text-white dark:text-navy px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                                        Non-Stop Flight
+                                    <div className="absolute -bottom-2 -right-2 bg-forest p-1.5 rounded-xl border-4 border-white dark:border-navy">
+                                        <VerifiedIcon sx={{ color: 'white', fontSize: 16 }} />
                                     </div>
                                 </div>
-
-                                <div className="text-center group">
-                                    <h2 className="text-6xl font-black text-navy dark:text-offwhite group-hover:scale-105 transition-transform">{journey.to}</h2>
-                                    <p className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mt-2">ARRIVAL</p>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-between items-end border-t border-gray-100 dark:border-white/10 pt-8">
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Flight Partner</p>
-                                    <p className="text-lg font-black text-navy dark:text-offwhite">{journey.flightNumber || "Not Specified"}</p>
+                                    <h4 className="text-2xl font-black text-navy dark:text-white leading-none mb-1">{journey.user.name}</h4>
+                                    <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                        <span>Verified</span> • <span>★ {journey.user.rating.toFixed(1)}</span>
+                                    </p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Travel Date</p>
-                                    <p className="text-lg font-black text-navy dark:text-offwhite">{dayjs(journey.date).format('MMMM DD, YYYY')}</p>
-                                </div>
+                            </div>
+
+                            <div className="mt-8 grid grid-cols-2 gap-3">
+                                <Button
+                                    variant="contained"
+                                    startIcon={<WhatsAppIcon />}
+                                    sx={{
+                                        bgcolor: 'forest.main', color: 'white', borderRadius: '1.2rem', py: 1.5, fontWeight: 900, fontSize: '0.7rem',
+                                        '&:hover': { bgcolor: '#059669' }
+                                    }}
+                                >
+                                    WhatsApp
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<MailIcon />}
+                                    sx={{
+                                        bgcolor: 'navy.main', color: 'white', borderRadius: '1.2rem', py: 1.5, fontWeight: 900, fontSize: '0.7rem',
+                                        '&:hover': { bgcolor: '#1a2a4a' }
+                                    }}
+                                >
+                                    Email
+                                </Button>
                             </div>
                         </div>
 
-                        {/* Description Section */}
-                        <div className="bg-white dark:bg-white/5 p-10 rounded-[3rem] shadow-sm border border-white/10">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6">About this Journey</h3>
-                            <p className="text-xl font-medium text-navy/80 dark:text-offwhite/80 leading-relaxed italic">
-                                "{journey.description}"
-                            </p>
-
-                            <div className="flex flex-wrap gap-3 mt-10">
-                                {journey.tags.map((tag: string, idx: number) => (
-                                    <span key={idx} className="px-5 py-2 bg-gray-50 dark:bg-white/10 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 border border-transparent hover:border-forest/20 transition-all hover:scale-105">
-                                        #{tag}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Sidebar Area */}
-                    <div className="lg:col-span-5 space-y-8">
-                        {/* Profile Card */}
-                        <div className="bg-navy dark:bg-sand p-10 rounded-[3rem] text-white dark:text-navy shadow-2xl relative overflow-hidden group">
-                            <div className="relative z-10">
-                                <div className="flex items-center gap-6 mb-8">
-                                    <div className="relative">
-                                        <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white/20 shadow-xl">
-                                            <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="absolute -bottom-2 -right-2 bg-forest p-1.5 rounded-xl border-4 border-navy dark:border-sand">
-                                            <VerifiedIcon sx={{ color: 'white', fontSize: 20 }} />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-3xl font-black mb-1">{journey.user.name}</h4>
-                                        <div className="flex items-center gap-2 bg-white/10 dark:bg-black/10 px-3 py-1 rounded-full w-fit">
-                                            <span className="text-xs font-bold">★ {journey.user.rating.toFixed(1)} Rating</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex items-center gap-4 bg-white/5 dark:bg-black/5 p-4 rounded-2xl border border-white/10">
-                                        <div className="w-10 h-10 rounded-xl bg-white/10 dark:bg-black/10 flex items-center justify-center">
-                                            <span className="text-xl">✅</span>
-                                        </div>
-                                        <p className="text-sm font-bold opacity-90 leading-tight">Verified Companion with 12 successful journeys.</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col gap-4">
-                                    <h5 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-2">Connect with {journey.user.name.split(' ')[0]}</h5>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Button
-                                            variant="contained"
-                                            startIcon={<WhatsAppIcon />}
-                                            sx={{
-                                                bgcolor: 'forest.main',
-                                                color: 'white',
-                                                borderRadius: '1.5rem',
-                                                py: 1.5,
-                                                fontWeight: 900,
-                                                fontSize: '0.75rem',
-                                                '&:hover': { bgcolor: '#059669', transform: 'translateY(-2px)' },
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                        >
-                                            WhatsApp
-                                        </Button>
-                                        <Button
-                                            variant="contained"
-                                            startIcon={<MailIcon />}
-                                            sx={{
-                                                bgcolor: 'white',
-                                                color: 'navy.main',
-                                                borderRadius: '1.5rem',
-                                                py: 1.5,
-                                                fontWeight: 900,
-                                                fontSize: '0.75rem',
-                                                '&:hover': { bgcolor: '#f3f4f6', transform: 'translateY(-2px)' },
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                        >
-                                            Email
-                                        </Button>
-                                    </div>
+                        {/* Trip Details & Status Row */}
+                        <div className="lg:col-span-8 bg-white/70 dark:bg-black/60 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-white dark:border-white/10 shadow-2xl overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-8">
+                                <div className="flex flex-col items-end">
+                                    <Typography className="text-[10px] font-black text-gray-500 uppercase tracking-widest">DEPARTURE DATE</Typography>
+                                    <Typography variant="h5" className="font-black text-navy dark:text-offwhite">{dayjs(journey.date).format('MMMM DD')}</Typography>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Flight Map Placeholder */}
-                        <div className="bg-offwhite dark:bg-white/5 p-8 rounded-[3rem] border border-navy/5 dark:border-white/5 relative h-64 overflow-hidden group">
-                            <div className="absolute inset-0 opacity-10 dark:opacity-20 pointer-events-none">
-                                <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M50 150C120 100 280 50 350 100" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
-                                    <circle cx="50" cy="150" r="4" fill="currentColor" />
-                                    <circle cx="350" cy="100" r="4" fill="currentColor" />
-                                </svg>
-                            </div>
-                            <div className="relative z-10 h-full flex flex-col justify-center items-center text-center">
-                                <Typography variant="h6" className="text-navy dark:text-offwhite" sx={{ fontWeight: 900, mb: 1 }}>Visual Route</Typography>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium max-w-xs">Connecting {journey.from} and {journey.to} via {journey.flightNumber}.</p>
+                            <div className="flex flex-col h-full">
+                                <div className="mb-6">
+                                    <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">MATCH NOTES</h5>
+                                    <p className="text-lg font-medium text-navy/80 dark:text-offwhite/90 leading-tight italic line-clamp-3">
+                                        "{journey.description}"
+                                    </p>
+                                </div>
+
+                                <div className="mt-auto pt-6 border-t border-gray-200/50 dark:border-white/10 flex flex-wrap gap-2">
+                                    {journey.tags.map((tag: string, idx: number) => (
+                                        <span key={idx} className="px-4 py-1.5 bg-navy/5 dark:bg-white/10 rounded-full text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                                            #{tag}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
