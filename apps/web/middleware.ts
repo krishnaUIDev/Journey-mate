@@ -4,8 +4,11 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"
 
 console.log('CLERK DEBUG:', {
     hasPublishableKey: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    hasClerkPublishableKey: !!process.env.CLERK_PUBLISHABLE_KEY,
     hasSecretKey: !!process.env.CLERK_SECRET_KEY,
 });
+
+const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY;
 
 export default clerkMiddleware(async (auth, req) => {
     // Temporarily disabled for development purpose
@@ -16,7 +19,7 @@ export default clerkMiddleware(async (auth, req) => {
     }
     */
 }, {
-    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    publishableKey,
     secretKey: process.env.CLERK_SECRET_KEY
 });
 
