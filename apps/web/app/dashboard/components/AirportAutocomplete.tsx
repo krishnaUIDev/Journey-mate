@@ -179,7 +179,7 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     const { key, ...optionProps } = props;
                     return (
-                        <Box component="li" key={option.code} {...optionProps} sx={{
+                        <Box component="li" key={`${option.code}-${option.type}-${option.name}`} {...optionProps} sx={{
                             px: 3,
                             py: 1.5,
                             borderBottom: '1px solid rgba(0,0,0,0.05)',

@@ -18,6 +18,7 @@
     "@mui/material": "^9.0.0",
     "@mui/x-date-pickers": "^9.0.2",
     "@repo/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.103.3",
     "dayjs": "^1.11.20",
     "next": "16.2.0",
     "react": "^19.2.0",

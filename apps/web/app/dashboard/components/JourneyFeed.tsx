@@ -1,80 +1,29 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { FormattedMessage } from "react-intl";
 import { AirportAutocomplete } from "./AirportAutocomplete";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { Box, Typography } from "@mui/material";
-
-interface JourneyPost {
-    id: string;
-    from: string;
-    to: string;
-    date: string;
-    user: {
-        name: string;
-        avatar: string;
-        rating: number;
-        verified: boolean;
-    };
-    description: string;
-    tags: string[];
-}
-
-const MOCK_JOURNEYS: JourneyPost[] = [
-    {
-        id: "post-1",
-        from: "HYD",
-        to: "JFK",
-        date: "2024-08-15",
-        user: {
-            name: "Rahul Sharma",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul",
-            rating: 4.8,
-            verified: true
-        },
-        description: "Traveling for study. Can help with luggage and basic assistance. Looking for someone on the same flight.",
-        tags: ["Student", "Light Luggage", "English/Hindi"]
-    },
-    {
-        id: "post-2",
-        from: "JFK",
-        to: "HYD",
-        date: "2024-08-20",
-        user: {
-            name: "Sarah Jenkins",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-            rating: 5.0,
-            verified: true
-        },
-        description: "Returning home. Experienced traveler. Happy to help elderly passengers with boarding and navigation.",
-        tags: ["Nurse", "Frequent Flyer", "English"]
-    },
-    {
-        id: "post-3",
-        from: "LHR",
-        to: "DEL",
-        date: "2024-09-05",
-        user: {
-            name: "Anita M.",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anita",
-            rating: 4.9,
-            verified: true
-        },
-        description: "Fluent in Punjabi and English. Traveling with family, happy to pair up for extra safety and companionship.",
-        tags: ["Bilingual", "Family Travel"]
-    }
-];
+import { useJourneys, JourneyPost } from "../../../context/JourneysContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function JourneyFeed() {
+    const { journeys, loading, error } = useJourneys();
+    const router = useRouter();
     const [searchFrom, setSearchFrom] = useState("");
     const [searchTo, setSearchTo] = useState("");
     const [searchDate, setSearchDate] = useState<Dayjs | null>(dayjs());
-    const [filteredJourneys, setFilteredJourneys] = useState(MOCK_JOURNEYS);
+    const [filteredJourneys, setFilteredJourneys] = useState<JourneyPost[]>([]);
+
+    useEffect(() => {
+        if (!loading) {
+            setFilteredJourneys(journeys);
+        }
+    }, [journeys, loading]);
 
     const handleSearch = () => {
-        const results = MOCK_JOURNEYS.filter(journey => {
+        const results = journeys.filter((journey: JourneyPost) => {
             const matchFrom = !searchFrom || journey.from.toLowerCase().includes(searchFrom.toLowerCase());
             const matchTo = !searchTo || journey.to.toLowerCase().includes(searchTo.toLowerCase());
             const matchDate = !searchDate || journey.date === searchDate.format('YYYY-MM-DD');
@@ -169,68 +118,97 @@ export function JourneyFeed() {
 
             {/* Journeys List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredJourneys.map((journey) => (
-                    <div key={journey.id} className="bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col">
-                        {/* Route Header */}
-                        <div className="bg-gray-50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10 relative">
-                            <div className="absolute top-4 right-4 bg-forest/10 dark:bg-sand/10 text-forest dark:text-sand px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
-                                Upcoming
-                            </div>
-                            <div className="flex items-center justify-between gap-4 mb-2">
-                                <div className="text-center">
-                                    <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.from}</p>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Origin</p>
-                                </div>
-                                <div className="flex-1 flex flex-col items-center gap-1 opacity-20">
-                                    <div className="h-0.5 w-full bg-navy dark:bg-offwhite rounded-full relative">
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t-2 border-r-2 border-navy dark:border-offwhite w-1.5 h-1.5" />
-                                    </div>
-                                    <span className="text-[8px] font-black">NONSTOP</span>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.to}</p>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Destination</p>
-                                </div>
-                            </div>
-                            <p className="text-center text-xs font-bold text-gray-400 mt-4">{journey.date}</p>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-8 flex-1 flex flex-col">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-forest/20">
-                                    <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-bold text-navy dark:text-offwhite">{journey.user.name}</h3>
-                                        {journey.user.verified && <span className="text-blue-500 text-[10px] opacity-80">🛡️</span>}
-                                    </div>
-                                    <p className="text-[10px] font-black text-forest dark:text-sand uppercase tracking-widest">★ {journey.user.rating.toFixed(1)} / 5.0</p>
-                                </div>
-                            </div>
-
-                            <p className="text-sm text-gray-600 dark:text-offwhite/60 mb-8 line-clamp-3 italic leading-relaxed">
-                                "{journey.description}"
-                            </p>
-
-                            <div className="flex gap-2 mb-8 flex-wrap">
-                                {journey.tags.map((tag, idx) => (
-                                    <span key={idx} className="px-3 py-1 bg-gray-50 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-
-                            <button
-                                className="w-full mt-auto py-4 bg-gray-100 dark:bg-white/10 hover:bg-forest hover:text-white dark:hover:bg-sand dark:hover:text-navy text-navy dark:text-offwhite rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                                onClick={() => alert(`Pairing request sent to ${journey.user.name}!`)}
-                            >
-                                Pair Up Now
-                            </button>
-                        </div>
+                {loading ? (
+                    [1, 2, 3].map((i) => (
+                        <div key={i} className="bg-white dark:bg-white/5 rounded-[2.5rem] h-[500px] animate-pulse border border-gray-100 dark:border-white/10" />
+                    ))
+                ) : error ? (
+                    <div className="col-span-full text-center py-20 bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] border border-red-100 dark:border-red-900/20">
+                        <Typography color="error" variant="h6" sx={{ fontWeight: 'bold' }}>Error loading journeys</Typography>
+                        <p className="text-gray-500 mt-2">{error}</p>
                     </div>
-                ))}
+                ) : filteredJourneys.length === 0 ? (
+                    <div className="col-span-full text-center py-24 bg-white dark:bg-white/5 rounded-[3rem] border border-dashed border-gray-200 dark:border-white/10">
+                        <Typography variant="h4" className="text-navy dark:text-offwhite" sx={{ fontWeight: 'black', mb: 2 }}>No journeys found</Typography>
+                        <p className="text-gray-500 mb-10 max-w-md mx-auto font-medium text-lg">Be the first to share your trip and connect with others on your route.</p>
+                        <Link
+                            href="/dashboard/post"
+                            className="inline-block bg-navy dark:bg-sand text-white dark:text-navy px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-forest transition-all shadow-xl active:scale-95"
+                        >
+                            Post Your Trip Now
+                        </Link>
+                    </div>
+                ) : (
+                    filteredJourneys.map((journey) => (
+                        <div
+                            key={journey.id}
+                            onClick={() => router.push(`/dashboard/journey/${journey.id}`)}
+                            className="bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col cursor-pointer active:scale-[0.98]"
+                        >
+                            {/* Route Header */}
+                            <div className="bg-gray-50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10 relative">
+                                <div className="absolute top-4 right-4 bg-forest/10 dark:bg-sand/10 text-forest dark:text-sand px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    Upcoming
+                                </div>
+                                <div className="flex items-center justify-between gap-4 mb-2">
+                                    <div className="text-center">
+                                        <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.from}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">Origin</p>
+                                    </div>
+                                    <div className="flex-1 flex flex-col items-center gap-1 opacity-20">
+                                        <div className="h-0.5 w-full bg-navy dark:bg-offwhite rounded-full relative">
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t-2 border-r-2 border-navy dark:border-offwhite w-1.5 h-1.5" />
+                                        </div>
+                                        <span className="text-[8px] font-black">NONSTOP</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.to}</p>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase">Destination</p>
+                                    </div>
+                                </div>
+                                <p className="text-center text-xs font-bold text-gray-400 mt-4">{journey.date}</p>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-8 flex-1 flex flex-col">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-forest/20">
+                                        <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-navy dark:text-offwhite">{journey.user.name}</h3>
+                                            {journey.user.verified && <span className="text-blue-500 text-[10px] opacity-80">🛡️</span>}
+                                        </div>
+                                        <p className="text-[10px] font-black text-forest dark:text-sand uppercase tracking-widest">★ {journey.user.rating.toFixed(1)} / 5.0</p>
+                                    </div>
+                                </div>
+
+                                <p className="text-sm text-gray-600 dark:text-offwhite/60 mb-8 line-clamp-3 italic leading-relaxed">
+                                    "{journey.description}"
+                                </p>
+
+                                <div className="flex gap-2 mb-8 flex-wrap">
+                                    {journey.tags.map((tag: string, idx: number) => (
+                                        <span key={idx} className="px-3 py-1 bg-gray-50 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase text-gray-400 tracking-tighter">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                <button
+                                    className="w-full mt-auto py-4 bg-gray-100 dark:bg-white/10 hover:bg-forest hover:text-white dark:hover:bg-sand dark:hover:text-navy text-navy dark:text-offwhite rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        router.push(`/dashboard/journey/${journey.id}`);
+                                    }}
+                                >
+                                    View Details
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
