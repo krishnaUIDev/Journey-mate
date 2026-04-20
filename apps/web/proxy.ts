@@ -10,6 +10,9 @@ export const proxy = clerkMiddleware(async (auth, req) => {
         if (!userId) return redirectToSignIn();
     }
     */
+}, {
+    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY
 });
 
 export const config = {
