@@ -2,7 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"]);
 
-export const proxy = clerkMiddleware(async (auth, req) => {
+console.log('CLERK DEBUG:', {
+    hasPublishableKey: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    hasSecretKey: !!process.env.CLERK_SECRET_KEY,
+});
+
+export default clerkMiddleware(async (auth, req) => {
     // Temporarily disabled for development purpose
     /*
     if (isProtectedRoute(req)) {
