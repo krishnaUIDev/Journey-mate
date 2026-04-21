@@ -20,6 +20,22 @@ export interface JourneyPost {
     tags: string[];
 }
 
+interface JourneyRow {
+    id: string;
+    origin: string;
+    destination: string;
+    date: string;
+    flight_number: string | null;
+    contact_info: string | null;
+    description: string | null;
+    user_name: string;
+    user_avatar: string | null;
+    user_rating: number | null;
+    user_verified: boolean | null;
+    tags: string[] | null;
+    created_at: string;
+}
+
 interface JourneysContextType {
     journeys: JourneyPost[];
     loading: boolean;
@@ -51,13 +67,13 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
 
             if (supabaseError) throw supabaseError;
 
-            const mappedJourneys: JourneyPost[] = (data || []).map(item => ({
+            const mappedJourneys: JourneyPost[] = ((data as JourneyRow[]) || []).map(item => ({
                 id: item.id,
                 from: item.origin,
                 to: item.destination,
                 date: item.date,
-                flightNumber: item.flight_number,
-                contactInfo: item.contact_info,
+                flightNumber: item.flight_number ?? undefined,
+                contactInfo: item.contact_info ?? undefined,
                 description: item.description || "",
                 tags: item.tags || [],
                 user: {
@@ -110,20 +126,21 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (supabaseError) throw supabaseError;
 
             if (data) {
+                const row = data as JourneyRow;
                 const addedJourney: JourneyPost = {
-                    id: data.id,
-                    from: data.origin,
-                    to: data.destination,
-                    date: data.date,
-                    flightNumber: data.flight_number,
-                    contactInfo: data.contact_info,
-                    description: data.description || "",
-                    tags: data.tags || [],
+                    id: row.id,
+                    from: row.origin,
+                    to: row.destination,
+                    date: row.date,
+                    flightNumber: row.flight_number ?? undefined,
+                    contactInfo: row.contact_info ?? undefined,
+                    description: row.description || "",
+                    tags: row.tags || [],
                     user: {
-                        name: data.user_name,
-                        avatar: data.user_avatar,
-                        rating: data.user_rating,
-                        verified: data.user_verified
+                        name: row.user_name,
+                        avatar: row.user_avatar || "",
+                        rating: row.user_rating || 5.0,
+                        verified: row.user_verified ?? true
                     }
                 };
                 setJourneys(prev => [addedJourney, ...prev]);
