@@ -20,10 +20,12 @@
     "@repo/ui": "workspace:*",
     "@supabase/supabase-js": "^2.103.3",
     "dayjs": "^1.11.20",
+    "leaflet": "^1.9.4",
     "next": "16.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.1.0",
-    "react-intl": "^10.1.2"
+    "react-intl": "^10.1.2",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^16.2.0",
@@ -31,6 +33,7 @@
     "@repo/tailwind-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.5",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^22.15.30",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",
