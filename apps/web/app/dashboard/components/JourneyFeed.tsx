@@ -23,10 +23,11 @@ export function JourneyFeed() {
     }, [journeys, loading]);
 
     const handleSearch = () => {
-        const results = journeys.filter((journey: JourneyPost) => {
-            const matchFrom = !searchFrom || journey.from.toLowerCase().includes(searchFrom.toLowerCase());
-            const matchTo = !searchTo || journey.to.toLowerCase().includes(searchTo.toLowerCase());
-            const matchDate = !searchDate || journey.date === searchDate.format('YYYY-MM-DD');
+        const results = (journeys || []).filter((journey: JourneyPost) => {
+            if (!journey) return false;
+            const matchFrom = !searchFrom || (journey.from || "").toLowerCase().includes(searchFrom.toLowerCase());
+            const matchTo = !searchTo || (journey.to || "").toLowerCase().includes(searchTo.toLowerCase());
+            const matchDate = !searchDate || (journey.date || "") === searchDate.format('YYYY-MM-DD');
             return matchFrom && matchTo && matchDate;
         });
         setFilteredJourneys(results);

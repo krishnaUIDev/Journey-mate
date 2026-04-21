@@ -35,9 +35,16 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
 
     const fetchJourneys = async () => {
+        if (!supabase) {
+            console.error("Supabase client is null. Environment variables might be missing.");
+            setError("Database connection error: Missing credentials.");
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
-            const { data, error: supabaseError } = await supabase
+            const { data, error: supabaseError } = await (supabase as any)
                 .from('journeys')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -75,8 +82,14 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const addJourney = async (newJourney: Omit<JourneyPost, "id">) => {
+        if (!supabase) {
+            console.error("Supabase client is null. Cannot add journey.");
+            alert("Database connection error: Missing credentials.");
+            return;
+        }
+
         try {
-            const { data, error: supabaseError } = await supabase
+            const { data, error: supabaseError } = await (supabase as any)
                 .from('journeys')
                 .insert([{
                     origin: newJourney.from,
