@@ -2,10 +2,12 @@
   "name": "with-tailwind",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "check-types": "turbo run check-types",
+    "build": "pnpm exec turbo run build",
+    "dev": "pnpm exec turbo run dev --concurrency 4",
+    "clean": "rm -rf .turbo apps/*/.turbo apps/*/.next packages/*/.turbo packages/*/dist",
+    "clean:force": "rm -rf node_modules .turbo apps/*/node_modules apps/*/.turbo apps/*/.next packages/*/node_modules packages/*/.turbo packages/*/dist",
+    "lint": "pnpm exec turbo run lint",
+    "check-types": "pnpm exec turbo run check-types",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {

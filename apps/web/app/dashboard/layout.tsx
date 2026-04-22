@@ -48,9 +48,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <RoleProvider>
                     <JourneysProvider>
-                        <div className="min-h-screen bg-gray-50 dark:bg-deep-navy font-sans transition-colors duration-300">
+                        <div className="min-h-screen bg-offwhite dark:bg-navy font-sans transition-colors duration-300">
                             {/* Global Dashboard Header */}
-                            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
+                            <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
                                 <div className="flex items-center gap-8">
                                     <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">
                                         <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">

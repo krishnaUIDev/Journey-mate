@@ -83,7 +83,7 @@
     @apply bg-offwhite text-navy font-sans transition-colors duration-300;
 
     .dark & {
-      @apply bg-deep-navy text-offwhite;
+      @apply bg-navy text-offwhite;
     }
   }
 

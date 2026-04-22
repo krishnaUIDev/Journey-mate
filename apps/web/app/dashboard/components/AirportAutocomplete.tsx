@@ -154,14 +154,20 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                                 ),
                                 sx: {
                                     px: 3,
-                                    py: 1.2,
+                                    py: 0,
+                                    minHeight: '3.5rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
                                     bgcolor: 'rgba(0,0,0,0.03)',
                                     '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                                    borderRadius: '1rem',
+                                    borderRadius: '1.25rem',
                                     fontSize: '0.875rem',
                                     fontWeight: 700,
                                     border: '1px solid transparent',
                                     transition: 'all 0.3s ease',
+                                    '& .MuiInput-input': {
+                                        padding: '0 !important',
+                                    },
                                     '&:hover': {
                                         bgcolor: 'rgba(0,0,0,0.05)',
                                         '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
