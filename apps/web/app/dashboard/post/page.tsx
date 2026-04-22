@@ -14,7 +14,7 @@ import { verifyFlight, getFlightsOnRoute, FlightDetails } from "../../../lib/fli
 export default function PostJourneyPage() {
     const router = useRouter();
     const { user } = useUser();
-    const { addJourney } = useJourneys();
+    const { journeys, addJourney } = useJourneys();
 
     const [submitting, setSubmitting] = useState(false);
     const [from, setFrom] = useState("");
@@ -28,6 +28,7 @@ export default function PostJourneyPage() {
     const [verificationStatus, setVerificationStatus] = useState<"idle" | "found" | "not_found">("idle");
     const [suggestedFlights, setSuggestedFlights] = useState<FlightDetails[]>([]);
     const [loadingFlights, setLoadingFlights] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     // Auto-discover flights when route and date are selected
     useEffect(() => {
@@ -52,6 +53,7 @@ export default function PostJourneyPage() {
         };
 
         discoverFlights();
+        setErrorMessage(null); // Clear error when date/route changes
     }, [from, to, date]);
 
     const handleSelectFlight = (flight: FlightDetails) => {
@@ -63,12 +65,25 @@ export default function PostJourneyPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+        setErrorMessage(null);
+
+        const selectedDate = date?.format('YYYY-MM-DD');
+        const isDuplicate = journeys.some(j =>
+            j.user.name === (user?.fullName || "A Traveler") &&
+            j.date === selectedDate
+        );
+
+        if (isDuplicate) {
+            setErrorMessage(`You already have a journey posted for ${selectedDate}. You can only post one journey per day.`);
+            setSubmitting(false);
+            return;
+        }
 
         try {
             await addJourney({
                 from: from.split(' (')[1]?.replace(')', '') || from,
                 to: to.split(' (')[1]?.replace(')', '') || to,
-                date: date?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+                date: selectedDate || dayjs().format('YYYY-MM-DD'),
                 flightNumber,
                 contactInfo,
                 description,
@@ -87,9 +102,9 @@ export default function PostJourneyPage() {
     };
 
     return (
-        <div className="min-h-screen bg-offwhite dark:bg-navy p-8 lg:p-16">
-            <div className="max-w-4xl mx-auto">
-                <header className="flex items-center justify-between mb-12">
+        <div className="min-h-screen bg-offwhite dark:bg-navy p-4 lg:p-10">
+            <div className="max-w-6xl mx-auto">
+                <header className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-6">
                         <IconButton
                             onClick={() => router.back()}
@@ -98,17 +113,17 @@ export default function PostJourneyPage() {
                             <BackIcon sx={{ color: 'text.primary' }} />
                         </IconButton>
                         <div>
-                            <h1 className="text-4xl font-black text-navy dark:text-offwhite">Post a New Journey</h1>
-                            <p className="text-gray-500 dark:text-offwhite/50 font-medium">Find a companion for your next flight.</p>
+                            <h1 className="text-3xl font-black text-navy dark:text-offwhite">Post a New Journey</h1>
+                            <p className="text-sm text-gray-500 dark:text-offwhite/50 font-medium">Find a companion for your next flight.</p>
                         </div>
                     </div>
                 </header>
 
-                <div className="grid lg:grid-cols-5 gap-12">
+                <div className="grid lg:grid-cols-5 gap-8 items-start">
                     {/* Form Side */}
                     <div className="lg:col-span-3">
-                        <form onSubmit={handleSubmit} className="space-y-8 bg-white dark:bg-white/5 p-10 rounded-[3rem] shadow-xl border border-white/20">
-                            <div className="grid grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-white/5 p-8 rounded-[2.5rem] shadow-xl border border-white/20">
+                            <div className="grid grid-cols-2 gap-4">
                                 <AirportAutocomplete
                                     label="From"
                                     placeholder="Origin Airport"
@@ -123,7 +138,7 @@ export default function PostJourneyPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-2 gap-4">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                     <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
                                         Departure Date
@@ -131,6 +146,7 @@ export default function PostJourneyPage() {
                                     <DatePicker
                                         value={date}
                                         onChange={(newValue) => setDate(newValue)}
+                                        disablePast
                                         slotProps={{
                                             textField: {
                                                 fullWidth: true,
@@ -174,22 +190,31 @@ export default function PostJourneyPage() {
                                 </Box>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">Journey Notes</label>
                                 <textarea
-                                    rows={3}
+                                    rows={2}
                                     placeholder="Describe your trip, luggage help needed, or preferred conversation topics..."
-                                    className="w-full px-8 py-6 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-[2rem] text-navy dark:text-offwhite font-medium focus:ring-4 focus:ring-forest/10 outline-none transition-all resize-none shadow-inner"
+                                    className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-[1.5rem] text-navy dark:text-offwhite font-medium focus:ring-4 focus:ring-forest/10 outline-none transition-all resize-none shadow-inner text-sm"
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
                             </div>
 
+                            {errorMessage && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-5 rounded-3xl mb-6 flex items-center gap-3">
+                                    <span className="text-xl">⚠️</span>
+                                    <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', lineHeight: 1.4 }}>
+                                        {errorMessage}
+                                    </Typography>
+                                </div>
+                            )}
+
                             <Button
                                 fullWidth
                                 type="submit"
                                 variant="contained"
-                                disabled={submitting || !from || !to || !flightNumber}
+                                disabled={submitting || !from || !to || !flightNumber || !!errorMessage}
                                 sx={{
                                     py: 2.5,
                                     borderRadius: '1.5rem',
@@ -214,64 +239,72 @@ export default function PostJourneyPage() {
                     </div>
 
                     {/* Flight Discovery Side */}
-                    <div className="lg:col-span-2">
-                        <div className="sticky top-8 space-y-6">
-                            <div className="bg-forest/5 dark:bg-sand/5 p-8 rounded-[2.5rem] border border-forest/10 dark:border-sand/10">
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                    <FlightIcon sx={{ color: 'forest.main' }} />
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'navy.main', '.dark &': { color: 'offwhite.main' } }}>
-                                        Suggested Flights
-                                    </Typography>
-                                </Box>
+                    <div className="lg:col-span-2 sticky top-[88px]">
+                        <div className="bg-forest/5 dark:bg-sand/5 p-6 rounded-[2rem] border border-forest/10 dark:border-sand/10 max-h-[calc(100vh-140px)] flex flex-col shadow-sm">
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexShrink: 0 }}>
+                                <FlightIcon sx={{ color: 'forest.main' }} />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 900, color: 'navy.main', '.dark &': { color: 'offwhite.main' } }}>
+                                    Suggested Flights
+                                </Typography>
+                            </Box>
 
+                            <div className="overflow-y-auto pr-1 scrollbar-hide">
                                 {loadingFlights ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                                         <CircularProgress size={24} />
                                     </Box>
                                 ) : suggestedFlights.length > 0 ? (
-                                    <div className="space-y-3">
+                                    <div className="space-y-2">
                                         {suggestedFlights.map((flight, idx) => (
                                             <div
                                                 key={idx}
                                                 onClick={() => handleSelectFlight(flight)}
-                                                className={`p-4 rounded-2xl border cursor-pointer transition-all ${flightNumber === flight.flight.iata
-                                                    ? 'bg-forest text-white border-forest shadow-lg scale-105'
+                                                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center gap-4 ${flightNumber === flight.flight.iata
+                                                    ? 'bg-forest text-white border-forest shadow-lg scale-[1.02]'
                                                     : 'bg-white dark:bg-white/5 border-transparent hover:border-forest/30 dark:hover:border-sand/30'
                                                     }`}
                                             >
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-xs font-black tracking-widest">{flight.flight.iata}</span>
-                                                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full ${flightNumber === flight.flight.iata ? 'bg-white/20' : 'bg-forest/10 text-forest'
-                                                        }`}>
-                                                        Scheduled
-                                                    </span>
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 border border-black/5 shadow-sm">
+                                                    <img
+                                                        src={`https://www.gstatic.com/flights/airline_logos/70px/${flight.airline.iata}.png`}
+                                                        alt={flight.airline.name}
+                                                        className="w-full h-full object-contain p-1"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/initials/svg?seed=' + flight.airline.iata;
+                                                        }}
+                                                    />
                                                 </div>
-                                                <div className="flex justify-between items-end">
-                                                    <div>
-                                                        <p className="text-[10px] font-bold opacity-60 uppercase">{flight.airline.name}</p>
-                                                        <p className="text-sm font-black">{dayjs(flight.departure.scheduled).format('HH:mm')} → {dayjs(flight.arrival.scheduled).format('HH:mm')}</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-center mb-0.5">
+                                                        <span className="text-[10px] font-black tracking-widest uppercase">{flight.flight.iata}</span>
+                                                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${flightNumber === flight.flight.iata ? 'bg-white/20' : 'bg-forest/10 text-forest'
+                                                            }`}>
+                                                            {flight.flight_status === 'active' ? 'Live' : 'Daily'}
+                                                        </span>
                                                     </div>
+                                                    <p className="text-[9px] font-bold opacity-70 uppercase truncate mb-0.5">{flight.airline.name}</p>
+                                                    <p className="text-xs font-black">{dayjs(flight.departure.scheduled).format('HH:mm')} → {dayjs(flight.arrival.scheduled).format('HH:mm')}</p>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-8">
-                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, px: 4 }}>
-                                            Select an origin and destination to see available flights.
+                                        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, px: 2 }}>
+                                            Select coordinates to see suggested flights.
                                         </Typography>
                                     </div>
                                 )}
                             </div>
+                        </div>
 
-                            <div className="p-8 bg-navy dark:bg-white/5 rounded-[2.5rem] text-white">
-                                <h4 className="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <span>🛡️</span> Safety Tip
-                                </h4>
-                                <p className="text-xs text-offwhite/70 leading-relaxed font-medium">
-                                    Verified flight numbers help us match you with the right companion. Always check your booking details before publishing.
-                                </p>
-                            </div>
+                        <div className="mt-4 p-6 bg-navy dark:bg-white/5 rounded-[1.5rem] text-white/90 border border-white/5">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <span>🛡️</span> Safety Tip
+                            </h4>
+                            <p className="text-[10px] text-offwhite/50 leading-relaxed font-medium">
+                                Verified flight numbers help us match you with the right companion.
+                            </p>
                         </div>
                     </div>
                 </div>

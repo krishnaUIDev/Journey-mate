@@ -33,20 +33,27 @@ export function JourneyFeed() {
         setFilteredJourneys(results);
     };
 
+    const handleReset = () => {
+        setSearchFrom("");
+        setSearchTo("");
+        setSearchDate(dayjs());
+        setFilteredJourneys(journeys);
+    };
+
     return (
-        <div className="max-w-7xl mx-auto px-8 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="max-w-7xl mx-auto px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Marketplace Header */}
-            <div className="text-center mb-16">
-                <h1 className="text-6xl font-black text-navy dark:text-offwhite mb-6">
+            <div className="text-center mb-10">
+                <h1 className="text-5xl font-black text-navy dark:text-offwhite mb-4">
                     Travel Together, <span className="text-forest dark:text-sand">Safely</span>
                 </h1>
-                <p className="text-gray-500 dark:text-offwhite/50 text-xl font-medium max-w-2xl mx-auto">
+                <p className="text-gray-500 dark:text-offwhite/50 text-lg font-medium max-w-2xl mx-auto">
                     The world's largest community for travel companions. Pair up with verified members on your flight.
                 </p>
             </div>
 
             {/* Advanced Search Bar */}
-            <div className="bg-white dark:bg-white/5 p-4 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/10 mb-16 flex flex-col lg:flex-row gap-4 items-center">
+            <div className="bg-white dark:bg-white/5 p-4 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/10 mb-12 flex flex-col lg:flex-row gap-4 items-center">
                 <div className="flex-1 flex gap-4 w-full">
                     <AirportAutocomplete
                         label="Coming From"
@@ -115,27 +122,37 @@ export function JourneyFeed() {
                         }}
                     />
                 </Box>
-                <button
-                    onClick={handleSearch}
-                    className="w-full lg:w-auto bg-navy dark:bg-sand text-white dark:text-navy px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-forest transition-all shadow-lg active:scale-95"
-                >
-                    Find Companions
-                </button>
+                <div className="flex flex-col lg:flex-row gap-3 w-full lg:w-auto">
+                    <button
+                        onClick={handleSearch}
+                        className="w-full lg:w-auto bg-navy dark:bg-sand text-white dark:text-navy px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-forest transition-all shadow-lg active:scale-95"
+                    >
+                        Find Companions
+                    </button>
+                    {(searchFrom || searchTo || (searchDate && !searchDate.isSame(dayjs(), 'day'))) && (
+                        <button
+                            onClick={handleReset}
+                            className="w-full lg:w-auto bg-gray-100 dark:bg-white/10 text-navy dark:text-offwhite px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                            <span className="text-lg">↺</span> Reset
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Journeys List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {loading ? (
                     [1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white dark:bg-white/5 rounded-[2.5rem] h-[500px] animate-pulse border border-gray-100 dark:border-white/10" />
+                        <div key={i} className="bg-white dark:bg-white/5 rounded-[2.5rem] h-[450px] animate-pulse border border-gray-100 dark:border-white/10" />
                     ))
                 ) : error ? (
-                    <div className="col-span-full text-center py-20 bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] border border-red-100 dark:border-red-900/20">
+                    <div className="col-span-full text-center py-16 bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] border border-red-100 dark:border-red-900/20">
                         <Typography color="error" variant="h6" sx={{ fontWeight: 'bold' }}>Error loading journeys</Typography>
                         <p className="text-gray-500 mt-2">{error}</p>
                     </div>
                 ) : filteredJourneys.length === 0 ? (
-                    <div className="col-span-full text-center py-24 bg-white dark:bg-white/5 rounded-[3rem] border border-dashed border-gray-200 dark:border-white/10">
+                    <div className="col-span-full text-center py-16 bg-white dark:bg-white/5 rounded-[3rem] border border-dashed border-gray-200 dark:border-white/10">
                         <Typography variant="h4" className="text-navy dark:text-offwhite" sx={{ fontWeight: 'black', mb: 2 }}>No journeys found</Typography>
                         <p className="text-gray-500 mb-10 max-w-md mx-auto font-medium text-lg">Be the first to share your trip and connect with others on your route.</p>
                         <Link
@@ -155,7 +172,7 @@ export function JourneyFeed() {
                                 className={`bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col cursor-pointer active:scale-[0.98] ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
                             >
                                 {/* Route Header */}
-                                <div className="bg-gray-50 dark:bg-white/5 p-8 border-b border-gray-100 dark:border-white/10 relative">
+                                <div className="bg-gray-50 dark:bg-white/5 p-6 border-b border-gray-100 dark:border-white/10 relative">
                                     <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400' : 'bg-forest/10 dark:bg-sand/10 text-forest dark:text-sand'}`}>
                                         {isPast ? 'Past Trip' : 'Upcoming'}
                                     </div>
@@ -179,8 +196,8 @@ export function JourneyFeed() {
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-8 flex-1 flex flex-col">
-                                    <div className="flex items-center gap-4 mb-6">
+                                <div className="p-6 flex-1 flex flex-col">
+                                    <div className="flex items-center gap-4 mb-4">
                                         <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-forest/20">
                                             <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
                                         </div>
@@ -193,11 +210,11 @@ export function JourneyFeed() {
                                         </div>
                                     </div>
 
-                                    <p className="text-sm text-gray-600 dark:text-offwhite/60 mb-8 line-clamp-3 italic leading-relaxed">
+                                    <p className="text-sm text-gray-600 dark:text-offwhite/60 mb-4 line-clamp-3 italic leading-relaxed">
                                         "{journey.description}"
                                     </p>
 
-                                    <div className="flex gap-2 mb-8 flex-wrap">
+                                    <div className="flex gap-2 mb-6 flex-wrap">
                                         {journey.tags.map((tag: string, idx: number) => (
                                             <span key={idx} className="px-3 py-1 bg-gray-50 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase text-gray-400 tracking-tighter">
                                                 {tag}

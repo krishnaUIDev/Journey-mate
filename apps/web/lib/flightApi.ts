@@ -15,6 +15,7 @@ export interface FlightDetails {
     };
     airline: {
         name: string;
+        iata: string;
     };
     flight: {
         number: string;
