@@ -26,6 +26,7 @@ interface RequestManagerProps {
 
 export function RequestManager({ journeyId }: RequestManagerProps) {
     const { getRequests, updateRequestStatus } = useMessages();
+    const { supabase } = useMessages() as any;
     const [requests, setRequests] = useState<JourneyRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -39,7 +40,42 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
 
     useEffect(() => {
         loadRequests();
-    }, [journeyId]);
+
+        // Real-time subscription for new requests
+        if (supabase) {
+            const channel = supabase
+                .channel(`journey_requests_${journeyId}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'journey_requests',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    (payload: any) => {
+                        setRequests(prev => [payload.new as JourneyRequest, ...prev]);
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'journey_requests',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    (payload: any) => {
+                        setRequests(prev => prev.map(r => r.id === payload.new.id ? payload.new as JourneyRequest : r));
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
+    }, [journeyId, supabase]);
 
     const handleAction = async (requestId: string, status: 'accepted' | 'rejected') => {
         await updateRequestStatus(requestId, status);

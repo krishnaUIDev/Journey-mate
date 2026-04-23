@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJourneys } from "../../../../context/JourneysContext";
 import dynamic from 'next/dynamic';
@@ -60,29 +60,55 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
     const { checkRequestStatus, sendRequest } = useMessages();
+    const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
 
     const isOwner = user?.id === journey?.userId;
+    const isPastTrip = journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day');
 
     useEffect(() => {
         const found = journeys.find((j: any) => j.id === id);
         if (found) {
             setJourney(found);
-            // Simulate loading delay for smooth transition
             setTimeout(() => setMapLoaded(true), 500);
 
-            // Check request status if not owner
-            if (user?.id && user.id !== found.userId) {
+            // Initial status check
+            if (user?.id && user.id !== found.userId && !isPastTrip) {
                 checkRequestStatus(id).then(status => {
                     setRequestStatus(status);
                     setRequestLoading(false);
                 });
+
+                // Real-time status subscription
+                if (supabase) {
+                    const channel = supabase
+                        .channel(`request_status_${id}_${user.id}`)
+                        .on(
+                            'postgres_changes',
+                            {
+                                event: 'UPDATE',
+                                schema: 'public',
+                                table: 'journey_requests',
+                                filter: `journey_id=eq.${id} AND requester_id=eq.${user.id}`,
+                            },
+                            (payload: any) => {
+                                setRequestStatus(payload.new.status);
+                            }
+                        )
+                        .subscribe();
+
+                    return () => {
+                        supabase.removeChannel(channel);
+                    };
+                }
             } else {
                 setRequestLoading(false);
             }
+        } else {
+            setRequestLoading(false);
         }
-    }, [id, journeys, user?.id, checkRequestStatus]);
+    }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip]);
 
     const handleRequestAction = async () => {
         await sendRequest(id);
@@ -283,7 +309,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         <Box sx={{ py: 2, textAlign: 'center' }}>
                                             <CircularProgress size={20} />
                                         </Box>
-                                    ) : isOwner ? (
+                                    ) : (isOwner || isPastTrip) ? (
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                             <Button
                                                 fullWidth
@@ -303,11 +329,11 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                     '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
                                                 }}
                                             >
-                                                Open Group Chat
+                                                {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
                                             </Button>
 
-                                            <Divider sx={{ my: 1, opacity: 0.3 }} />
-                                            <RequestManager journeyId={id} />
+                                            {!isPastTrip && <Divider sx={{ my: 1, opacity: 0.3 }} />}
+                                            {!isPastTrip && <RequestManager journeyId={id} />}
                                         </Box>
                                     ) : requestStatus === 'accepted' ? (
                                         <Button

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useUser } from "@clerk/nextjs";
+import { Snackbar, Alert } from "@mui/material";
 
 export interface Message {
     id: string;
@@ -43,6 +44,21 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(false);
     const { user } = useUser();
 
+    // Notification State
+    const [notification, setNotification] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
+        open: false,
+        message: '',
+        severity: 'info'
+    });
+
+    const showNotification = (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
+        setNotification({ open: true, message, severity });
+    };
+
+    const handleCloseNotification = () => {
+        setNotification(prev => ({ ...prev, open: false }));
+    };
+
     const fetchMessages = useCallback(async (journeyId: string) => {
         if (!supabase) return;
         setLoading(true);
@@ -72,11 +88,12 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const sendMessage = async (journeyId: string, content: string) => {
         if (!user) {
             const errorMsg = "You must be logged in to participate in the discussion.";
-            alert(errorMsg);
+            showNotification(errorMsg, 'error');
             throw new Error(errorMsg);
         }
         if (!supabase) {
             const errorMsg = "Database connection error. Please try again later.";
+            showNotification(errorMsg, 'error');
             throw new Error(errorMsg);
         }
 
@@ -94,7 +111,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
         } catch (err: any) {
             console.error("[MessagesContext] Error sending message:", err);
-            alert(`Failed to send message: ${err?.message || 'Unknown error'}`);
+            showNotification(`Failed to send message: ${err?.message || 'Unknown error'}`, 'error');
             throw err;
         }
     };
@@ -112,10 +129,10 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     status: 'pending'
                 }]);
             if (error) throw error;
-            alert("Request sent successfully!");
+            showNotification("Request sent successfully!", 'success');
         } catch (err: any) {
             console.error("[MessagesContext] Error sending request:", err);
-            alert(`Failed to send request: ${err.message}`);
+            showNotification(`Failed to send request: ${err.message}`, 'error');
         }
     };
 
@@ -142,8 +159,10 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 .update({ status })
                 .eq('id', requestId);
             if (error) throw error;
-        } catch (err) {
+            showNotification(`Request ${status} successfully!`, 'success');
+        } catch (err: any) {
             console.error("[MessagesContext] Error updating request status:", err);
+            showNotification(`Failed to update request: ${err.message}`, 'error');
         }
     };
 
@@ -205,6 +224,22 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             checkRequestStatus
         }}>
             {children}
+
+            <Snackbar
+                open={notification.open}
+                autoHideDuration={4000}
+                onClose={handleCloseNotification}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={handleCloseNotification}
+                    severity={notification.severity}
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: '1rem', fontWeight: 600 }}
+                >
+                    {notification.message}
+                </Alert>
+            </Snackbar>
         </MessagesContext.Provider>
     );
 }
