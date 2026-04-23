@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 
 export interface JourneyPost {
     id: string;
+    userId?: string;
     from: string;
     to: string;
     date: string;
@@ -22,6 +23,7 @@ export interface JourneyPost {
 
 interface JourneyRow {
     id: string;
+    user_id: string | null;
     origin: string;
     destination: string;
     date: string;
@@ -41,6 +43,8 @@ interface JourneysContextType {
     loading: boolean;
     error: string | null;
     addJourney: (journey: Omit<JourneyPost, "id">) => Promise<void>;
+    deleteJourney: (id: string) => Promise<void>;
+    updateJourney: (id: string, updates: Partial<Omit<JourneyPost, "id">>) => Promise<void>;
 }
 
 const JourneysContext = createContext<JourneysContextType | undefined>(undefined);
@@ -69,6 +73,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
 
             const mappedJourneys: JourneyPost[] = ((data as JourneyRow[]) || []).map(item => ({
                 id: item.id,
+                userId: item.user_id ?? undefined,
                 from: item.origin,
                 to: item.destination,
                 date: item.date,
@@ -108,6 +113,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             const { data, error: supabaseError } = await (supabase as any)
                 .from('journeys')
                 .insert([{
+                    user_id: newJourney.userId,
                     origin: newJourney.from,
                     destination: newJourney.to,
                     date: newJourney.date,
@@ -129,6 +135,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 const row = data as JourneyRow;
                 const addedJourney: JourneyPost = {
                     id: row.id,
+                    userId: row.user_id ?? undefined,
                     from: row.origin,
                     to: row.destination,
                     date: row.date,
@@ -151,8 +158,66 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const deleteJourney = async (id: string) => {
+        if (!supabase) return;
+        console.log("[JourneysContext] Attempting to delete journey ID:", id);
+        try {
+            const { error: supabaseError, status } = await (supabase as any)
+                .from('journeys')
+                .delete()
+                .eq('id', id);
+
+            console.log("[JourneysContext] Delete status:", status);
+
+            if (supabaseError) {
+                console.error("[JourneysContext] Delete error:", supabaseError);
+                throw supabaseError;
+            }
+
+            setJourneys(prev => prev.filter(j => j.id !== id));
+            console.log("[JourneysContext] Removed from local state.");
+        } catch (err: any) {
+            console.error("[JourneysContext] Error deleting journey:", err);
+            alert(`Failed to delete journey: ${err.message}`);
+        }
+    };
+
+    const updateJourney = async (id: string, updates: Partial<Omit<JourneyPost, "id">>) => {
+        if (!supabase) return;
+        console.log("[JourneysContext] Attempting to update journey ID:", id, "updates:", updates);
+        try {
+            const mappedUpdates: any = {};
+            if (updates.from) mappedUpdates.origin = updates.from;
+            if (updates.to) mappedUpdates.destination = updates.to;
+            if (updates.date) mappedUpdates.date = updates.date;
+            if (updates.flightNumber) mappedUpdates.flight_number = updates.flightNumber;
+            if (updates.contactInfo) mappedUpdates.contact_info = updates.contactInfo;
+            if (updates.description) mappedUpdates.description = updates.description;
+            if (updates.tags) mappedUpdates.tags = updates.tags;
+
+            const { data, error: supabaseError, status } = await (supabase as any)
+                .from('journeys')
+                .update(mappedUpdates)
+                .eq('id', id)
+                .select();
+
+            console.log("[JourneysContext] Update status:", status, "data:", data);
+
+            if (supabaseError) {
+                console.error("[JourneysContext] Update error:", supabaseError);
+                throw supabaseError;
+            }
+
+            setJourneys(prev => prev.map(j => (j.id === id ? { ...j, ...updates } : j)));
+            console.log("[JourneysContext] Updated in local state.");
+        } catch (err: any) {
+            console.error("[JourneysContext] Error updating journey:", err);
+            alert(`Failed to update journey: ${err.message}`);
+        }
+    };
+
     return (
-        <JourneysContext.Provider value={{ journeys, loading, error, addJourney }}>
+        <JourneysContext.Provider value={{ journeys, loading, error, addJourney, deleteJourney, updateJourney }}>
             {children}
         </JourneysContext.Provider>
     );

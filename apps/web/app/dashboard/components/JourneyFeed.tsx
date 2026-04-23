@@ -3,22 +3,42 @@ import { FormattedMessage } from "react-intl";
 import { AirportAutocomplete } from "./AirportAutocomplete";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import {
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+    Refresh as ResetIcon
+} from "@mui/icons-material";
 import { useJourneys, JourneyPost } from "../../../context/JourneysContext";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { EditJourneyModal } from "./EditJourneyModal";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 export function JourneyFeed() {
-    const { journeys, loading, error } = useJourneys();
+    const { journeys, loading, error, deleteJourney } = useJourneys();
+    const { user } = useUser();
     const router = useRouter();
+
     const [searchFrom, setSearchFrom] = useState("");
     const [searchTo, setSearchTo] = useState("");
     const [searchDate, setSearchDate] = useState<Dayjs | null>(dayjs());
     const [filteredJourneys, setFilteredJourneys] = useState<JourneyPost[]>([]);
 
+    const [editingJourney, setEditingJourney] = useState<JourneyPost | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const [deletingJourney, setDeletingJourney] = useState<JourneyPost | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     useEffect(() => {
         if (!loading) {
-            setFilteredJourneys(journeys);
+            const sorted = [...(journeys || [])].sort((a, b) =>
+                dayjs(b.date).unix() - dayjs(a.date).unix()
+            );
+            setFilteredJourneys(sorted);
         }
     }, [journeys, loading]);
 
@@ -30,7 +50,12 @@ export function JourneyFeed() {
             const matchDate = !searchDate || (journey.date || "") === searchDate.format('YYYY-MM-DD');
             return matchFrom && matchTo && matchDate;
         });
-        setFilteredJourneys(results);
+
+        const sortedResults = results.sort((a, b) =>
+            dayjs(b.date).unix() - dayjs(a.date).unix()
+        );
+
+        setFilteredJourneys(sortedResults);
     };
 
     const handleReset = () => {
@@ -38,6 +63,20 @@ export function JourneyFeed() {
         setSearchTo("");
         setSearchDate(dayjs());
         setFilteredJourneys(journeys);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingJourney) return;
+        setIsDeleting(true);
+        try {
+            await deleteJourney(deletingJourney.id);
+            setIsDeleteModalOpen(false);
+            setDeletingJourney(null);
+        } catch (err) {
+            console.error("Error deleting journey:", err);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -134,7 +173,7 @@ export function JourneyFeed() {
                             onClick={handleReset}
                             className="w-full lg:w-auto bg-gray-100 dark:bg-white/10 text-navy dark:text-offwhite px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                         >
-                            <span className="text-lg">↺</span> Reset
+                            <ResetIcon sx={{ fontSize: 20 }} /> Reset
                         </button>
                     )}
                 </div>
@@ -169,8 +208,50 @@ export function JourneyFeed() {
                             <div
                                 key={journey.id}
                                 onClick={() => router.push(`/dashboard/journey/${journey.id}`)}
-                                className={`bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col cursor-pointer active:scale-[0.98] ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
+                                className={`bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col cursor-pointer active:scale-[0.98] relative ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
                             >
+                                {/* Owner Actions - Floating Floating top-right-ish if owner */}
+                                {user?.id === journey.userId && (
+                                    <div className="absolute top-4 left-4 z-20 flex gap-2">
+                                        <Tooltip title="Edit Trip">
+                                            <IconButton
+                                                size="small"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingJourney(journey);
+                                                    setIsEditModalOpen(true);
+                                                }}
+                                                sx={{
+                                                    bgcolor: 'white',
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                    '&:hover': { bgcolor: '#f8fafc', scale: 1.1 },
+                                                    '.dark &': { bgcolor: '#1e293b', color: 'white', '&:hover': { bgcolor: '#334155' } }
+                                                }}
+                                            >
+                                                <EditIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Delete Trip">
+                                            <IconButton
+                                                size="small"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeletingJourney(journey);
+                                                    setIsDeleteModalOpen(true);
+                                                }}
+                                                sx={{
+                                                    bgcolor: 'white',
+                                                    color: '#ef4444',
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                    '&:hover': { bgcolor: '#fef2f2', scale: 1.1 },
+                                                    '.dark &': { bgcolor: '#1e293b', color: '#f87171', '&:hover': { bgcolor: '#450a0a' } }
+                                                }}
+                                            >
+                                                <DeleteIcon sx={{ fontSize: 16 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </div>
+                                )}
                                 {/* Route Header */}
                                 <div className="bg-gray-50 dark:bg-white/5 p-6 border-b border-gray-100 dark:border-white/10 relative">
                                     <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400' : 'bg-forest/10 dark:bg-sand/10 text-forest dark:text-sand'}`}>
@@ -237,6 +318,32 @@ export function JourneyFeed() {
                     })
                 )}
             </div>
+
+            {/* Edit Modal */}
+            {editingJourney && (
+                <EditJourneyModal
+                    open={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditingJourney(null);
+                    }}
+                    journey={editingJourney}
+                />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deletingJourney && (
+                <DeleteConfirmationModal
+                    open={isDeleteModalOpen}
+                    title={`${deletingJourney.from} to ${deletingJourney.to}`}
+                    onClose={() => {
+                        setIsDeleteModalOpen(false);
+                        setDeletingJourney(null);
+                    }}
+                    onConfirm={handleDeleteConfirm}
+                    submitting={isDeleting}
+                />
+            )}
         </div>
     );
 }

@@ -81,6 +81,7 @@ export default function PostJourneyPage() {
 
         try {
             await addJourney({
+                userId: user?.id || undefined,
                 from: from.split(' (')[1]?.replace(')', '') || from,
                 to: to.split(' (')[1]?.replace(')', '') || to,
                 date: selectedDate || dayjs().format('YYYY-MM-DD'),

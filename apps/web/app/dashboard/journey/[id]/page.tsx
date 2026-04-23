@@ -160,16 +160,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     /* Mobile styles */
                     rounded-t-[3rem] mx-2 -mt-6 pb-24 border-x border-t border-slate-100 dark:border-slate-800 relative z-20
                     /* Desktop Styles */
-                    lg:fixed lg:right-0 lg:top-0 lg:h-screen lg:w-[480px] lg:m-0 lg:rounded-none lg:rounded-l-[3.5rem] lg:pb-12 lg:overflow-y-auto lg:border-l lg:border-slate-800 lg:border-t-0 lg:z-[60] lg:mt-0
+                    lg:fixed lg:right-0 lg:top-0 lg:h-screen lg:w-[480px] lg:m-0 lg:rounded-none lg:rounded-l-[3.5rem] lg:pb-12 lg:overflow-y-auto lg:border-t-0 lg:z-[60] lg:mt-0
                     ${mapLoaded ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}
                 `}>
                     {/* Visual indicators for different modes */}
                     <div className="lg:hidden w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-6" />
                     <div className="hidden lg:block pt-24" />
 
-                    <div className="px-6 lg:px-12">
+                    <div className="px-6 lg:px-8">
                         {/* Hero Info - Desktop Version (Visible only on lg) */}
-                        <div className="hidden lg:flex items-center gap-4 mb-10">
+                        <div className="hidden lg:flex items-center gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-3 rounded-2xl border border-slate-100 dark:border-slate-700 inline-flex flex-col items-center">
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">FLIGHT</span>
                                 <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
@@ -177,7 +177,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         </div>
 
                         {/* Header Info in Sheet */}
-                        <div className="flex flex-col mb-12">
+                        <div className="flex flex-col mb-8">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
                                     {journey.from.split(' (')[0]}
@@ -192,10 +192,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-8">
+                        <div className="flex flex-col gap-6">
                             {/* User Profile Section */}
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700">
-                                <div className="flex items-center gap-5 mb-8">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-5 mb-6">
                                     <div className="relative">
                                         <div className="w-20 h-20 rounded-3xl overflow-hidden shadow-lg bg-white dark:bg-slate-700">
                                             <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
@@ -249,7 +249,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
 
                             {/* Details Section */}
                             <div className="space-y-6">
-                                <div className="p-8 bg-sky-50/50 dark:bg-sky-900/10 rounded-[2.5rem] border border-sky-100/50 dark:border-sky-800/30">
+                                <div className="p-6 bg-sky-50/50 dark:bg-sky-900/10 rounded-[2.5rem] border border-sky-100/50 dark:border-sky-800/30">
                                     <h5 className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-[0.2em] mb-4">MATCH NOTES</h5>
                                     <p className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
                                         "{journey.description}"
