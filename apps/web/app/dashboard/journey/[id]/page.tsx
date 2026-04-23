@@ -10,6 +10,7 @@ import {
     Typography,
     Divider,
     Box,
+    CircularProgress,
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
@@ -22,7 +23,9 @@ import {
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
 import { ChatWindow } from '../../components/ChatWindow';
+import { RequestManager } from '../../components/RequestManager';
 import { Drawer } from '@mui/material';
+import { useMessages } from '../../../../context/MessagesContext';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
     ssr: false,
@@ -56,6 +59,11 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [mapLoaded, setMapLoaded] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
+    const { checkRequestStatus, sendRequest } = useMessages();
+    const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
+    const [requestLoading, setRequestLoading] = useState(true);
+
+    const isOwner = user?.id === journey?.userId;
 
     useEffect(() => {
         const found = journeys.find((j: any) => j.id === id);
@@ -63,8 +71,24 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             setJourney(found);
             // Simulate loading delay for smooth transition
             setTimeout(() => setMapLoaded(true), 500);
+
+            // Check request status if not owner
+            if (user?.id && user.id !== found.userId) {
+                checkRequestStatus(id).then(status => {
+                    setRequestStatus(status);
+                    setRequestLoading(false);
+                });
+            } else {
+                setRequestLoading(false);
+            }
         }
-    }, [id, journeys]);
+    }, [id, journeys, user?.id, checkRequestStatus]);
+
+    const handleRequestAction = async () => {
+        await sendRequest(id);
+        const newStatus = await checkRequestStatus(id);
+        setRequestStatus(newStatus);
+    };
 
     if (!journey) {
         return (
@@ -255,26 +279,111 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
 
                                     <Divider sx={{ my: 1, opacity: 0.5 }} />
 
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        onClick={() => setChatOpen(true)}
-                                        startIcon={<ChatIcon />}
-                                        sx={{
-                                            bgcolor: 'navy',
-                                            color: 'white',
-                                            borderRadius: '1.2rem',
-                                            py: 2,
-                                            fontWeight: 900,
-                                            textTransform: 'none',
-                                            fontSize: '1rem',
-                                            boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
-                                            '&:hover': { bgcolor: 'black', scale: 1.02 },
-                                            '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
-                                        }}
-                                    >
-                                        Join Discussion
-                                    </Button>
+                                    {requestLoading ? (
+                                        <Box sx={{ py: 2, textAlign: 'center' }}>
+                                            <CircularProgress size={20} />
+                                        </Box>
+                                    ) : isOwner ? (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                onClick={() => setChatOpen(true)}
+                                                startIcon={<ChatIcon />}
+                                                sx={{
+                                                    bgcolor: 'navy',
+                                                    color: 'white',
+                                                    borderRadius: '1.2rem',
+                                                    py: 2,
+                                                    fontWeight: 900,
+                                                    textTransform: 'none',
+                                                    fontSize: '1rem',
+                                                    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
+                                                    '&:hover': { bgcolor: 'black', scale: 1.02 },
+                                                    '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
+                                                }}
+                                            >
+                                                Open Group Chat
+                                            </Button>
+
+                                            <Divider sx={{ my: 1, opacity: 0.3 }} />
+                                            <RequestManager journeyId={id} />
+                                        </Box>
+                                    ) : requestStatus === 'accepted' ? (
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={() => setChatOpen(true)}
+                                            startIcon={<ChatIcon />}
+                                            sx={{
+                                                bgcolor: 'navy',
+                                                color: 'white',
+                                                borderRadius: '1.2rem',
+                                                py: 2,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1rem',
+                                                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
+                                                '&:hover': { bgcolor: 'black', scale: 1.02 },
+                                                '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
+                                            }}
+                                        >
+                                            Join Discussion
+                                        </Button>
+                                    ) : requestStatus === 'pending' ? (
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            disabled
+                                            sx={{
+                                                borderRadius: '1.2rem',
+                                                py: 2,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1rem',
+                                                opacity: 0.7
+                                            }}
+                                        >
+                                            Request Sent (Pending)
+                                        </Button>
+                                    ) : requestStatus === 'rejected' ? (
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            disabled
+                                            color="error"
+                                            sx={{
+                                                borderRadius: '1.2rem',
+                                                py: 2,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            Request Declined
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={handleRequestAction}
+                                            startIcon={<ChatIcon />}
+                                            sx={{
+                                                bgcolor: 'forest',
+                                                color: 'white',
+                                                borderRadius: '1.2rem',
+                                                py: 2,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1rem',
+                                                boxShadow: '0 8px 20px rgba(34, 197, 94, 0.2)',
+                                                '&:hover': { bgcolor: 'navy', scale: 1.02 },
+                                                '.dark &': { bgcolor: 'forest', color: 'white', '&:hover': { bgcolor: '#166534' } }
+                                            }}
+                                        >
+                                            Request to Pair
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 

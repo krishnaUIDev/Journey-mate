@@ -48,7 +48,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         if (!input.trim()) return;
         const currentInput = input;
         setInput("");
-        await sendMessage(journeyId, currentInput);
+        try {
+            await sendMessage(journeyId, currentInput);
+        } catch (error) {
+            // Restore input if sending fails (e.g. not logged in)
+            setInput(currentInput);
+        }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
