@@ -160,31 +160,23 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
 
     const deleteJourney = async (id: string) => {
         if (!supabase) return;
-        console.log("[JourneysContext] Attempting to delete journey ID:", id);
         try {
-            const { error: supabaseError, status } = await (supabase as any)
+            const { error: supabaseError } = await (supabase as any)
                 .from('journeys')
                 .delete()
                 .eq('id', id);
 
-            console.log("[JourneysContext] Delete status:", status);
-
-            if (supabaseError) {
-                console.error("[JourneysContext] Delete error:", supabaseError);
-                throw supabaseError;
-            }
+            if (supabaseError) throw supabaseError;
 
             setJourneys(prev => prev.filter(j => j.id !== id));
-            console.log("[JourneysContext] Removed from local state.");
         } catch (err: any) {
-            console.error("[JourneysContext] Error deleting journey:", err);
+            console.error("Error deleting journey:", err);
             alert(`Failed to delete journey: ${err.message}`);
         }
     };
 
     const updateJourney = async (id: string, updates: Partial<Omit<JourneyPost, "id">>) => {
         if (!supabase) return;
-        console.log("[JourneysContext] Attempting to update journey ID:", id, "updates:", updates);
         try {
             const mappedUpdates: any = {};
             if (updates.from) mappedUpdates.origin = updates.from;
@@ -195,23 +187,16 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (updates.description) mappedUpdates.description = updates.description;
             if (updates.tags) mappedUpdates.tags = updates.tags;
 
-            const { data, error: supabaseError, status } = await (supabase as any)
+            const { error: supabaseError } = await (supabase as any)
                 .from('journeys')
                 .update(mappedUpdates)
-                .eq('id', id)
-                .select();
+                .eq('id', id);
 
-            console.log("[JourneysContext] Update status:", status, "data:", data);
-
-            if (supabaseError) {
-                console.error("[JourneysContext] Update error:", supabaseError);
-                throw supabaseError;
-            }
+            if (supabaseError) throw supabaseError;
 
             setJourneys(prev => prev.map(j => (j.id === id ? { ...j, ...updates } : j)));
-            console.log("[JourneysContext] Updated in local state.");
         } catch (err: any) {
-            console.error("[JourneysContext] Error updating journey:", err);
+            console.error("Error updating journey:", err);
             alert(`Failed to update journey: ${err.message}`);
         }
     };
