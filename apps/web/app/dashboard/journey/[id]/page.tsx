@@ -8,15 +8,21 @@ import {
     Button,
     IconButton,
     Typography,
+    Divider,
+    Box,
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
     Share as ShareIcon,
     WhatsApp as WhatsAppIcon,
     Email as MailIcon,
-    Verified as VerifiedIcon
+    Verified as VerifiedIcon,
+    ChatBubbleOutlined as ChatIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
+import { useUser } from '@clerk/nextjs';
+import { ChatWindow } from '../../components/ChatWindow';
+import { Drawer } from '@mui/material';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
     ssr: false,
@@ -48,6 +54,8 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const { journeys } = useJourneys();
     const [journey, setJourney] = useState<any>(null);
     const [mapLoaded, setMapLoaded] = useState(false);
+    const [chatOpen, setChatOpen] = useState(false);
+    const { user } = useUser();
 
     useEffect(() => {
         const found = journeys.find((j: any) => j.id === id);
@@ -244,6 +252,29 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     >
                                         Email
                                     </Button>
+
+                                    <Divider sx={{ my: 1, opacity: 0.5 }} />
+
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        onClick={() => setChatOpen(true)}
+                                        startIcon={<ChatIcon />}
+                                        sx={{
+                                            bgcolor: 'navy',
+                                            color: 'white',
+                                            borderRadius: '1.2rem',
+                                            py: 2,
+                                            fontWeight: 900,
+                                            textTransform: 'none',
+                                            fontSize: '1rem',
+                                            boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
+                                            '&:hover': { bgcolor: 'black', scale: 1.02 },
+                                            '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
+                                        }}
+                                    >
+                                        Join Discussion
+                                    </Button>
                                 </div>
                             </div>
 
@@ -271,6 +302,27 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     </div>
                 </aside>
             </div>
+
+            {/* Chat Drawer */}
+            <Drawer
+                anchor="right"
+                open={chatOpen}
+                onClose={() => setChatOpen(false)}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            width: { xs: '100%', sm: 400 },
+                            bgcolor: 'transparent',
+                            boxShadow: 'none',
+                            border: 'none'
+                        }
+                    }
+                }}
+            >
+                <Box sx={{ height: '100%', p: { xs: 0, sm: 2 } }}>
+                    <ChatWindow journeyId={id} onClose={() => setChatOpen(false)} />
+                </Box>
+            </Drawer>
         </div>
     );
 }
