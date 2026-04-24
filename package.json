@@ -8,11 +8,16 @@
     "clean:force": "rm -rf node_modules .turbo apps/*/node_modules apps/*/.turbo apps/*/.next packages/*/node_modules packages/*/.turbo packages/*/dist",
     "lint": "pnpm exec turbo run lint",
     "check-types": "pnpm exec turbo run check-types",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:init": "supabase init",
+    "db:status": "supabase status",
+    "db:diff": "supabase db diff",
+    "db:push": "supabase db push"
   },
   "devDependencies": {
     "prettier": "^3.6.0",
     "prettier-plugin-tailwindcss": "^0.7.1",
+    "supabase": "^1.226.4",
     "turbo": "^2.9.6"
   },
   "packageManager": "pnpm@10.19.0",
