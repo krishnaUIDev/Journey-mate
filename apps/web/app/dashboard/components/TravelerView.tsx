@@ -86,7 +86,7 @@ export function TravelerView() {
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">
                                     <h3 className="font-bold text-navy dark:text-offwhite text-lg">Sarah Jenkins</h3>
-                                    <span className="text-forest dark:text-sand font-black text-sm">★ 4.9</span>
+                                    <span className="text-forest dark:text-sand font-black text-[10px] uppercase tracking-widest px-2 py-0.5 bg-forest/5 dark:bg-sand/5 rounded-md">NEW MEMBER</span>
                                 </div>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-4">RN Nurse • Bilingual</p>
                                 <div className="flex gap-2 mb-6 flex-wrap">
@@ -106,7 +106,7 @@ export function TravelerView() {
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-1">
                                     <h3 className="font-bold text-navy dark:text-offwhite text-lg">Michael Chen</h3>
-                                    <span className="text-forest dark:text-sand font-black text-sm">★ 5.0</span>
+                                    <span className="text-forest dark:text-sand font-black text-[10px] uppercase tracking-widest px-2 py-0.5 bg-forest/5 dark:bg-sand/5 rounded-md">NEW MEMBER</span>
                                 </div>
                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-4">Ex-Airline Crew</p>
                                 <div className="flex gap-2 mb-6 flex-wrap">

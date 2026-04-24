@@ -57,7 +57,7 @@ export function CompanionView() {
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">Trips Helped</p>
                             </div>
                             <div>
-                                <p className="text-2xl font-black text-navy dark:text-offwhite">★ 4.9</p>
+                                <p className="text-2xl font-black text-forest dark:text-sand">NEW</p>
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">Avg Rating</p>
                             </div>
                         </div>

@@ -86,7 +86,7 @@ export function FamilyView() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="font-bold text-sm text-navy dark:text-offwhite">Rajesh Kumar</p>
-                                        <p className="text-xs text-gray-500">★ 4.8 • Ex-Armed Forces</p>
+                                        <p className="text-[10px] font-black text-forest dark:text-sand uppercase tracking-widest">New Member • Ex-Armed Forces</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">

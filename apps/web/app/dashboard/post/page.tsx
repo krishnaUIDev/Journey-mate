@@ -79,6 +79,12 @@ export default function PostJourneyPage() {
             return;
         }
 
+        if (!contactInfo || contactInfo.trim().length < 3) {
+            setErrorMessage("Contact Details (WhatsApp, Email, or Instagram) are required so travelers can reach you.");
+            setSubmitting(false);
+            return;
+        }
+
         try {
             await addJourney({
                 userId: user?.id || undefined,
@@ -91,10 +97,10 @@ export default function PostJourneyPage() {
                 user: {
                     name: user?.fullName || "A Traveler",
                     avatar: user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`,
-                    rating: 5.0,
-                    verified: true
+                    rating: 0,
+                    verified: false
                 },
-                tags: ["New Trip", "Verified"]
+                tags: ["New Trip"]
             });
             router.push('/dashboard');
         } finally {
@@ -173,7 +179,7 @@ export default function PostJourneyPage() {
                                     </Typography>
                                     <TextField
                                         fullWidth
-                                        placeholder="WhatsApp / Email"
+                                        placeholder="WhatsApp / Email / Instagram"
                                         variant="standard"
                                         value={contactInfo}
                                         onChange={(e) => setContactInfo(e.target.value)}

@@ -273,7 +273,9 @@ export function JourneyFeed() {
                                             <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
                                         </div>
                                         <span className="text-xs font-bold text-gray-600 dark:text-gray-400 truncate">{journey.user.name}</span>
-                                        <span className="text-[10px] font-black text-forest dark:text-sand opacity-60">★ {journey.user.rating.toFixed(1)}</span>
+                                        <span className="text-[10px] font-black text-forest dark:text-sand opacity-60">
+                                            {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
+                                        </span>
                                     </div>
                                 </div>
 

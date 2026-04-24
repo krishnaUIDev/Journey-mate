@@ -86,8 +86,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 user: {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
-                    rating: item.user_rating || 5.0,
-                    verified: item.user_verified ?? true
+                    rating: item.user_rating || 0,
+                    verified: item.user_verified ?? false
                 }
             }));
 

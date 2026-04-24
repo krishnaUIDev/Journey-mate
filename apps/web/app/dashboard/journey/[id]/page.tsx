@@ -18,7 +18,8 @@ import {
     WhatsApp as WhatsAppIcon,
     Email as MailIcon,
     Verified as VerifiedIcon,
-    ChatBubbleOutlined as ChatIcon
+    ChatBubbleOutlined as ChatIcon,
+    Instagram as InstagramIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -121,6 +122,31 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         }
     }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification]);
 
+
+    const handleShare = async () => {
+        const shareData = {
+            title: `Journey from ${journey?.from} to ${journey?.to}`,
+            text: `Check out this journey on Journey-Mate! ${journey?.description}`,
+            url: window.location.href,
+        };
+
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+            try {
+                await navigator.share(shareData);
+                showNotification('Shared successfully!', 'success');
+            } catch (err) {
+                console.error('Error sharing:', err);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                showNotification('Link copied to clipboard!', 'success');
+            } catch (err) {
+                showNotification('Failed to copy link.', 'error');
+            }
+        }
+    };
+
     const handleRequestAction = async () => {
         await sendRequest(id);
         const newStatus = await checkRequestStatus(id);
@@ -185,6 +211,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex gap-4 pointer-events-auto">
                     <Button
                         variant="contained"
+                        onClick={handleShare}
                         startIcon={<ShareIcon />}
                         sx={{
                             bgcolor: 'white',
@@ -281,168 +308,229 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-6">
-                            {/* User Profile Section */}
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-700">
-                                <div className="flex items-center gap-5 mb-6">
-                                    <div className="relative">
-                                        <div className="w-20 h-20 rounded-3xl overflow-hidden shadow-lg bg-white dark:bg-slate-700">
-                                            <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="absolute -bottom-1 -right-1 bg-sky-500 p-1.5 rounded-xl border-4 border-white dark:border-slate-800 shadow-sm">
-                                            <VerifiedIcon sx={{ color: 'white', fontSize: 14 }} />
-                                        </div>
+                        <div className="flex flex-col gap-8">
+                            {/* User Profile Section - Cleaner and More Integrated */}
+                            <div className="flex items-center gap-6 group">
+                                <div className="relative">
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-slate-800 transition-all group-hover:scale-105">
+                                        <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
                                     </div>
-                                    <div>
-                                        <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{journey.user.name}</h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Verified Member</span>
-                                            <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[10px] font-black">★ {journey.user.rating.toFixed(1)}</span>
-                                        </div>
+                                    <div className="absolute -bottom-1 -right-1 bg-sky-500 p-1 rounded-lg border-2 border-white dark:border-slate-800 shadow-sm">
+                                        <VerifiedIcon sx={{ color: 'white', fontSize: 10 }} />
                                     </div>
                                 </div>
+                                <div>
+                                    <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{journey.user.name}</h4>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                            {journey.user.verified ? 'Verified Member' : 'Exploring Member'}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[9px] font-black">
+                                            {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div className="space-y-3">
+                            {/* Main Actions Area - Prominent and Clean */}
+                            <div className="space-y-4">
+                                {requestLoading ? (
+                                    <Box sx={{ py: 3, textAlign: 'center' }}>
+                                        <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'sand' } }} />
+                                    </Box>
+                                ) : (isOwner || isPastTrip) ? (
                                     <Button
                                         fullWidth
                                         variant="contained"
-                                        startIcon={<WhatsAppIcon />}
-                                        sx={{ bgcolor: '#22c55e', color: 'white', borderRadius: '1.2rem', py: 2, fontWeight: 900, textTransform: 'none', fontSize: '1rem', '&:hover': { bgcolor: '#16a34a' } }}
+                                        onClick={() => setChatOpen(true)}
+                                        startIcon={<ChatIcon />}
+                                        sx={{
+                                            bgcolor: 'navy',
+                                            color: 'white',
+                                            borderRadius: '1.5rem',
+                                            py: 2.5,
+                                            fontWeight: 900,
+                                            textTransform: 'none',
+                                            fontSize: '1.1rem',
+                                            letterSpacing: '-0.02em',
+                                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
+                                            '&:hover': { bgcolor: 'black', scale: 1.01 },
+                                            '.dark &': { bgcolor: 'sand', color: 'navy', boxShadow: '0 20px 40px -10px rgba(253, 230, 138, 0.2)', '&:hover': { bgcolor: '#fde68a' } }
+                                        }}
                                     >
-                                        WhatsApp
+                                        {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
                                     </Button>
+                                ) : requestStatus === 'accepted' ? (
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        onClick={() => setChatOpen(true)}
+                                        startIcon={<ChatIcon />}
+                                        sx={{
+                                            bgcolor: 'navy',
+                                            color: 'white',
+                                            borderRadius: '1.5rem',
+                                            py: 2.5,
+                                            fontWeight: 900,
+                                            textTransform: 'none',
+                                            fontSize: '1.1rem',
+                                            letterSpacing: '-0.02em',
+                                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
+                                            '&:hover': { bgcolor: 'black', scale: 1.01 },
+                                            '.dark &': { bgcolor: 'sand', color: 'navy', boxShadow: '0 20px 40px -10px rgba(253, 230, 138, 0.2)', '&:hover': { bgcolor: '#fde68a' } }
+                                        }}
+                                    >
+                                        Join Discussion
+                                    </Button>
+                                ) : requestStatus === 'pending' ? (
                                     <Button
                                         fullWidth
                                         variant="outlined"
-                                        startIcon={<MailIcon />}
+                                        disabled
                                         sx={{
-                                            color: '#1e293b',
-                                            borderColor: '#e2e8f0',
-                                            borderRadius: '1.2rem',
-                                            py: 2,
+                                            borderRadius: '1.5rem',
+                                            py: 2.5,
                                             fontWeight: 900,
                                             textTransform: 'none',
-                                            fontSize: '1rem',
-                                            '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' },
-                                            '@media (prefers-color-scheme: dark)': {
-                                                color: '#f8fafc',
-                                                borderColor: '#334155',
-                                                '&:hover': { bgcolor: '#1e293b', borderColor: '#475569' }
-                                            }
+                                            fontSize: '1.1rem',
+                                            opacity: 0.6,
+                                            borderWidth: '2px !important',
+                                            borderColor: 'slate.200 !important'
                                         }}
                                     >
-                                        Email
+                                        Request Sent (Pending)
                                     </Button>
+                                ) : requestStatus === 'rejected' ? (
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        disabled
+                                        color="error"
+                                        sx={{
+                                            borderRadius: '1.5rem',
+                                            py: 2.5,
+                                            fontWeight: 900,
+                                            textTransform: 'none',
+                                            fontSize: '1.1rem',
+                                            borderWidth: '2px !important'
+                                        }}
+                                    >
+                                        Request Declined
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        onClick={handleRequestAction}
+                                        startIcon={<ChatIcon />}
+                                        sx={{
+                                            bgcolor: 'forest',
+                                            color: 'white',
+                                            borderRadius: '1.5rem',
+                                            py: 2.5,
+                                            fontWeight: 900,
+                                            textTransform: 'none',
+                                            fontSize: '1.1rem',
+                                            letterSpacing: '-0.02em',
+                                            boxShadow: '0 20px 40px -10px rgba(34, 197, 94, 0.3)',
+                                            '&:hover': { bgcolor: 'navy', scale: 1.01 },
+                                            '.dark &': { bgcolor: 'forest', color: 'white', '&:hover': { bgcolor: '#166534' } }
+                                        }}
+                                    >
+                                        Request to Pair
+                                    </Button>
+                                )}
 
-                                    <Divider sx={{ my: 1, opacity: 0.5 }} />
+                                {isOwner && !isPastTrip && (
+                                    <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                                        <RequestManager journeyId={id} />
+                                    </div>
+                                )}
+                            </div>
 
-                                    {requestLoading ? (
-                                        <Box sx={{ py: 2, textAlign: 'center' }}>
-                                            <CircularProgress size={20} />
-                                        </Box>
-                                    ) : (isOwner || isPastTrip) ? (
-                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {/* Secondary Actions / Connect Section - More Compact */}
+                            {journey.contactInfo && (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-700">
+                                    <h5 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">CONNECT WITH OWNER</h5>
+                                    <div className="flex flex-col gap-3">
+                                        {/* Detect if contact info is email, Instagram or phone */}
+                                        {journey.contactInfo.includes('@') && (
                                             <Button
                                                 fullWidth
                                                 variant="contained"
-                                                onClick={() => setChatOpen(true)}
-                                                startIcon={<ChatIcon />}
+                                                startIcon={<MailIcon sx={{ fontSize: 18 }} />}
+                                                onClick={() => window.open(`mailto:${journey.contactInfo}`, '_blank')}
                                                 sx={{
-                                                    bgcolor: 'navy',
-                                                    color: 'white',
-                                                    borderRadius: '1.2rem',
-                                                    py: 2,
+                                                    bgcolor: 'white',
+                                                    color: '#1e293b',
+                                                    borderRadius: '1rem',
+                                                    py: 1.5,
                                                     fontWeight: 900,
                                                     textTransform: 'none',
-                                                    fontSize: '1rem',
-                                                    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
-                                                    '&:hover': { bgcolor: 'black', scale: 1.02 },
-                                                    '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
+                                                    fontSize: '0.85rem',
+                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                                    border: '1px solid',
+                                                    borderColor: 'slate.200',
+                                                    '&:hover': { bgcolor: '#f8fafc', borderColor: 'slate.300', scale: 1.02 },
+                                                    '.dark &': {
+                                                        bgcolor: 'white/10',
+                                                        color: 'white',
+                                                        borderColor: 'white/10',
+                                                        '&:hover': { bgcolor: 'white/20', borderColor: 'white/20' }
+                                                    }
                                                 }}
                                             >
-                                                {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
+                                                Send Email
                                             </Button>
+                                        )}
 
-                                            {!isPastTrip && <Divider sx={{ my: 1, opacity: 0.3 }} />}
-                                            {!isPastTrip && <RequestManager journeyId={id} />}
-                                        </Box>
-                                    ) : requestStatus === 'accepted' ? (
-                                        <Button
-                                            fullWidth
-                                            variant="contained"
-                                            onClick={() => setChatOpen(true)}
-                                            startIcon={<ChatIcon />}
-                                            sx={{
-                                                bgcolor: 'navy',
-                                                color: 'white',
-                                                borderRadius: '1.2rem',
-                                                py: 2,
-                                                fontWeight: 900,
-                                                textTransform: 'none',
-                                                fontSize: '1rem',
-                                                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.2)',
-                                                '&:hover': { bgcolor: 'black', scale: 1.02 },
-                                                '.dark &': { bgcolor: 'sand', color: 'navy', '&:hover': { bgcolor: '#fde68a' } }
-                                            }}
-                                        >
-                                            Join Discussion
-                                        </Button>
-                                    ) : requestStatus === 'pending' ? (
-                                        <Button
-                                            fullWidth
-                                            variant="outlined"
-                                            disabled
-                                            sx={{
-                                                borderRadius: '1.2rem',
-                                                py: 2,
-                                                fontWeight: 900,
-                                                textTransform: 'none',
-                                                fontSize: '1rem',
-                                                opacity: 0.7
-                                            }}
-                                        >
-                                            Request Sent (Pending)
-                                        </Button>
-                                    ) : requestStatus === 'rejected' ? (
-                                        <Button
-                                            fullWidth
-                                            variant="outlined"
-                                            disabled
-                                            color="error"
-                                            sx={{
-                                                borderRadius: '1.2rem',
-                                                py: 2,
-                                                fontWeight: 900,
-                                                textTransform: 'none',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            Request Declined
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            fullWidth
-                                            variant="contained"
-                                            onClick={handleRequestAction}
-                                            startIcon={<ChatIcon />}
-                                            sx={{
-                                                bgcolor: 'forest',
-                                                color: 'white',
-                                                borderRadius: '1.2rem',
-                                                py: 2,
-                                                fontWeight: 900,
-                                                textTransform: 'none',
-                                                fontSize: '1rem',
-                                                boxShadow: '0 8px 20px rgba(34, 197, 94, 0.2)',
-                                                '&:hover': { bgcolor: 'navy', scale: 1.02 },
-                                                '.dark &': { bgcolor: 'forest', color: 'white', '&:hover': { bgcolor: '#166534' } }
-                                            }}
-                                        >
-                                            Request to Pair
-                                        </Button>
-                                    )}
+                                        {/* Instagram Check: if starts with @ or seems like a username (no dots, no spaces, no @ in middle) */}
+                                        {(journey.contactInfo.startsWith('@') || (!journey.contactInfo.includes('@') && !/^\d+$/.test(journey.contactInfo.replace(/[\s\-\+]/g, '')) && journey.contactInfo.length > 2)) && (
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                startIcon={<InstagramIcon sx={{ fontSize: 18 }} />}
+                                                onClick={() => window.open(`https://instagram.com/${journey.contactInfo.replace('@', '')}`, '_blank')}
+                                                sx={{
+                                                    background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                                                    color: 'white',
+                                                    borderRadius: '1rem',
+                                                    py: 1.5,
+                                                    fontWeight: 900,
+                                                    textTransform: 'none',
+                                                    fontSize: '0.85rem',
+                                                    boxShadow: '0 4px 12px rgba(220, 39, 67, 0.2)',
+                                                    '&:hover': { opacity: 0.9, scale: 1.02 }
+                                                }}
+                                            >
+                                                Instagram DM
+                                            </Button>
+                                        )}
+
+                                        {(/^\d+$/.test(journey.contactInfo.replace(/[\s\-\+]/g, '')) && journey.contactInfo.length > 5) && (
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                startIcon={<WhatsAppIcon sx={{ fontSize: 18 }} />}
+                                                onClick={() => window.open(`https://wa.me/${journey.contactInfo.replace(/[^0-9]/g, '')}`, '_blank')}
+                                                sx={{
+                                                    bgcolor: '#22c55e',
+                                                    color: 'white',
+                                                    borderRadius: '1rem',
+                                                    py: 1.5,
+                                                    fontWeight: 900,
+                                                    textTransform: 'none',
+                                                    fontSize: '0.85rem',
+                                                    boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)',
+                                                    '&:hover': { bgcolor: '#16a34a', scale: 1.02 }
+                                                }}
+                                            >
+                                                WhatsApp Chat
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Details Section */}
                             <div className="space-y-6">
