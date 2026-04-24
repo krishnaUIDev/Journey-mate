@@ -56,6 +56,8 @@ interface MessagesContextType {
     unreadCount: number;
     activeJourneyId: string | null;
     setActiveJourneyId: (id: string | null) => void;
+    typingUsers: Record<string, { id: string; name: string; avatar: string }[]>;
+    setTypingStatus: (journeyId: string, isTyping: boolean) => void;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -68,7 +70,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const [participatingJourneys, setParticipatingJourneys] = useState<string[]>([]);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [activeJourneyId, setActiveJourneyId] = useState<string | null>(null);
+    const [typingUsers, setTypingUsers] = useState<Record<string, { id: string; name: string; avatar: string }[]>>({});
     const activeJourneyIdRef = useRef<string | null>(null);
+    const channelsRef = useRef<Record<string, any>>({});
     const { user } = useUser();
 
     // Keep ref in sync
@@ -454,6 +458,24 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const setTypingStatus = (journeyId: string, isTyping: boolean) => {
+        if (!user || !supabase) return;
+        const channel = channelsRef.current[journeyId];
+        if (!channel) return;
+
+        if (isTyping) {
+            channel.track({
+                id: user.id,
+                name: user.fullName || user.username || 'Anonymous',
+                avatar: user.imageUrl,
+                is_typing: true,
+                online_at: new Date().toISOString(),
+            });
+        } else {
+            channel.untrack();
+        }
+    };
+
     const checkRequestStatus = async (journeyId: string): Promise<'pending' | 'accepted' | 'rejected' | 'none'> => {
         if (!user || !supabase) return 'none';
         try {
@@ -480,42 +502,68 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
         // Realtime subscription
         const channel = (supabase as any)
-            .channel(`journey_messages:journey_id=eq.${journeyId}`)
+            .channel(`journey_chat:${journeyId}`, {
+                config: {
+                    presence: {
+                        key: user?.id || 'anonymous',
+                    },
+                },
+            });
+
+        channelsRef.current[journeyId] = channel;
+
+        channel
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
                     table: 'journey_messages',
-                    // Temporarily remove filter for debugging
+                    filter: `journey_id=eq.${journeyId}`,
                 },
                 (payload: any) => {
-
                     if (payload.eventType === 'INSERT') {
-                        if (payload.new.journey_id === journeyId) {
-                            setMessages((prev) => [...prev, payload.new as Message]);
-                        }
-                    } else if (payload.eventType === 'UPDATE') {
-                        if (payload.new.journey_id === journeyId) {
-                            console.log("[MessagesContext] Updating message:", payload.new.id, payload.new.content);
-                            setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
-                        }
-                    } else if (payload.eventType === 'DELETE') {
                         setMessages((prev) => {
-                            if (prev.some(m => m.id === payload.old.id)) {
-                                return prev.filter(m => m.id !== payload.old.id);
-                            }
-                            return prev;
+                            if (prev.some(m => m.id === payload.new.id)) return prev;
+                            return [...prev, payload.new as Message];
                         });
+                    } else if (payload.eventType === 'UPDATE') {
+                        setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+                    } else if (payload.eventType === 'DELETE') {
+                        setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
                     }
                 }
             )
+            .on('presence', { event: 'sync' }, () => {
+                const newState = channel.presenceState();
+                const typing: { id: string; name: string; avatar: string }[] = [];
+
+                Object.values(newState).forEach((presences: any) => {
+                    presences.forEach((presence: any) => {
+                        if (presence.is_typing && presence.id !== user?.id) {
+                            typing.push({
+                                id: presence.id,
+                                name: presence.name,
+                                avatar: presence.avatar
+                            });
+                        }
+                    });
+                });
+
+                setTypingUsers(prev => ({ ...prev, [journeyId]: typing }));
+            })
             .subscribe();
 
         return () => {
+            delete channelsRef.current[journeyId];
             (supabase as any).removeChannel(channel);
+            setTypingUsers(prev => {
+                const next = { ...prev };
+                delete next[journeyId];
+                return next;
+            });
         };
-    }, [fetchMessages]);
+    }, [fetchMessages, user?.id]);
 
     const markAsRead = (id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -541,7 +589,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             markAsRead,
             unreadCount,
             activeJourneyId,
-            setActiveJourneyId
+            setActiveJourneyId,
+            typingUsers,
+            setTypingStatus
         }}>
             {children}
 

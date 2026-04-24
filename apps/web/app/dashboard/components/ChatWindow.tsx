@@ -38,14 +38,18 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
-    const { messages, loading, sendMessage, subscribeToJourney, editMessage, deleteMessage } = useMessages();
+    const { messages, loading, sendMessage, subscribeToJourney, editMessage, deleteMessage, typingUsers, setTypingStatus } = useMessages();
     const { user } = useUser();
     const [input, setInput] = useState("");
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState("");
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [emojiAnchorEl, setEmojiAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const [isTyping, setIsTyping] = useState(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const currentTypingUsers = typingUsers[journeyId] || [];
 
     useEffect(() => {
         const unsubscribe = subscribeToJourney(journeyId);
@@ -54,11 +58,41 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages, currentTypingUsers]);
+
+    // Typing indicator logic
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setInput(e.target.value);
+
+        if (!isTyping) {
+            setIsTyping(true);
+            setTypingStatus(journeyId, true);
+        }
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            setTypingStatus(journeyId, false);
+        }, 3000);
+    };
 
     const handleEmojiClick = (emojiData: any) => {
         setInput(prev => prev + emojiData.emoji);
         setEmojiAnchorEl(null);
+
+        // Also trigger typing status for emoji selection
+        if (!isTyping) {
+            setIsTyping(true);
+            setTypingStatus(journeyId, true);
+        }
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            setTypingStatus(journeyId, false);
+        }, 3000);
     };
 
     const handleEditSave = async (msgId: string) => {
@@ -79,6 +113,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
         setInput("");
         setReplyingTo(null);
+        setIsTyping(false);
+        setTypingStatus(journeyId, false);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
         try {
             await sendMessage(journeyId, currentInput, currentReplyToId);
@@ -154,155 +191,173 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         <Typography variant="caption">Start the conversation!</Typography>
                     </Box>
                 ) : (
-                    messages.map((msg) => {
-                        const isMe = msg.sender_id === user?.id;
-                        const parentMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
+                    <>
+                        {messages.map((msg) => {
+                            const isMe = msg.sender_id === user?.id;
+                            const parentMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
 
-                        return (
-                            <Box
-                                key={msg.id}
-                                sx={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: isMe ? 'flex-end' : 'flex-start',
-                                    gap: 0.5
-                                }}
-                            >
-                                <Box sx={{
-                                    display: 'flex',
-                                    flexDirection: isMe ? 'row-reverse' : 'row',
-                                    alignItems: 'flex-end',
-                                    gap: 1,
-                                    maxWidth: '85%'
-                                }}>
-                                    <Avatar
-                                        src={msg.sender_avatar}
-                                        sx={{ width: 28, height: 28, border: '1px solid rgba(0,0,0,0.1)' }}
-                                    />
-                                    <Box sx={{
+                            return (
+                                <Box
+                                    key={msg.id}
+                                    sx={{
                                         display: 'flex',
                                         flexDirection: 'column',
-                                        gap: 0.5,
-                                        alignItems: isMe ? 'flex-end' : 'flex-start'
+                                        alignItems: isMe ? 'flex-end' : 'flex-start',
+                                        gap: 0.5
+                                    }}
+                                >
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexDirection: isMe ? 'row-reverse' : 'row',
+                                        alignItems: 'flex-end',
+                                        gap: 1,
+                                        maxWidth: '85%'
                                     }}>
-                                        {parentMsg && (
-                                            <Box sx={{
-                                                p: 1.5,
-                                                mb: -1.5,
-                                                pb: 2.5,
-                                                borderRadius: '1rem 1rem 0 0',
-                                                bgcolor: 'rgba(0,0,0,0.03)',
-                                                '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
-                                                border: '1px solid rgba(0,0,0,0.05)',
-                                                maxWidth: '90%',
-                                                opacity: 0.6
-                                            }}>
-                                                <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', mb: 0.2 }}>
-                                                    {parentMsg.sender_name}
-                                                </Typography>
-                                                <Typography variant="caption" sx={{ fontSize: '0.7rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {parentMsg.content}
-                                                </Typography>
-                                            </Box>
-                                        )}
+                                        <Avatar
+                                            src={msg.sender_avatar}
+                                            sx={{ width: 28, height: 28, border: '1px solid rgba(0,0,0,0.1)' }}
+                                        />
                                         <Box sx={{
-                                            p: 2,
-                                            borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
-                                            bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
-                                            color: isMe ? 'white' : 'inherit',
-                                            '.dark &': {
-                                                bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
-                                                color: isMe ? 'navy' : 'white'
-                                            },
-                                            position: 'relative',
-                                            zIndex: 1,
-                                            '&:hover .action-btns': { opacity: 0.8 }
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 0.5,
+                                            alignItems: isMe ? 'flex-end' : 'flex-start'
                                         }}>
-                                            {editingMessageId === msg.id ? (
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
-                                                    <TextField
-                                                        size="small"
-                                                        fullWidth
-                                                        value={editContent}
-                                                        onChange={(e) => setEditContent(e.target.value)}
-                                                        variant="standard"
-                                                        autoFocus
-                                                        multiline
-                                                        slotProps={{
-                                                            input: {
-                                                                sx: { color: 'inherit', fontSize: '0.875rem' },
-                                                                disableUnderline: false
-                                                            }
-                                                        }}
-                                                    />
-                                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                                                        <IconButton size="small" onClick={() => handleEditSave(msg.id)} sx={{ color: 'inherit' }}>
-                                                            <SaveIcon fontSize="small" />
-                                                        </IconButton>
-                                                        <IconButton size="small" onClick={() => setEditingMessageId(null)} sx={{ color: 'inherit' }}>
-                                                            <CancelIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Box>
-                                                </Box>
-                                            ) : (
-                                                <>
-                                                    <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5 }}>
-                                                        {msg.content}
+                                            {parentMsg && (
+                                                <Box sx={{
+                                                    p: 1.5,
+                                                    mb: -1.5,
+                                                    pb: 2.5,
+                                                    borderRadius: '1rem 1rem 0 0',
+                                                    bgcolor: 'rgba(0,0,0,0.03)',
+                                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                                                    border: '1px solid rgba(0,0,0,0.05)',
+                                                    maxWidth: '90%',
+                                                    opacity: 0.6
+                                                }}>
+                                                    <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', mb: 0.2 }}>
+                                                        {parentMsg.sender_name}
                                                     </Typography>
-
-                                                    {/* Action Buttons (Reply, Edit, Delete) */}
-                                                    <Box sx={{
-                                                        position: 'absolute',
-                                                        top: '50%',
-                                                        [isMe ? 'right' : 'left']: '100%',
-                                                        transform: 'translateY(-50%)',
-                                                        mx: 1,
-                                                        display: 'flex',
-                                                        gap: 0.5,
-                                                        opacity: 0,
-                                                        transition: 'opacity 0.2s',
-                                                        zIndex: 10,
-                                                        pointerEvents: 'auto'
-                                                    }} className="action-btns">
-                                                        <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
-                                                            <ReplyIcon sx={{ fontSize: '0.9rem' }} />
-                                                        </IconButton>
-                                                        {isMe && (
-                                                            <>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={() => {
-                                                                        setEditingMessageId(msg.id);
-                                                                        setEditContent(msg.content);
-                                                                    }}
-                                                                    sx={{ color: 'text.secondary' }}
-                                                                >
-                                                                    <EditIcon sx={{ fontSize: '0.9rem' }} />
-                                                                </IconButton>
-                                                                <IconButton
-                                                                    size="small"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        deleteMessage(msg.id);
-                                                                    }}
-                                                                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
-                                                                >
-                                                                    <DeleteIcon sx={{ fontSize: '0.9rem' }} />
-                                                                </IconButton>
-                                                            </>
-                                                        )}
-                                                    </Box>
-                                                </>
+                                                    <Typography variant="caption" sx={{ fontSize: '0.7rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {parentMsg.content}
+                                                    </Typography>
+                                                </Box>
                                             )}
+                                            <Box sx={{
+                                                p: 2,
+                                                borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
+                                                bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
+                                                color: isMe ? 'white' : 'inherit',
+                                                '.dark &': {
+                                                    bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
+                                                    color: isMe ? 'navy' : 'white'
+                                                },
+                                                position: 'relative',
+                                                zIndex: 1,
+                                                '&:hover .action-btns': { opacity: 0.8 }
+                                            }}>
+                                                {editingMessageId === msg.id ? (
+                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+                                                        <TextField
+                                                            size="small"
+                                                            fullWidth
+                                                            value={editContent}
+                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                            variant="standard"
+                                                            autoFocus
+                                                            multiline
+                                                            slotProps={{
+                                                                input: {
+                                                                    sx: { color: 'inherit', fontSize: '0.875rem' },
+                                                                    disableUnderline: false
+                                                                }
+                                                            }}
+                                                        />
+                                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                            <IconButton size="small" onClick={() => handleEditSave(msg.id)} sx={{ color: 'inherit' }}>
+                                                                <SaveIcon fontSize="small" />
+                                                            </IconButton>
+                                                            <IconButton size="small" onClick={() => setEditingMessageId(null)} sx={{ color: 'inherit' }}>
+                                                                <CancelIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Box>
+                                                    </Box>
+                                                ) : (
+                                                    <>
+                                                        <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5 }}>
+                                                            {msg.content}
+                                                        </Typography>
+
+                                                        {/* Action Buttons (Reply, Edit, Delete) */}
+                                                        <Box sx={{
+                                                            position: 'absolute',
+                                                            top: '50%',
+                                                            [isMe ? 'right' : 'left']: '100%',
+                                                            transform: 'translateY(-50%)',
+                                                            mx: 1,
+                                                            display: 'flex',
+                                                            gap: 0.5,
+                                                            opacity: 0,
+                                                            transition: 'opacity 0.2s',
+                                                            zIndex: 10,
+                                                            pointerEvents: 'auto'
+                                                        }} className="action-btns">
+                                                            <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
+                                                                <ReplyIcon sx={{ fontSize: '0.9rem' }} />
+                                                            </IconButton>
+                                                            {isMe && (
+                                                                <>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => {
+                                                                            setEditingMessageId(msg.id);
+                                                                            setEditContent(msg.content);
+                                                                        }}
+                                                                        sx={{ color: 'text.secondary' }}
+                                                                    >
+                                                                        <EditIcon sx={{ fontSize: '0.9rem' }} />
+                                                                    </IconButton>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            deleteMessage(msg.id);
+                                                                        }}
+                                                                        sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
+                                                                    >
+                                                                        <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                                                                    </IconButton>
+                                                                </>
+                                                            )}
+                                                        </Box>
+                                                    </>
+                                                )}
+                                            </Box>
                                         </Box>
                                     </Box>
+                                    <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.65rem', px: 1 }}>
+                                        {isMe ? 'You' : msg.sender_name} • {dayjs(msg.created_at).fromNow()}
+                                    </Typography>
                                 </Box>
-                                <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.65rem', px: 1 }}>
-                                    {isMe ? 'You' : msg.sender_name} • {dayjs(msg.created_at).fromNow()}
+                            );
+                        })}
+
+                        {/* Typing Indicator UI */}
+                        {currentTypingUsers.length > 0 && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1, mt: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    {currentTypingUsers.slice(0, 3).map((u) => (
+                                        <Avatar key={u.id} src={u.avatar} sx={{ width: 16, height: 16 }} />
+                                    ))}
+                                </Box>
+                                <Typography variant="caption" sx={{ fontStyle: 'italic', opacity: 0.7, fontWeight: 600 }}>
+                                    {currentTypingUsers.length === 1
+                                        ? `${currentTypingUsers[0]?.name} is typing...`
+                                        : `${currentTypingUsers.length} people are typing...`}
                                 </Typography>
                             </Box>
-                        );
-                    })
+                        )}
+                    </>
                 )}
                 <div ref={messagesEndRef} />
             </Box>
@@ -399,7 +454,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         placeholder="Type a message..."
                         variant="standard"
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
                         slotProps={{
                             input: {
