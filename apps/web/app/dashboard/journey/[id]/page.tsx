@@ -35,21 +35,66 @@ const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
 
 // Simple coordinate lookup for demo
 const airportCoords: Record<string, [number, number]> = {
+    // Global Hubs
     'LHR': [51.4700, -0.4543],
     'JFK': [40.6413, -73.7781],
-    'DEL': [28.5562, 77.1000],
-    'BOM': [19.0896, 72.8656],
     'DXB': [25.2532, 55.3657],
     'SIN': [1.3644, 103.9915],
     'SFO': [37.6213, -122.3790],
     'SYD': [-33.9399, 151.1753],
     'CDG': [49.0097, 2.5479],
     'HND': [35.5494, 139.7798],
+    'FRA': [50.0379, 8.5622],
+    'AMS': [52.3105, 4.7683],
+    'YYZ': [43.6777, -79.6248],
+    'LAX': [33.9416, -118.4085],
+    'EWR': [40.6895, -74.1745],
+    'LGA': [40.7769, -73.8740],
+    'JAX': [30.4941, -81.6879],
+    'DOH': [25.2731, 51.6081],
+
+    // India Hubs
+    'DEL': [28.5562, 77.1000],
+    'BOM': [19.0896, 72.8656],
+    'MAA': [12.9941, 80.1709],
+    'BLR': [13.1986, 77.7066],
+    'HYD': [17.2403, 78.4294],
+    'CCU': [22.6547, 88.4467],
+    'PNQ': [18.5826, 73.9197],
+    'AMD': [23.0734, 72.6347],
+    'COK': [10.1520, 76.3920],
+    'TRV': [8.4821, 76.9200],
 };
 
-function getCoords(name: string): [number, number] {
-    const code = name.match(/\((.*?)\)/)?.[1] || name;
-    return airportCoords[code] || [20, 0]; // Fallback to center
+const getCoords = (name: string): [number, number] => {
+    const DEFAULT_CENTER: [number, number] = [39.8283, -98.5795]; // Center of US
+    if (!name) return DEFAULT_CENTER;
+
+    // 1. Try to extract IATA code from parentheses like "Jacksonville (JAX)"
+    const codeMatch = name.match(/\(([A-Z]{3})\)/);
+    if (codeMatch && airportCoords[codeMatch[1]]) {
+        return airportCoords[codeMatch[1]] as [number, number];
+    }
+
+    // 2. Try direct lookup (case insensitive)
+    const upperName = name.toUpperCase().trim();
+    if (airportCoords[upperName]) return airportCoords[upperName] as [number, number];
+
+    // 3. Fallback common names
+    if (upperName.includes('NEW YORK')) return airportCoords['JFK'] as [number, number];
+    if (upperName.includes('JACKSONVILLE')) return airportCoords['JAX'] as [number, number];
+    if (upperName.includes('CHENNAI')) return airportCoords['MAA'] as [number, number];
+    if (upperName.includes('DELHI')) return airportCoords['DEL'] as [number, number];
+    if (upperName.includes('MUMBAI')) return airportCoords['BOM'] as [number, number];
+    if (upperName.includes('BANGALORE')) return airportCoords['BLR'] as [number, number];
+    if (upperName.includes('HYDERABAD')) return airportCoords['HYD'] as [number, number];
+
+    // 4. Final attempt with cleaned name
+    const cleaned = upperName.replace(/[^A-Z]/g, '');
+    if (airportCoords[cleaned]) return airportCoords[cleaned] as [number, number];
+
+    // 5. Default to center of US
+    return DEFAULT_CENTER;
 }
 
 export default function JourneyDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -60,13 +105,19 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [mapLoaded, setMapLoaded] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
-    const { checkRequestStatus, sendRequest, showNotification } = useMessages();
+    const { checkRequestStatus, sendRequest, showNotification, setActiveJourneyId } = useMessages();
     const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
 
     const isOwner = user?.id === journey?.userId;
     const isPastTrip = journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day');
+
+    // Notification suppression logic
+    useEffect(() => {
+        setActiveJourneyId(id);
+        return () => setActiveJourneyId(null);
+    }, [id, setActiveJourneyId]);
 
     useEffect(() => {
         const found = journeys.find((j: any) => j.id === id);

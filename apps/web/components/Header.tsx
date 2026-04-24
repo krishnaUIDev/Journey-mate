@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
 import { LocaleSelector } from "./LocaleSelector";
+import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 
 interface HeaderProps {
     theme: "light" | "dark";
@@ -59,7 +60,8 @@ export function Header({
                             : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
                     }}
                 >
-                    Journey<span className="text-forest dark:text-sand/80 text-xl font-bold">-mate</span>
+                    Journey<span className="text-forest dark:text-sand/80 text-xl font-bold font-sans">-mate</span>
+                    <FlightTakeoffIcon sx={{ fontSize: 22, color: 'forest.main', ml: 0.5, transform: 'rotate(5deg)' }} />
                 </span>
             </Link>
 

@@ -57,6 +57,7 @@ export default function PostJourneyPage() {
     }, [from, to, date]);
 
     const handleSelectFlight = (flight: FlightDetails) => {
+        if (flight.flight_status === 'cancelled') return;
         setFlightNumber(flight.flight.iata);
         setVerificationStatus("found");
         if (flight.flight_date) setDate(dayjs(flight.flight_date));
@@ -265,10 +266,12 @@ export default function PostJourneyPage() {
                                         {suggestedFlights.map((flight, idx) => (
                                             <div
                                                 key={idx}
-                                                onClick={() => handleSelectFlight(flight)}
-                                                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-center gap-4 ${flightNumber === flight.flight.iata
-                                                    ? 'bg-forest text-white border-forest shadow-lg scale-[1.02]'
-                                                    : 'bg-white dark:bg-white/5 border-transparent hover:border-forest/30 dark:hover:border-sand/30'
+                                                onClick={() => flight.flight_status !== 'cancelled' && handleSelectFlight(flight)}
+                                                className={`p-3.5 rounded-2xl border transition-all flex items-center gap-4 ${flight.flight_status === 'cancelled'
+                                                        ? 'opacity-50 grayscale cursor-not-allowed bg-gray-50 dark:bg-white/5 border-transparent'
+                                                        : flightNumber === flight.flight.iata
+                                                            ? 'bg-forest text-white border-forest shadow-lg scale-[1.02]'
+                                                            : 'bg-white dark:bg-white/5 border-transparent hover:border-forest/30 dark:hover:border-sand/30 cursor-pointer'
                                                     }`}
                                             >
                                                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 border border-black/5 shadow-sm">

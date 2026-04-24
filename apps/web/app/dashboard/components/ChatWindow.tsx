@@ -10,17 +10,25 @@ import {
     Avatar,
     Divider,
     CircularProgress,
-    Tooltip
+    Tooltip,
+    Popover
 } from "@mui/material";
 import {
     Send as SendIcon,
     Close as CloseIcon,
-    ChatBubbleOutlined as ChatIcon
+    ChatBubbleOutlined as ChatIcon,
+    SentimentSatisfiedAltOutlined as EmojiIcon,
+    EditOutlined as EditIcon,
+    Check as SaveIcon,
+    Clear as CancelIcon,
+    DeleteOutlined as DeleteIcon,
+    ReplyOutlined as ReplyIcon
 } from "@mui/icons-material";
 import { useMessages, Message } from "../../../context/MessagesContext";
 import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import EmojiPicker, { Theme as EmojiTheme } from "emoji-picker-react";
 
 dayjs.extend(relativeTime);
 
@@ -30,9 +38,13 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
-    const { messages, loading, sendMessage, subscribeToJourney } = useMessages();
+    const { messages, loading, sendMessage, subscribeToJourney, editMessage, deleteMessage } = useMessages();
     const { user } = useUser();
     const [input, setInput] = useState("");
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState("");
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [emojiAnchorEl, setEmojiAnchorEl] = useState<HTMLButtonElement | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -44,15 +56,35 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    const handleEmojiClick = (emojiData: any) => {
+        setInput(prev => prev + emojiData.emoji);
+        setEmojiAnchorEl(null);
+    };
+
+    const handleEditSave = async (msgId: string) => {
+        if (!editContent.trim()) return;
+        try {
+            await editMessage(msgId, editContent);
+            setEditingMessageId(null);
+            setEditContent("");
+        } catch (error) {
+            // Error handled by context
+        }
+    };
+
     const handleSend = async () => {
         if (!input.trim()) return;
         const currentInput = input;
+        const currentReplyToId = replyingTo?.id || null;
+
         setInput("");
+        setReplyingTo(null);
+
         try {
-            await sendMessage(journeyId, currentInput);
+            await sendMessage(journeyId, currentInput, currentReplyToId);
         } catch (error) {
-            // Restore input if sending fails (e.g. not logged in)
             setInput(currentInput);
+            setReplyingTo(replyingTo);
         }
     };
 
@@ -73,7 +105,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 border: "1px solid rgba(0,0,0,0.05)",
                 '.dark &': { border: '1px solid rgba(255,255,255,0.05)', bgcolor: '#0f172a' },
                 borderRadius: '1.5rem',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                position: 'relative'
             }}
         >
             {/* Chat Header */}
@@ -123,6 +156,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 ) : (
                     messages.map((msg) => {
                         const isMe = msg.sender_id === user?.id;
+                        const parentMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
+
                         return (
                             <Box
                                 key={msg.id}
@@ -140,25 +175,126 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                     gap: 1,
                                     maxWidth: '85%'
                                 }}>
-                                    {!isMe && (
-                                        <Avatar
-                                            src={msg.sender_avatar}
-                                            sx={{ width: 28, height: 28, border: '1px solid rgba(0,0,0,0.1)' }}
-                                        />
-                                    )}
+                                    <Avatar
+                                        src={msg.sender_avatar}
+                                        sx={{ width: 28, height: 28, border: '1px solid rgba(0,0,0,0.1)' }}
+                                    />
                                     <Box sx={{
-                                        p: 2,
-                                        borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
-                                        bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
-                                        color: isMe ? 'white' : 'inherit',
-                                        '.dark &': {
-                                            bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
-                                            color: isMe ? 'navy' : 'white'
-                                        }
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 0.5,
+                                        alignItems: isMe ? 'flex-end' : 'flex-start'
                                     }}>
-                                        <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5 }}>
-                                            {msg.content}
-                                        </Typography>
+                                        {parentMsg && (
+                                            <Box sx={{
+                                                p: 1.5,
+                                                mb: -1.5,
+                                                pb: 2.5,
+                                                borderRadius: '1rem 1rem 0 0',
+                                                bgcolor: 'rgba(0,0,0,0.03)',
+                                                '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                                                border: '1px solid rgba(0,0,0,0.05)',
+                                                maxWidth: '90%',
+                                                opacity: 0.6
+                                            }}>
+                                                <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', mb: 0.2 }}>
+                                                    {parentMsg.sender_name}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ fontSize: '0.7rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {parentMsg.content}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        <Box sx={{
+                                            p: 2,
+                                            borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
+                                            bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
+                                            color: isMe ? 'white' : 'inherit',
+                                            '.dark &': {
+                                                bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
+                                                color: isMe ? 'navy' : 'white'
+                                            },
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            '&:hover .action-btns': { opacity: 1 }
+                                        }}>
+                                            {editingMessageId === msg.id ? (
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+                                                    <TextField
+                                                        size="small"
+                                                        fullWidth
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        variant="standard"
+                                                        autoFocus
+                                                        multiline
+                                                        slotProps={{
+                                                            input: {
+                                                                sx: { color: 'inherit', fontSize: '0.875rem' },
+                                                                disableUnderline: false
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                        <IconButton size="small" onClick={() => handleEditSave(msg.id)} sx={{ color: 'inherit' }}>
+                                                            <SaveIcon fontSize="small" />
+                                                        </IconButton>
+                                                        <IconButton size="small" onClick={() => setEditingMessageId(null)} sx={{ color: 'inherit' }}>
+                                                            <CancelIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Box>
+                                                </Box>
+                                            ) : (
+                                                <>
+                                                    <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5 }}>
+                                                        {msg.content}
+                                                    </Typography>
+
+                                                    {/* Action Buttons (Reply, Edit, Delete) */}
+                                                    <Box sx={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        [isMe ? 'right' : 'left']: '100%',
+                                                        transform: 'translateY(-50%)',
+                                                        mx: 1,
+                                                        display: 'flex',
+                                                        gap: 0.5,
+                                                        opacity: 0,
+                                                        transition: 'opacity 0.2s',
+                                                        zIndex: 0
+                                                    }} className="action-btns">
+                                                        <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
+                                                            <ReplyIcon sx={{ fontSize: '0.9rem' }} />
+                                                        </IconButton>
+                                                        {isMe && (
+                                                            <>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => {
+                                                                        setEditingMessageId(msg.id);
+                                                                        setEditContent(msg.content);
+                                                                    }}
+                                                                    sx={{ color: 'text.secondary' }}
+                                                                >
+                                                                    <EditIcon sx={{ fontSize: '0.9rem' }} />
+                                                                </IconButton>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => {
+                                                                        if (window.confirm("Delete this message?")) {
+                                                                            deleteMessage(msg.id);
+                                                                        }
+                                                                    }}
+                                                                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                                                                >
+                                                                    <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                                                                </IconButton>
+                                                            </>
+                                                        )}
+                                                    </Box>
+                                                </>
+                                            )}
+                                        </Box>
                                     </Box>
                                 </Box>
                                 <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.65rem', px: 1 }}>
@@ -173,6 +309,34 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
             <Divider sx={{ opacity: 0.5 }} />
 
+            {/* Reply Preview Area */}
+            {replyingTo && (
+                <Box sx={{
+                    p: 2,
+                    bgcolor: 'rgba(0,0,0,0.02)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid rgba(0,0,0,0.05)',
+                    '.dark &': {
+                        bgcolor: 'rgba(255,255,255,0.02)',
+                        borderTop: '1px solid rgba(255,255,255,0.05)'
+                    }
+                }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, overflow: 'hidden' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                            Replying to {replyingTo.sender_name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {replyingTo.content}
+                        </Typography>
+                    </Box>
+                    <IconButton size="small" onClick={() => setReplyingTo(null)}>
+                        <CancelIcon sx={{ fontSize: '1rem' }} />
+                    </IconButton>
+                </Box>
+            )}
+
             {/* Input Area */}
             <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
                 <Box sx={{
@@ -183,8 +347,53 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
                     borderRadius: '1.25rem',
                     p: 0.5,
-                    pl: 2
+                    pl: 2,
+                    position: 'relative'
                 }}>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
+                        sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                    >
+                        <EmojiIcon fontSize="small" />
+                    </IconButton>
+
+                    <Popover
+                        open={Boolean(emojiAnchorEl)}
+                        anchorEl={emojiAnchorEl}
+                        onClose={() => setEmojiAnchorEl(null)}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'left',
+                        }}
+                        transformOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'left',
+                        }}
+                        slotProps={{
+                            paper: {
+                                sx: {
+                                    borderRadius: '1.25rem',
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                                    overflow: 'hidden',
+                                    border: 'none',
+                                    mt: -1
+                                }
+                            }
+                        }}
+                    >
+                        <EmojiPicker
+                            onEmojiClick={handleEmojiClick}
+                            autoFocusSearch={false}
+                            theme={EmojiTheme.AUTO}
+                            width={320}
+                            height={400}
+                            previewConfig={{ showPreview: false }}
+                            skinTonesDisabled
+                            searchPlaceHolder="Search emojis..."
+                        />
+                    </Popover>
+
                     <TextField
                         fullWidth
                         placeholder="Type a message..."
@@ -204,9 +413,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             onClick={handleSend}
                             disabled={!input.trim()}
                             sx={{
-                                bgcolor: input.trim() ? 'forest' : 'transparent',
+                                bgcolor: input.trim() ? '#22c55e' : 'transparent',
                                 color: input.trim() ? 'white' : 'text.disabled',
-                                '&:hover': { bgcolor: 'navy' },
+                                '&:hover': { bgcolor: '#16a34a' },
                                 borderRadius: '1rem',
                                 transition: 'all 0.2s'
                             }}

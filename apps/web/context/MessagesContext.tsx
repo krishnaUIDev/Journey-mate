@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { useUser } from "@clerk/nextjs";
 import { Snackbar, Alert } from "@mui/material";
@@ -14,6 +14,7 @@ export interface Message {
     sender_avatar: string;
     content: string;
     created_at: string;
+    reply_to_id?: string | null;
 }
 
 export interface JourneyRequest {
@@ -22,22 +23,39 @@ export interface JourneyRequest {
     requester_id: string;
     requester_name: string;
     requester_avatar: string;
-    status: 'pending' | 'accepted' | 'rejected';
+    status: 'pending' | 'accepted' | 'rejected' | 'none';
+    created_at: string;
+}
+
+export interface NotificationItem {
+    id: string;
+    type: 'request' | 'status' | 'message';
+    title: string;
+    message: string;
+    journeyId: string;
+    read: boolean;
     created_at: string;
 }
 
 interface MessagesContextType {
     messages: Message[];
     loading: boolean;
-    sendMessage: (journeyId: string, content: string) => Promise<void>;
+    sendMessage: (journeyId: string, content: string, replyToId?: string | null) => Promise<void>;
     subscribeToJourney: (journeyId: string) => () => void;
     // New Request Flow
     sendRequest: (journeyId: string) => Promise<void>;
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
     updateRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
     checkRequestStatus: (journeyId: string) => Promise<'pending' | 'accepted' | 'rejected' | 'none'>;
+    editMessage: (messageId: string, content: string) => Promise<void>;
+    deleteMessage: (messageId: string) => Promise<void>;
     showNotification: (message: string, severity?: 'success' | 'error' | 'info') => void;
     myRequests: Record<string, 'pending' | 'accepted' | 'rejected' | 'none'>;
+    notifications: NotificationItem[];
+    markAsRead: (id: string) => void;
+    unreadCount: number;
+    activeJourneyId: string | null;
+    setActiveJourneyId: (id: string | null) => void;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -46,7 +64,17 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
     const [myRequests, setMyRequests] = useState<Record<string, 'pending' | 'accepted' | 'rejected' | 'none'>>({});
+    const [ownedJourneys, setOwnedJourneys] = useState<{ id: string; origin: string; destination: string }[]>([]);
+    const [participatingJourneys, setParticipatingJourneys] = useState<string[]>([]);
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    const [activeJourneyId, setActiveJourneyId] = useState<string | null>(null);
+    const activeJourneyIdRef = useRef<string | null>(null);
     const { user } = useUser();
+
+    // Keep ref in sync
+    useEffect(() => {
+        activeJourneyIdRef.current = activeJourneyId;
+    }, [activeJourneyId]);
 
     // Notification State
     const [notification, setNotification] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -55,62 +83,204 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         severity: 'info'
     });
 
-    // Fetch all requests for the current user
+    // Fetch all context data for global notifications
     useEffect(() => {
         if (user && supabase) {
-            const fetchAllMyRequests = async () => {
+            const fetchContextData = async () => {
                 try {
-                    const { data, error } = await (supabase as any)
+                    // 1. My outgoing requests
+                    const { data: reqData } = await (supabase as any)
                         .from('journey_requests')
                         .select('journey_id, status')
                         .eq('requester_id', user.id);
 
-                    if (error) throw error;
-
-                    if (data) {
-                        const requestMap = data.reduce((acc: any, req: any) => {
+                    if (reqData) {
+                        const requestMap = reqData.reduce((acc: any, req: any) => {
                             acc[req.journey_id] = req.status;
                             return acc;
                         }, {});
                         setMyRequests(requestMap);
+
+                        // Also track which journeys I'm an accepted participant in
+                        setParticipatingJourneys(reqData.filter((r: any) => r.status === 'accepted').map((r: any) => r.journey_id));
+                    }
+
+                    // 2. My owned journeys
+                    const { data: ownData } = await (supabase as any)
+                        .from('journeys')
+                        .select('id, origin, destination')
+                        .eq('user_id', user.id);
+
+                    if (ownData) {
+                        setOwnedJourneys(ownData);
                     }
                 } catch (err) {
-                    console.error("[MessagesContext] Error fetching all my requests:", err);
+                    console.error("[MessagesContext] Error fetching context data:", err);
                 }
             };
 
-            fetchAllMyRequests();
+            fetchContextData();
 
-            // Realtime subscription for current user's requests
-            const channel = (supabase as any)
-                .channel(`my_requests_${user.id}`)
+            // Realtime subscriptions for Dashboard Notifications
+            const globalChannel = (supabase as any)
+                .channel(`global_notifications_${user.id}`)
+                // Listen for updates on MY requests (Accepted/Rejected)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'journey_requests',
+                        filter: `requester_id=eq.${user.id}`,
+                    },
+                    async (payload: any) => {
+                        const oldStatus = myRequests[payload.new.journey_id];
+                        const newStatus = payload.new.status;
+
+                        if (oldStatus !== newStatus && newStatus !== 'pending') {
+                            setMyRequests(prev => ({ ...prev, [payload.new.journey_id]: newStatus }));
+
+                            // Get journey details for the notification
+                            const { data: jData } = await (supabase as any)
+                                .from('journeys')
+                                .select('origin, destination')
+                                .eq('id', payload.new.journey_id)
+                                .single();
+
+                            const title = newStatus === 'accepted' ? 'Request Accepted' : 'Request Declined';
+                            const msg = newStatus === 'accepted'
+                                ? `You're joining the trip to ${jData?.destination}.`
+                                : `Your request for ${jData?.destination} was declined.`;
+
+                            showNotification(msg, newStatus === 'accepted' ? 'success' : 'info');
+
+                            // Add to notification history
+                            const newNotif: NotificationItem = {
+                                id: payload.new.id || Math.random().toString(36).substr(2, 9),
+                                type: 'status',
+                                title,
+                                message: msg,
+                                journeyId: payload.new.journey_id,
+                                read: false,
+                                created_at: new Date().toISOString()
+                            };
+                            setNotifications(prev => {
+                                if (prev.some(n => n.id === payload.new.id)) return prev;
+                                return [newNotif, ...prev];
+                            });
+
+                            if (newStatus === 'accepted') {
+                                setParticipatingJourneys(prev => [...new Set([...prev, payload.new.journey_id])]);
+                            }
+                        }
+                    }
+                )
+                // Listen for incoming requests on MY journeys
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'journey_requests',
+                    },
+                    (payload: any) => {
+                        setOwnedJourneys(currentOwned => {
+                            const journey = currentOwned.find(j => j.id === payload.new.journey_id);
+                            if (journey) {
+                                const msg = `Someone wants to join your trip to ${journey.destination}.`;
+                                showNotification(`New Pairing Request! ${msg}`, 'info');
+
+                                const newNotif: NotificationItem = {
+                                    id: payload.new.id || Math.random().toString(36).substr(2, 9),
+                                    type: 'request',
+                                    title: 'Pairing Request',
+                                    message: msg,
+                                    journeyId: payload.new.journey_id,
+                                    read: false,
+                                    created_at: new Date().toISOString()
+                                };
+                                setNotifications(prev => {
+                                    if (prev.some(n => n.id === payload.new.id)) return prev;
+                                    return [newNotif, ...prev];
+                                });
+                            }
+                            return currentOwned;
+                        });
+                    }
+                )
+                // Listen for messages in journeys I'm part of
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'journey_messages',
+                    },
+                    (payload: any) => {
+                        if (payload.new.sender_id === user.id) return;
+
+                        // Check if it belongs to an owned or participating journey
+                        setOwnedJourneys(currentOwned => {
+                            const isOwned = currentOwned.some(j => j.id === payload.new.journey_id);
+
+                            setParticipatingJourneys(currentPart => {
+                                const isPart = currentPart.includes(payload.new.journey_id);
+                                if ((isOwned || isPart) && payload.new.journey_id !== activeJourneyIdRef.current) {
+                                    const msg = `${payload.new.sender_name} posted in the journey chat.`;
+                                    showNotification(`New Message: ${msg}`, 'info');
+
+                                    const newNotif: NotificationItem = {
+                                        id: payload.new.id || Math.random().toString(36).substr(2, 9),
+                                        type: 'message',
+                                        title: 'New Message',
+                                        message: msg,
+                                        journeyId: payload.new.journey_id,
+                                        read: false,
+                                        created_at: new Date().toISOString()
+                                    };
+                                    setNotifications(prev => {
+                                        if (prev.some(n => n.id === payload.new.id)) return prev;
+                                        return [newNotif, ...prev];
+                                    });
+                                }
+                                return currentPart;
+                            });
+
+                            return currentOwned;
+                        });
+                    }
+                )
+                // Listen for changes to MY journeys to keep ownedJourneys synced
                 .on(
                     'postgres_changes',
                     {
                         event: '*',
                         schema: 'public',
-                        table: 'journey_requests',
-                        filter: `requester_id=eq.${user.id}`,
+                        table: 'journeys',
+                        filter: `user_id=eq.${user.id}`,
                     },
                     (payload: any) => {
-                        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                            setMyRequests(prev => ({
-                                ...prev,
-                                [payload.new.journey_id]: payload.new.status
-                            }));
+                        if (payload.eventType === 'INSERT') {
+                            setOwnedJourneys(prev => [...prev, {
+                                id: payload.new.id,
+                                origin: payload.new.origin,
+                                destination: payload.new.destination
+                            }]);
                         } else if (payload.eventType === 'DELETE') {
-                            setMyRequests(prev => {
-                                const next = { ...prev };
-                                delete next[payload.old.journey_id];
-                                return next;
-                            });
+                            setOwnedJourneys(prev => prev.filter(j => j.id !== payload.old.id));
+                        } else if (payload.eventType === 'UPDATE') {
+                            setOwnedJourneys(prev => prev.map(j => j.id === payload.new.id ? {
+                                id: payload.new.id,
+                                origin: payload.new.origin,
+                                destination: payload.new.destination
+                            } : j));
                         }
                     }
                 )
                 .subscribe();
 
             return () => {
-                (supabase as any).removeChannel(channel);
+                (supabase as any).removeChannel(globalChannel);
             };
         }
     }, [user]);
@@ -149,7 +319,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const sendMessage = async (journeyId: string, content: string) => {
+    const sendMessage = async (journeyId: string, content: string, replyToId: string | null = null) => {
         if (!user) {
             const errorMsg = "You must be logged in to participate in the discussion.";
             showNotification(errorMsg, 'error');
@@ -161,8 +331,6 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             throw new Error(errorMsg);
         }
 
-        // Authorization check: Only owner or accepted requester can send messages
-        // unless it's a past trip (but we don't allow sending messages to past trips usually)
         try {
             // Check if journey is past
             const { data: journeyData } = await (supabase as any)
@@ -188,18 +356,49 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
             const { error } = await (supabase as any)
                 .from('journey_messages')
-                .insert([{
+                .insert({
                     journey_id: journeyId,
                     sender_id: user.id,
-                    sender_name: user.fullName || user.username || "Anonymous",
+                    sender_name: user.fullName || user.username || 'Anonymous',
                     sender_avatar: user.imageUrl,
-                    content
-                }]);
+                    content,
+                    reply_to_id: replyToId
+                });
 
             if (error) throw error;
         } catch (err: any) {
             console.error("[MessagesContext] Error sending message:", err);
             showNotification(`Failed to send message: ${err?.message || 'Unknown error'}`, 'error');
+            throw err;
+        }
+    };
+
+    const editMessage = async (messageId: string, content: string) => {
+        if (!supabase) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_messages')
+                .update({ content })
+                .eq('id', messageId);
+            if (error) throw error;
+        } catch (err: any) {
+            console.error("[MessagesContext] Error editing message:", err);
+            showNotification(`Failed to edit message: ${err.message}`, 'error');
+            throw err;
+        }
+    };
+
+    const deleteMessage = async (messageId: string) => {
+        if (!supabase) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_messages')
+                .delete()
+                .eq('id', messageId);
+            if (error) throw error;
+        } catch (err: any) {
+            console.error("[MessagesContext] Error deleting message:", err);
+            showNotification(`Failed to delete message: ${err.message}`, 'error');
             throw err;
         }
     };
@@ -284,13 +483,21 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             .on(
                 'postgres_changes',
                 {
-                    event: 'INSERT',
+                    event: '*',
                     schema: 'public',
                     table: 'journey_messages',
                     filter: `journey_id=eq.${journeyId}`,
                 },
                 (payload: any) => {
-                    setMessages((prev) => [...prev, payload.new as Message]);
+                    console.log("[MessagesContext] Realtime Event:", payload.eventType, payload);
+                    if (payload.eventType === 'INSERT') {
+                        setMessages((prev) => [...prev, payload.new as Message]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        console.log("[MessagesContext] Updating message:", payload.new.id, payload.new.content);
+                        setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+                    } else if (payload.eventType === 'DELETE') {
+                        setMessages((prev) => prev.filter(m => m.id === payload.old.id));
+                    }
                 }
             )
             .subscribe();
@@ -299,6 +506,12 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             (supabase as any).removeChannel(channel);
         };
     }, [fetchMessages]);
+
+    const markAsRead = (id: string) => {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    };
+
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
         <MessagesContext.Provider value={{
@@ -310,8 +523,15 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             getRequests,
             updateRequestStatus,
             checkRequestStatus,
+            editMessage,
+            deleteMessage,
             showNotification,
-            myRequests
+            myRequests,
+            notifications,
+            markAsRead,
+            unreadCount,
+            activeJourneyId,
+            setActiveJourneyId
         }}>
             {children}
 
