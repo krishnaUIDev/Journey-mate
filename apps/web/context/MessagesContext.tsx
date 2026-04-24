@@ -395,6 +395,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 .from('journey_messages')
                 .delete()
                 .eq('id', messageId);
+
             if (error) throw error;
         } catch (err: any) {
             console.error("[MessagesContext] Error deleting message:", err);
@@ -486,17 +487,26 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     event: '*',
                     schema: 'public',
                     table: 'journey_messages',
-                    filter: `journey_id=eq.${journeyId}`,
+                    // Temporarily remove filter for debugging
                 },
                 (payload: any) => {
-                    console.log("[MessagesContext] Realtime Event:", payload.eventType, payload);
+
                     if (payload.eventType === 'INSERT') {
-                        setMessages((prev) => [...prev, payload.new as Message]);
+                        if (payload.new.journey_id === journeyId) {
+                            setMessages((prev) => [...prev, payload.new as Message]);
+                        }
                     } else if (payload.eventType === 'UPDATE') {
-                        console.log("[MessagesContext] Updating message:", payload.new.id, payload.new.content);
-                        setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+                        if (payload.new.journey_id === journeyId) {
+                            console.log("[MessagesContext] Updating message:", payload.new.id, payload.new.content);
+                            setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+                        }
                     } else if (payload.eventType === 'DELETE') {
-                        setMessages((prev) => prev.filter(m => m.id === payload.old.id));
+                        setMessages((prev) => {
+                            if (prev.some(m => m.id === payload.old.id)) {
+                                return prev.filter(m => m.id !== payload.old.id);
+                            }
+                            return prev;
+                        });
                     }
                 }
             )

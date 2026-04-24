@@ -216,7 +216,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                             },
                                             position: 'relative',
                                             zIndex: 1,
-                                            '&:hover .action-btns': { opacity: 1 }
+                                            '&:hover .action-btns': { opacity: 0.8 }
                                         }}>
                                             {editingMessageId === msg.id ? (
                                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
@@ -261,7 +261,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                         gap: 0.5,
                                                         opacity: 0,
                                                         transition: 'opacity 0.2s',
-                                                        zIndex: 0
+                                                        zIndex: 10,
+                                                        pointerEvents: 'auto'
                                                     }} className="action-btns">
                                                         <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
                                                             <ReplyIcon sx={{ fontSize: '0.9rem' }} />
@@ -280,12 +281,11 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                                 </IconButton>
                                                                 <IconButton
                                                                     size="small"
-                                                                    onClick={() => {
-                                                                        if (window.confirm("Delete this message?")) {
-                                                                            deleteMessage(msg.id);
-                                                                        }
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deleteMessage(msg.id);
                                                                     }}
-                                                                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+                                                                    sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
                                                                 >
                                                                     <DeleteIcon sx={{ fontSize: '0.9rem' }} />
                                                                 </IconButton>

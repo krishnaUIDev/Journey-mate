@@ -72,8 +72,9 @@ const getCoords = (name: string): [number, number] => {
 
     // 1. Try to extract IATA code from parentheses like "Jacksonville (JAX)"
     const codeMatch = name.match(/\(([A-Z]{3})\)/);
-    if (codeMatch && airportCoords[codeMatch[1]]) {
-        return airportCoords[codeMatch[1]] as [number, number];
+    const code = codeMatch ? codeMatch[1] : null;
+    if (code && airportCoords[code]) {
+        return airportCoords[code] as [number, number];
     }
 
     // 2. Try direct lookup (case insensitive)
@@ -298,7 +299,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <div className="flex items-center gap-3">
                                     {journey.flightNumber && (
                                         <img
-                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
                                             alt={journey.flightNumber}
                                             className="w-8 h-8 object-contain"
                                             onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
@@ -332,7 +333,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <div className="flex items-center gap-3">
                                     {journey.flightNumber && (
                                         <img
-                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
                                             alt={journey.flightNumber}
                                             className="w-6 h-6 object-contain"
                                             onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
