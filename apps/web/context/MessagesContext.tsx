@@ -13,6 +13,8 @@ export interface Message {
     sender_name: string;
     sender_avatar: string;
     content: string;
+    image_url?: string | null;
+    audio_url?: string | null;
     created_at: string;
     reply_to_id?: string | null;
 }
@@ -40,7 +42,9 @@ export interface NotificationItem {
 interface MessagesContextType {
     messages: Message[];
     loading: boolean;
-    sendMessage: (journeyId: string, content: string, replyToId?: string | null) => Promise<void>;
+    sendMessage: (journeyId: string, content: string, replyToId?: string | null, imageUrl?: string | null, audioUrl?: string | null) => Promise<void>;
+    uploadChatImage: (file: File) => Promise<string | null>;
+    uploadChatAudio: (file: File | Blob) => Promise<string | null>;
     subscribeToJourney: (journeyId: string) => () => void;
     // New Request Flow
     sendRequest: (journeyId: string) => Promise<void>;
@@ -56,6 +60,8 @@ interface MessagesContextType {
     unreadCount: number;
     activeJourneyId: string | null;
     setActiveJourneyId: (id: string | null) => void;
+    isChatOpen: boolean;
+    setIsChatOpen: (isOpen: boolean) => void;
     typingUsers: Record<string, { id: string; name: string; avatar: string }[]>;
     setTypingStatus: (journeyId: string, isTyping: boolean) => void;
 }
@@ -70,15 +76,38 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const [participatingJourneys, setParticipatingJourneys] = useState<string[]>([]);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [activeJourneyId, setActiveJourneyId] = useState<string | null>(null);
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, { id: string; name: string; avatar: string }[]>>({});
+
     const activeJourneyIdRef = useRef<string | null>(null);
+    const isChatOpenRef = useRef(false);
+    const ownedJourneysRef = useRef<{ id: string; origin: string; destination: string }[]>([]);
+    const participatingJourneysRef = useRef<string[]>([]);
+    const userRef = useRef<any>(null);
+
     const channelsRef = useRef<Record<string, any>>({});
     const { user } = useUser();
 
-    // Keep ref in sync
+    // Keep refs in sync
     useEffect(() => {
         activeJourneyIdRef.current = activeJourneyId;
     }, [activeJourneyId]);
+
+    useEffect(() => {
+        isChatOpenRef.current = isChatOpen;
+    }, [isChatOpen]);
+
+    useEffect(() => {
+        ownedJourneysRef.current = ownedJourneys;
+    }, [ownedJourneys]);
+
+    useEffect(() => {
+        participatingJourneysRef.current = participatingJourneys;
+    }, [participatingJourneys]);
+
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
 
     // Notification State
     const [notification, setNotification] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' }>({
@@ -220,38 +249,37 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                         schema: 'public',
                         table: 'journey_messages',
                     },
-                    (payload: any) => {
-                        if (payload.new.sender_id === user.id) return;
+                    async (payload: any) => {
+                        const currentUser = userRef.current;
+                        if (!currentUser || payload.new.sender_id === currentUser.id) return;
 
-                        // Check if it belongs to an owned or participating journey
-                        setOwnedJourneys(currentOwned => {
-                            const isOwned = currentOwned.some(j => j.id === payload.new.journey_id);
+                        const journeyId = payload.new.journey_id;
+                        const isOwned = ownedJourneysRef.current.some(j => j.id === journeyId);
+                        const isPart = participatingJourneysRef.current.includes(journeyId);
+                        const isActivePage = activeJourneyIdRef.current === journeyId;
+                        const isChatVisible = isChatOpenRef.current && isActivePage;
 
-                            setParticipatingJourneys(currentPart => {
-                                const isPart = currentPart.includes(payload.new.journey_id);
-                                if ((isOwned || isPart) && payload.new.journey_id !== activeJourneyIdRef.current) {
-                                    const msg = `${payload.new.sender_name} posted in the journey chat.`;
-                                    showNotification(`New Message: ${msg}`, 'info');
+                        console.log(`[MessagesContext] New message in ${journeyId}. isOwned: ${isOwned}, isPart: ${isPart}, isActivePage: ${isActivePage}, isChatVisible: ${isChatVisible}`);
 
-                                    const newNotif: NotificationItem = {
-                                        id: payload.new.id || Math.random().toString(36).substr(2, 9),
-                                        type: 'message',
-                                        title: 'New Message',
-                                        message: msg,
-                                        journeyId: payload.new.journey_id,
-                                        read: false,
-                                        created_at: new Date().toISOString()
-                                    };
-                                    setNotifications(prev => {
-                                        if (prev.some(n => n.id === payload.new.id)) return prev;
-                                        return [newNotif, ...prev];
-                                    });
-                                }
-                                return currentPart;
+                        if ((isOwned || isPart) && !isChatVisible) {
+                            const msg = `${payload.new.sender_name} posted in the journey chat.`;
+                            showNotification(`New Message: ${msg}`, 'info');
+
+                            const newNotif: NotificationItem = {
+                                id: payload.new.id || Math.random().toString(36).substr(2, 9),
+                                type: 'message',
+                                title: 'New Message',
+                                message: msg,
+                                journeyId: journeyId,
+                                read: false,
+                                created_at: new Date().toISOString()
+                            };
+
+                            setNotifications(prev => {
+                                if (prev.some(n => n.id === payload.new.id)) return prev;
+                                return [newNotif, ...prev];
                             });
-
-                            return currentOwned;
-                        });
+                        }
                     }
                 )
                 // Listen for changes to MY journeys to keep ownedJourneys synced
@@ -323,7 +351,56 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const sendMessage = async (journeyId: string, content: string, replyToId: string | null = null) => {
+    const uploadChatImage = async (file: File): Promise<string | null> => {
+        if (!supabase || !user) return null;
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('chat-attachments')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat-attachments')
+                .getPublicUrl(filePath);
+
+            return publicUrl;
+        } catch (err) {
+            console.error("[MessagesContext] Error uploading image:", err);
+            showNotification("Failed to upload image.", "error");
+            return null;
+        }
+    };
+
+    const uploadChatAudio = async (file: File | Blob): Promise<string | null> => {
+        if (!supabase || !user) return null;
+        try {
+            const fileName = `${user.id}/${Math.random().toString(36).substring(2)}.webm`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('chat-attachments')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat-attachments')
+                .getPublicUrl(filePath);
+
+            return publicUrl;
+        } catch (err) {
+            console.error("[MessagesContext] Error uploading audio:", err);
+            showNotification("Failed to upload audio.", "error");
+            return null;
+        }
+    };
+
+    const sendMessage = async (journeyId: string, content: string, replyToId: string | null = null, imageUrl: string | null = null, audioUrl: string | null = null) => {
         if (!user) {
             const errorMsg = "You must be logged in to participate in the discussion.";
             showNotification(errorMsg, 'error');
@@ -366,7 +443,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     sender_name: user.fullName || user.username || 'Anonymous',
                     sender_avatar: user.imageUrl,
                     content,
-                    reply_to_id: replyToId
+                    reply_to_id: replyToId,
+                    image_url: imageUrl,
+                    audio_url: audioUrl
                 });
 
             if (error) throw error;
@@ -576,6 +655,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             messages,
             loading,
             sendMessage,
+            uploadChatImage,
             subscribeToJourney,
             sendRequest,
             getRequests,
@@ -590,8 +670,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             unreadCount,
             activeJourneyId,
             setActiveJourneyId,
+            isChatOpen,
+            setIsChatOpen,
             typingUsers,
-            setTypingStatus
+            setTypingStatus,
+            uploadChatAudio
         }}>
             {children}
 

@@ -106,10 +106,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [mapLoaded, setMapLoaded] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
-    const { checkRequestStatus, sendRequest, showNotification, setActiveJourneyId } = useMessages();
+    const { checkRequestStatus, sendRequest, showNotification, setActiveJourneyId, setIsChatOpen } = useMessages();
     const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
+
+    const toggleChat = () => {
+        const newState = !chatOpen;
+        setChatOpen(newState);
+        setIsChatOpen(newState);
+    };
 
     const isOwner = user?.id === journey?.userId;
     const isPastTrip = journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day');
@@ -394,7 +400,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     <Button
                                         fullWidth
                                         variant="contained"
-                                        onClick={() => setChatOpen(true)}
+                                        onClick={toggleChat}
                                         startIcon={<ChatIcon />}
                                         sx={{
                                             bgcolor: 'navy',
@@ -416,7 +422,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     <Button
                                         fullWidth
                                         variant="contained"
-                                        onClick={() => setChatOpen(true)}
+                                        onClick={toggleChat}
                                         startIcon={<ChatIcon />}
                                         sx={{
                                             bgcolor: 'navy',
@@ -613,7 +619,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             <Drawer
                 anchor="right"
                 open={chatOpen}
-                onClose={() => setChatOpen(false)}
+                onClose={() => {
+                    setChatOpen(false);
+                    setIsChatOpen(false);
+                }}
                 slotProps={{
                     paper: {
                         sx: {
@@ -626,7 +635,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                 }}
             >
                 <Box sx={{ height: '100%', p: { xs: 0, sm: 2 } }}>
-                    <ChatWindow journeyId={id} onClose={() => setChatOpen(false)} />
+                    <ChatWindow journeyId={id} onClose={() => {
+                        setChatOpen(false);
+                        setIsChatOpen(false);
+                    }} />
                 </Box>
             </Drawer>
         </div>

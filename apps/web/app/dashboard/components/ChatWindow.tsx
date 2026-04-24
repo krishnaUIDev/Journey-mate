@@ -22,7 +22,11 @@ import {
     Check as SaveIcon,
     Clear as CancelIcon,
     DeleteOutlined as DeleteIcon,
-    ReplyOutlined as ReplyIcon
+    ReplyOutlined as ReplyIcon,
+    AttachFile as AttachIcon,
+    Image as ImageIcon,
+    Mic as MicIcon,
+    Stop as StopIcon,
 } from "@mui/icons-material";
 import { useMessages, Message } from "../../../context/MessagesContext";
 import { useUser } from "@clerk/nextjs";
@@ -38,7 +42,18 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
-    const { messages, loading, sendMessage, subscribeToJourney, editMessage, deleteMessage, typingUsers, setTypingStatus } = useMessages();
+    const {
+        messages,
+        loading,
+        sendMessage,
+        uploadChatImage,
+        uploadChatAudio,
+        subscribeToJourney,
+        editMessage,
+        deleteMessage,
+        typingUsers,
+        setTypingStatus
+    } = useMessages();
     const { user } = useUser();
     const [input, setInput] = useState("");
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -46,7 +61,21 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [emojiAnchorEl, setEmojiAnchorEl] = useState<HTMLButtonElement | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+
+    // File state
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    // Recording state
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const currentTypingUsers = typingUsers[journeyId] || [];
@@ -59,6 +88,15 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, currentTypingUsers]);
+
+    useEffect(() => {
+        return () => {
+            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+            if (recorderRef.current && recorderRef.current.state === "recording") {
+                recorderRef.current.stop();
+            }
+        };
+    }, []);
 
     // Typing indicator logic
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -79,11 +117,64 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         }, 3000);
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert("Please select an image file.");
+                return;
+            }
+            setSelectedFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleStartRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            const chunks: Blob[] = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                setAudioBlob(blob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorderRef.current = recorder;
+            recorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            alert("Could not access microphone.");
+        }
+    };
+
+    const handleStopRecording = () => {
+        if (recorderRef.current && recorderRef.current.state === "recording") {
+            recorderRef.current.stop();
+        }
+        setIsRecording(false);
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+
     const handleEmojiClick = (emojiData: any) => {
         setInput(prev => prev + emojiData.emoji);
         setEmojiAnchorEl(null);
 
-        // Also trigger typing status for emoji selection
         if (!isTyping) {
             setIsTyping(true);
             setTypingStatus(journeyId, true);
@@ -107,21 +198,47 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     };
 
     const handleSend = async () => {
-        if (!input.trim()) return;
+        if (!input.trim() && !selectedFile && !audioBlob) return;
+
         const currentInput = input;
         const currentReplyToId = replyingTo?.id || null;
+        const currentFile = selectedFile;
+        const currentAudio = audioBlob;
 
+        // Optimistic UI reset
         setInput("");
         setReplyingTo(null);
+        setSelectedFile(null);
+        setPreviewUrl(null);
+        setAudioBlob(null);
         setIsTyping(false);
         setTypingStatus(journeyId, false);
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
         try {
-            await sendMessage(journeyId, currentInput, currentReplyToId);
+            let imageUrl = null;
+            let audioUrl = null;
+
+            if (currentFile) {
+                setUploading(true);
+                imageUrl = await uploadChatImage(currentFile);
+                setUploading(false);
+            }
+
+            if (currentAudio) {
+                setUploading(true);
+                audioUrl = await uploadChatAudio(currentAudio);
+                setUploading(false);
+            }
+
+            await sendMessage(journeyId, currentInput, currentReplyToId, imageUrl, audioUrl);
         } catch (error) {
+            // Restore if failed
             setInput(currentInput);
             setReplyingTo(replyingTo);
+            setSelectedFile(currentFile);
+            setAudioBlob(currentAudio);
+            setUploading(false);
         }
     };
 
@@ -223,6 +340,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                             gap: 0.5,
                                             alignItems: isMe ? 'flex-end' : 'flex-start'
                                         }}>
+                                            {!isMe && (
+                                                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem', opacity: 0.5, ml: 1 }}>
+                                                    {msg.sender_name}
+                                                </Typography>
+                                            )}
+
                                             {parentMsg && (
                                                 <Box sx={{
                                                     p: 1.5,
@@ -233,7 +356,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                     '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
                                                     border: '1px solid rgba(0,0,0,0.05)',
                                                     maxWidth: '90%',
-                                                    opacity: 0.6
+                                                    opacity: 0.6,
+                                                    borderLeft: `3px solid ${isMe ? 'navy' : 'gray'}`
                                                 }}>
                                                     <Typography variant="caption" sx={{ fontWeight: 800, display: 'block', mb: 0.2 }}>
                                                         {parentMsg.sender_name}
@@ -243,106 +367,147 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                     </Typography>
                                                 </Box>
                                             )}
-                                            <Box sx={{
-                                                p: 2,
-                                                borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
-                                                bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
-                                                color: isMe ? 'white' : 'inherit',
-                                                '.dark &': {
-                                                    bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
-                                                    color: isMe ? 'navy' : 'white'
-                                                },
-                                                position: 'relative',
-                                                zIndex: 1,
-                                                '&:hover .action-btns': { opacity: 0.8 }
-                                            }}>
-                                                {editingMessageId === msg.id ? (
-                                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
-                                                        <TextField
-                                                            size="small"
-                                                            fullWidth
-                                                            value={editContent}
-                                                            onChange={(e) => setEditContent(e.target.value)}
-                                                            variant="standard"
-                                                            autoFocus
-                                                            multiline
-                                                            slotProps={{
-                                                                input: {
-                                                                    sx: { color: 'inherit', fontSize: '0.875rem' },
-                                                                    disableUnderline: false
-                                                                }
-                                                            }}
-                                                        />
-                                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                                                            <IconButton size="small" onClick={() => handleEditSave(msg.id)} sx={{ color: 'inherit' }}>
-                                                                <SaveIcon fontSize="small" />
-                                                            </IconButton>
-                                                            <IconButton size="small" onClick={() => setEditingMessageId(null)} sx={{ color: 'inherit' }}>
-                                                                <CancelIcon fontSize="small" />
-                                                            </IconButton>
-                                                        </Box>
-                                                    </Box>
-                                                ) : (
-                                                    <>
-                                                        <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5 }}>
-                                                            {msg.content}
-                                                        </Typography>
 
-                                                        {/* Action Buttons (Reply, Edit, Delete) */}
-                                                        <Box sx={{
-                                                            position: 'absolute',
-                                                            top: '50%',
-                                                            [isMe ? 'right' : 'left']: '100%',
-                                                            transform: 'translateY(-50%)',
-                                                            mx: 1,
-                                                            display: 'flex',
-                                                            gap: 0.5,
-                                                            opacity: 0,
-                                                            transition: 'opacity 0.2s',
-                                                            zIndex: 10,
-                                                            pointerEvents: 'auto'
-                                                        }} className="action-btns">
-                                                            <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
-                                                                <ReplyIcon sx={{ fontSize: '0.9rem' }} />
+                                            <Box
+                                                sx={{
+                                                    position: 'relative',
+                                                    '&:hover .action-btns': { opacity: 1 }
+                                                }}
+                                            >
+                                                <Tooltip title={dayjs(msg.created_at).format('LLL')} arrow placement={isMe ? 'left' : 'right'}>
+                                                    <Box sx={{
+                                                        p: 2,
+                                                        borderRadius: isMe ? '1.25rem 1.25rem 0 1.25rem' : '1.25rem 1.25rem 1.25rem 0',
+                                                        bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
+                                                        color: isMe ? 'white' : 'inherit',
+                                                        '.dark &': {
+                                                            bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
+                                                            color: isMe ? 'navy' : 'white'
+                                                        },
+                                                        position: 'relative',
+                                                        zIndex: 1,
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                                                    }}>
+                                                        {editingMessageId === msg.id ? (
+                                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+                                                                <TextField
+                                                                    size="small"
+                                                                    fullWidth
+                                                                    value={editContent}
+                                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                                    variant="standard"
+                                                                    autoFocus
+                                                                    multiline
+                                                                    slotProps={{
+                                                                        input: {
+                                                                            sx: { color: 'inherit', fontSize: '0.875rem' },
+                                                                            disableUnderline: false
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                                    <IconButton size="small" onClick={() => handleEditSave(msg.id)} sx={{ color: 'inherit' }}>
+                                                                        <SaveIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                    <IconButton size="small" onClick={() => setEditingMessageId(null)} sx={{ color: 'inherit' }}>
+                                                                        <CancelIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                </Box>
+                                                            </Box>
+                                                        ) : (
+                                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                                {msg.image_url && (
+                                                                    <Box
+                                                                        component="img"
+                                                                        src={msg.image_url}
+                                                                        alt="Shared Item"
+                                                                        sx={{
+                                                                            width: '100%',
+                                                                            maxWidth: 250,
+                                                                            maxHeight: 300,
+                                                                            objectFit: 'cover',
+                                                                            borderRadius: '0.75rem',
+                                                                            cursor: 'pointer',
+                                                                            '&:hover': { opacity: 0.9 },
+                                                                            mb: msg.content ? 0.5 : 0
+                                                                        }}
+                                                                        onClick={() => window.open(msg.image_url!, '_blank')}
+                                                                    />
+                                                                )}
+                                                                {msg.audio_url && (
+                                                                    <Box sx={{ minWidth: 200, mt: 0.5 }}>
+                                                                        <audio
+                                                                            controls
+                                                                            src={msg.audio_url}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                height: '32px',
+                                                                                borderRadius: '16px',
+                                                                                filter: isMe ? 'invert(1) grayscale(1) brightness(2)' : 'none'
+                                                                            }}
+                                                                        />
+                                                                    </Box>
+                                                                )}
+                                                                {msg.content && (
+                                                                    <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                                                                        {msg.content}
+                                                                    </Typography>
+                                                                )}
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </Tooltip>
+
+                                                {/* Action Buttons (Reply, Edit, Delete) */}
+                                                <Box sx={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    [isMe ? 'right' : 'left']: '100%',
+                                                    transform: 'translateY(-50%)',
+                                                    mx: 1,
+                                                    display: 'flex',
+                                                    gap: 0.5,
+                                                    opacity: 0,
+                                                    transition: 'opacity 0.2s',
+                                                    zIndex: 10,
+                                                    pointerEvents: 'auto',
+                                                    visibility: editingMessageId === msg.id ? 'hidden' : 'visible'
+                                                }} className="action-btns">
+                                                    <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
+                                                        <ReplyIcon sx={{ fontSize: '0.9rem' }} />
+                                                    </IconButton>
+                                                    {isMe && (
+                                                        <>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => {
+                                                                    setEditingMessageId(msg.id);
+                                                                    setEditContent(msg.content);
+                                                                }}
+                                                                sx={{ color: 'text.secondary' }}
+                                                            >
+                                                                <EditIcon sx={{ fontSize: '0.9rem' }} />
                                                             </IconButton>
-                                                            {isMe && (
-                                                                <>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        onClick={() => {
-                                                                            setEditingMessageId(msg.id);
-                                                                            setEditContent(msg.content);
-                                                                        }}
-                                                                        sx={{ color: 'text.secondary' }}
-                                                                    >
-                                                                        <EditIcon sx={{ fontSize: '0.9rem' }} />
-                                                                    </IconButton>
-                                                                    <IconButton
-                                                                        size="small"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            deleteMessage(msg.id);
-                                                                        }}
-                                                                        sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
-                                                                    >
-                                                                        <DeleteIcon sx={{ fontSize: '0.9rem' }} />
-                                                                    </IconButton>
-                                                                </>
-                                                            )}
-                                                        </Box>
-                                                    </>
-                                                )}
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    deleteMessage(msg.id);
+                                                                }}
+                                                                sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
+                                                            >
+                                                                <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                                                            </IconButton>
+                                                        </>
+                                                    )}
+                                                </Box>
                                             </Box>
                                         </Box>
                                     </Box>
-                                    <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.65rem', px: 1 }}>
-                                        {isMe ? 'You' : msg.sender_name} • {dayjs(msg.created_at).fromNow()}
-                                    </Typography>
                                 </Box>
                             );
                         })}
 
-                        {/* Typing Indicator UI */}
                         {currentTypingUsers.length > 0 && (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1, mt: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -364,29 +529,67 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
             <Divider sx={{ opacity: 0.5 }} />
 
-            {/* Reply Preview Area */}
-            {replyingTo && (
+            {/* Preview Areas (Reply / Image / Audio) */}
+            {(replyingTo || previewUrl || audioBlob) && (
                 <Box sx={{
                     p: 2,
                     bgcolor: 'rgba(0,0,0,0.02)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: 2,
                     borderTop: '1px solid rgba(0,0,0,0.05)',
-                    '.dark &': {
-                        bgcolor: 'rgba(255,255,255,0.02)',
-                        borderTop: '1px solid rgba(255,255,255,0.05)'
-                    }
+                    '.dark &': { bgcolor: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }
                 }}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, overflow: 'hidden' }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                            Replying to {replyingTo.sender_name}
-                        </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {replyingTo.content}
-                        </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden', flex: 1 }}>
+                        {(previewUrl || audioBlob) && (
+                            <Box sx={{ position: 'relative' }}>
+                                {previewUrl ? (
+                                    <Box
+                                        component="img"
+                                        src={previewUrl}
+                                        sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
+                                    />
+                                ) : (
+                                    <Box sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: 1,
+                                        bgcolor: 'navy',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'white'
+                                    }}>
+                                        <MicIcon fontSize="small" />
+                                    </Box>
+                                )}
+                                {uploading && (
+                                    <CircularProgress
+                                        size={40}
+                                        sx={{ position: 'absolute', top: 0, left: 0, color: 'forest' }}
+                                    />
+                                )}
+                            </Box>
+                        )}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, overflow: 'hidden' }}>
+                            {replyingTo ? (
+                                <>
+                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                                        Replying to {replyingTo.sender_name}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {replyingTo.content}
+                                    </Typography>
+                                </>
+                            ) : (
+                                <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                                    {previewUrl ? 'Image ready to send' : 'Voice note ready to send'}
+                                </Typography>
+                            )}
+                        </Box>
                     </Box>
-                    <IconButton size="small" onClick={() => setReplyingTo(null)}>
+                    <IconButton size="small" onClick={() => { setReplyingTo(null); setSelectedFile(null); setPreviewUrl(null); setAudioBlob(null); }}>
                         <CancelIcon sx={{ fontSize: '1rem' }} />
                     </IconButton>
                 </Box>
@@ -394,91 +597,150 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
             {/* Input Area */}
             <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    bgcolor: 'rgba(0,0,0,0.03)',
-                    '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
-                    borderRadius: '1.25rem',
-                    p: 0.5,
-                    pl: 2,
-                    position: 'relative'
-                }}>
-                    <IconButton
-                        size="small"
-                        onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
-                        sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
-                    >
-                        <EmojiIcon fontSize="small" />
-                    </IconButton>
-
-                    <Popover
-                        open={Boolean(emojiAnchorEl)}
-                        anchorEl={emojiAnchorEl}
-                        onClose={() => setEmojiAnchorEl(null)}
-                        anchorOrigin={{
-                            vertical: 'top',
-                            horizontal: 'left',
-                        }}
-                        transformOrigin={{
-                            vertical: 'bottom',
-                            horizontal: 'left',
-                        }}
-                        slotProps={{
-                            paper: {
-                                sx: {
-                                    borderRadius: '1.25rem',
-                                    boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                                    overflow: 'hidden',
-                                    border: 'none',
-                                    mt: -1
+                {isRecording ? (
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        p: 1.5,
+                        bgcolor: 'rgba(239, 68, 68, 0.05)',
+                        borderRadius: '1.25rem',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, pl: 1 }}>
+                            <Box sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: '#ef4444',
+                                animation: 'pulse 1s infinite',
+                                '@keyframes pulse': {
+                                    '0%': { transform: 'scale(1)', opacity: 1 },
+                                    '50%': { transform: 'scale(1.5)', opacity: 0.5 },
+                                    '100%': { transform: 'scale(1)', opacity: 1 }
                                 }
-                            }
-                        }}
-                    >
-                        <EmojiPicker
-                            onEmojiClick={handleEmojiClick}
-                            autoFocusSearch={false}
-                            theme={EmojiTheme.AUTO}
-                            width={320}
-                            height={400}
-                            previewConfig={{ showPreview: false }}
-                            skinTonesDisabled
-                            searchPlaceHolder="Search emojis..."
-                        />
-                    </Popover>
-
-                    <TextField
-                        fullWidth
-                        placeholder="Type a message..."
-                        variant="standard"
-                        value={input}
-                        onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
-                        slotProps={{
-                            input: {
-                                disableUnderline: true,
-                                sx: { fontSize: '0.875rem', fontWeight: 600 }
-                            }
-                        }}
-                    />
-                    <Tooltip title="Send Message">
+                            }} />
+                            <Typography sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.875rem', letterSpacing: '0.05em' }}>
+                                RECORDING {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                            </Typography>
+                        </Box>
+                        <IconButton onClick={handleStopRecording} sx={{ color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' } }}>
+                            <StopIcon />
+                        </IconButton>
+                    </Box>
+                ) : (
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        bgcolor: 'rgba(0,0,0,0.03)',
+                        '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                        borderRadius: '1.25rem',
+                        p: 0.5,
+                        pl: 1
+                    }}>
                         <IconButton
-                            onClick={handleSend}
-                            disabled={!input.trim()}
-                            sx={{
-                                bgcolor: input.trim() ? '#22c55e' : 'transparent',
-                                color: input.trim() ? 'white' : 'text.disabled',
-                                '&:hover': { bgcolor: '#16a34a' },
-                                borderRadius: '1rem',
-                                transition: 'all 0.2s'
+                            size="small"
+                            onClick={(e) => setEmojiAnchorEl(e.currentTarget as any)}
+                            sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                        >
+                            <EmojiIcon fontSize="small" />
+                        </IconButton>
+
+                        <IconButton
+                            size="small"
+                            onClick={() => fileInputRef.current?.click()}
+                            sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                        >
+                            <AttachIcon fontSize="small" />
+                        </IconButton>
+
+                        <IconButton
+                            size="small"
+                            onClick={handleStartRecording}
+                            disabled={uploading}
+                            sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                        >
+                            <MicIcon fontSize="small" />
+                        </IconButton>
+
+                        <input
+                            type="file"
+                            hidden
+                            ref={fileInputRef}
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                        />
+
+                        <Popover
+                            open={Boolean(emojiAnchorEl)}
+                            anchorEl={emojiAnchorEl}
+                            onClose={() => setEmojiAnchorEl(null)}
+                            anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                            transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                            slotProps={{
+                                paper: {
+                                    sx: {
+                                        borderRadius: '1.25rem',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                                        overflow: 'hidden',
+                                        border: 'none',
+                                        mt: -1
+                                    }
+                                }
                             }}
                         >
-                            <SendIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Box>
+                            <EmojiPicker
+                                onEmojiClick={handleEmojiClick}
+                                autoFocusSearch={false}
+                                theme={EmojiTheme.AUTO}
+                                width={320}
+                                height={400}
+                                previewConfig={{ showPreview: false }}
+                                skinTonesDisabled
+                            />
+                        </Popover>
+
+                        <TextField
+                            fullWidth
+                            placeholder="Type a message..."
+                            variant="standard"
+                            value={input}
+                            onChange={handleInputChange}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend();
+                                }
+                            }}
+                            sx={{ px: 1 }}
+                            slotProps={{
+                                input: {
+                                    disableUnderline: true,
+                                    sx: { fontSize: '0.875rem', fontWeight: 600 }
+                                }
+                            }}
+                        />
+
+                        <Tooltip title="Send Message">
+                            <IconButton
+                                onClick={handleSend}
+                                disabled={uploading || (!input.trim() && !selectedFile && !audioBlob)}
+                                sx={{
+                                    bgcolor: (input.trim() || selectedFile || audioBlob) ? '#22c55e' : 'transparent',
+                                    color: (input.trim() || selectedFile || audioBlob) ? 'white' : 'text.disabled',
+                                    '&:hover': { bgcolor: '#16a34a' },
+                                    borderRadius: '1rem',
+                                    transition: 'all 0.2s',
+                                    width: 36,
+                                    height: 36
+                                }}
+                            >
+                                {uploading ? <CircularProgress size={16} color="inherit" /> : <SendIcon sx={{ fontSize: '1.1rem' }} />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                )}
             </Box>
         </Paper>
     );
