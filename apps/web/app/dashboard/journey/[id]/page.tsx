@@ -59,7 +59,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [mapLoaded, setMapLoaded] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
-    const { checkRequestStatus, sendRequest } = useMessages();
+    const { checkRequestStatus, sendRequest, showNotification } = useMessages();
     const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
@@ -74,6 +74,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             setTimeout(() => setMapLoaded(true), 500);
 
             // Initial status check
+            // Past trips are exempt from gating
             if (user?.id && user.id !== found.userId && !isPastTrip) {
                 checkRequestStatus(id).then(status => {
                     setRequestStatus(status);
@@ -93,7 +94,13 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 filter: `journey_id=eq.${id} AND requester_id=eq.${user.id}`,
                             },
                             (payload: any) => {
-                                setRequestStatus(payload.new.status);
+                                const newStatus = payload.new.status;
+                                setRequestStatus(newStatus);
+                                if (newStatus === 'accepted') {
+                                    showNotification("Request accepted! You can now join the discussion.", 'success');
+                                } else if (newStatus === 'rejected') {
+                                    showNotification("Your request to pair was declined.", 'info');
+                                }
                             }
                         )
                         .subscribe();
@@ -102,13 +109,17 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         supabase.removeChannel(channel);
                     };
                 }
+            } else if (isPastTrip || (user?.id && user.id === found.userId)) {
+                // If it's a past trip or the owner, they can join.
+                setRequestStatus('accepted');
+                setRequestLoading(false);
             } else {
                 setRequestLoading(false);
             }
         } else {
             setRequestLoading(false);
         }
-    }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip]);
+    }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification]);
 
     const handleRequestAction = async () => {
         await sendRequest(id);
@@ -204,9 +215,19 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                 <div className="h-[55vh] lg:hidden flex flex-col justify-end p-8 transition-all duration-700">
                     <div className={`transition-all duration-1000 ${mapLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                         <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-xl border border-white dark:border-slate-800 inline-flex flex-col items-center">
-                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">FLIGHT</span>
-                                <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl px-8 py-5 rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl flex flex-col items-center">
+                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mb-1">FLIGHT</span>
+                                <div className="flex items-center gap-3">
+                                    {journey.flightNumber && (
+                                        <img
+                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                            alt={journey.flightNumber}
+                                            className="w-8 h-8 object-contain"
+                                            onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                        />
+                                    )}
+                                    <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -230,7 +251,17 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         <div className="hidden lg:flex items-center gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-3 rounded-2xl border border-slate-100 dark:border-slate-700 inline-flex flex-col items-center">
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">FLIGHT</span>
-                                <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                                <div className="flex items-center gap-3">
+                                    {journey.flightNumber && (
+                                        <img
+                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                            alt={journey.flightNumber}
+                                            className="w-6 h-6 object-contain"
+                                            onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                        />
+                                    )}
+                                    <span className="text-xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                                </div>
                             </div>
                         </div>
 

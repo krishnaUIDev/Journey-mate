@@ -48,8 +48,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <IntlProvider messages={messages[locale]} locale={locale} defaultLocale="en">
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <RoleProvider>
-                    <JourneysProvider>
-                        <MessagesProvider>
+                    <MessagesProvider>
+                        <JourneysProvider>
                             <div className="min-h-screen bg-offwhite dark:bg-navy font-sans transition-colors duration-300">
                                 {/* ... existing nav ... */}
                                 <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
@@ -92,8 +92,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                     {children}
                                 </main>
                             </div>
-                        </MessagesProvider>
-                    </JourneysProvider>
+                        </JourneysProvider>
+                    </MessagesProvider>
                 </RoleProvider>
             </LocalizationProvider>
         </IntlProvider>

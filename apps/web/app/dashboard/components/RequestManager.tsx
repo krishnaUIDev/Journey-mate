@@ -154,7 +154,8 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                         sx={{
                                             bgcolor: 'rgba(239, 68, 68, 0.1)',
                                             color: '#ef4444',
-                                            '&:hover': { bgcolor: '#ef4444', color: 'white' }
+                                            '&:hover': { bgcolor: '#ef4444', color: 'white' },
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                                         }}
                                     >
                                         <RejectIcon fontSize="small" />
@@ -167,7 +168,9 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                         sx={{
                                             bgcolor: 'rgba(34, 197, 94, 0.1)',
                                             color: '#22c55e',
-                                            '&:hover': { bgcolor: '#22c55e', color: 'white' }
+                                            '&:hover': { bgcolor: '#22c55e', color: 'white' },
+                                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                            '&:active': { transform: 'scale(0.95)' }
                                         }}
                                     >
                                         <AcceptIcon fontSize="small" />
@@ -175,9 +178,17 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                 </Tooltip>
                             </Box>
                         ) : (
-                            <Typography variant="caption" sx={{ opacity: 0.3, fontWeight: 700 }}>
-                                Processed
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: 'full',
+                                    bgcolor: request.status === 'accepted' ? '#22c55e' : '#ef4444'
+                                }} />
+                                <Typography variant="caption" sx={{ opacity: 0.5, fontWeight: 800, textTransform: 'uppercase', fontSize: '9px' }}>
+                                    {request.status === 'accepted' ? 'Added' : 'Declined'}
+                                </Typography>
+                            </Box>
                         )}
                     </Paper>
                 ))}

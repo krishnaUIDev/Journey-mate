@@ -10,6 +10,7 @@ import {
     Refresh as ResetIcon
 } from "@mui/icons-material";
 import { useJourneys, JourneyPost } from "../../../context/JourneysContext";
+import { useMessages } from "../../../context/MessagesContext";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
@@ -18,6 +19,7 @@ import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 export function JourneyFeed() {
     const { journeys, loading, error, deleteJourney } = useJourneys();
+    const { myRequests } = useMessages();
     const { user } = useUser();
     const router = useRouter();
 
@@ -32,6 +34,8 @@ export function JourneyFeed() {
     const [deletingJourney, setDeletingJourney] = useState<JourneyPost | null>(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const [visibleCount, setVisibleCount] = useState(12);
 
     useEffect(() => {
         if (!loading) {
@@ -180,10 +184,10 @@ export function JourneyFeed() {
             </div>
 
             {/* Journeys List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {loading ? (
-                    [1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white dark:bg-white/5 rounded-[2.5rem] h-[450px] animate-pulse border border-gray-100 dark:border-white/10" />
+                    [1, 2, 3, 4, 5, 6].map((i) => (
+                        <div key={i} className="bg-white dark:bg-white/5 rounded-[1.5rem] h-[160px] animate-pulse border border-gray-100 dark:border-white/10" />
                     ))
                 ) : error ? (
                     <div className="col-span-full text-center py-16 bg-red-50 dark:bg-red-900/10 rounded-[2.5rem] border border-red-100 dark:border-red-900/20">
@@ -202,122 +206,121 @@ export function JourneyFeed() {
                         </Link>
                     </div>
                 ) : (
-                    filteredJourneys.map((journey) => {
+                    filteredJourneys.slice(0, visibleCount).map((journey) => {
                         const isPast = dayjs(journey.date).isBefore(dayjs(), 'day');
+                        const isOwner = user?.id === journey.userId;
+
                         return (
                             <div
                                 key={journey.id}
                                 onClick={() => router.push(`/dashboard/journey/${journey.id}`)}
-                                className={`bg-white dark:bg-white/5 rounded-[2.5rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-2xl transition-all group flex flex-col cursor-pointer active:scale-[0.98] relative ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
+                                className={`bg-white dark:bg-white/5 rounded-[1.25rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-xl transition-all group cursor-pointer active:scale-[0.98] relative flex items-center p-3 gap-3 ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
                             >
-                                {/* Owner Actions - Floating Floating top-right-ish if owner */}
-                                {user?.id === journey.userId && (
-                                    <div className="absolute top-4 left-4 z-20 flex gap-2">
-                                        <Tooltip title="Edit Trip">
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingJourney(journey);
-                                                    setIsEditModalOpen(true);
-                                                }}
-                                                sx={{
-                                                    bgcolor: 'white',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                                    '&:hover': { bgcolor: '#f8fafc', scale: 1.1 },
-                                                    '.dark &': { bgcolor: '#1e293b', color: 'white', '&:hover': { bgcolor: '#334155' } }
-                                                }}
-                                            >
-                                                <EditIcon sx={{ fontSize: 16 }} />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Delete Trip">
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setDeletingJourney(journey);
-                                                    setIsDeleteModalOpen(true);
-                                                }}
-                                                sx={{
-                                                    bgcolor: 'white',
-                                                    color: '#ef4444',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                                    '&:hover': { bgcolor: '#fef2f2', scale: 1.1 },
-                                                    '.dark &': { bgcolor: '#1e293b', color: '#f87171', '&:hover': { bgcolor: '#450a0a' } }
-                                                }}
-                                            >
-                                                <DeleteIcon sx={{ fontSize: 16 }} />
-                                            </IconButton>
-                                        </Tooltip>
+                                {/* Header / Route Icon - More Compact */}
+                                <div className="flex-shrink-0 w-12 h-12 bg-gray-50 dark:bg-white/5 rounded-xl flex flex-col items-center justify-center border border-gray-100 dark:border-white/10">
+                                    <span className="text-[9px] font-black text-forest dark:text-sand leading-none">{journey.from.slice(0, 3)}</span>
+                                    <div className="h-px w-4 bg-gray-300 dark:bg-gray-700 my-1 relative">
+                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t border-r border-gray-300 dark:border-gray-700 w-1 h-1" />
                                     </div>
-                                )}
-                                {/* Route Header */}
-                                <div className="bg-gray-50 dark:bg-white/5 p-6 border-b border-gray-100 dark:border-white/10 relative">
-                                    <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-400' : 'bg-forest/10 dark:bg-sand/10 text-forest dark:text-sand'}`}>
-                                        {isPast ? 'Past Trip' : 'Upcoming'}
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4 mb-2">
-                                        <div className="text-center">
-                                            <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.from}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">Origin</p>
-                                        </div>
-                                        <div className="flex-1 flex flex-col items-center gap-1 opacity-20">
-                                            <div className="h-0.5 w-full bg-navy dark:bg-offwhite rounded-full relative">
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t-2 border-r-2 border-navy dark:border-offwhite w-1.5 h-1.5" />
-                                            </div>
-                                            <span className="text-[8px] font-black">NONSTOP</span>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-2xl font-black text-navy dark:text-offwhite">{journey.to}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase">Destination</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-center text-xs font-bold text-gray-400 mt-4">{journey.date}</p>
+                                    <span className="text-[9px] font-black text-navy dark:text-offwhite leading-none">{journey.to.slice(0, 3)}</span>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-6 flex-1 flex flex-col">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-forest/20">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <h3 className="font-black text-navy dark:text-white truncate text-base leading-tight">
+                                            {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
+                                        </h3>
+                                        <div className="flex gap-1.5 items-center">
+                                            {isOwner && (
+                                                <span className="px-2 py-0.5 rounded-full bg-navy/10 dark:bg-sand/10 text-navy dark:text-sand text-[8px] font-black uppercase tracking-widest border border-navy/5 dark:border-sand/5">
+                                                    Your Trip
+                                                </span>
+                                            )}
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-100 dark:bg-white/10 text-slate-500' : 'bg-forest/10 text-forest'}`}>
+                                                {isPast ? 'Past' : 'NEW'}
+                                            </span>
+                                            {myRequests[journey.id] && (
+                                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${myRequests[journey.id] === 'accepted'
+                                                    ? 'bg-blue-500/10 text-blue-500'
+                                                    : myRequests[journey.id] === 'pending'
+                                                        ? 'bg-orange-500/10 text-orange-500'
+                                                        : 'bg-red-500/10 text-red-500'
+                                                    }`}>
+                                                    {myRequests[journey.id]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2">
+                                        <span>{dayjs(journey.date).format('MMM DD, YYYY')}</span>
+                                        <span className="opacity-30">•</span>
+                                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/5">
+                                            {journey.flightNumber && (
+                                                <img
+                                                    src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                    alt={journey.flightNumber}
+                                                    className="w-3.5 h-3.5 object-contain"
+                                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                                />
+                                            )}
+                                            <span className="text-[10px] uppercase tracking-wider">{journey.flightNumber}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
                                             <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-navy dark:text-offwhite">{journey.user.name}</h3>
-                                                {journey.user.verified && <span className="text-blue-500 text-[10px] opacity-80">🛡️</span>}
-                                            </div>
-                                            <p className="text-[10px] font-black text-forest dark:text-sand uppercase tracking-widest">★ {journey.user.rating.toFixed(1)} / 5.0</p>
-                                        </div>
+                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 truncate">{journey.user.name}</span>
+                                        <span className="text-[10px] font-black text-forest dark:text-sand opacity-60">★ {journey.user.rating.toFixed(1)}</span>
                                     </div>
-
-                                    <p className="text-sm text-gray-600 dark:text-offwhite/60 mb-4 line-clamp-3 italic leading-relaxed">
-                                        "{journey.description}"
-                                    </p>
-
-                                    <div className="flex gap-2 mb-6 flex-wrap">
-                                        {journey.tags.map((tag: string, idx: number) => (
-                                            <span key={idx} className="px-3 py-1 bg-gray-50 dark:bg-white/5 rounded-lg text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        className="w-full mt-auto py-4 bg-gray-100 dark:bg-white/10 hover:bg-forest hover:text-white dark:hover:bg-sand dark:hover:text-navy text-navy dark:text-offwhite rounded-2xl font-black text-xs uppercase tracking-widest transition-all"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            router.push(`/dashboard/journey/${journey.id}`);
-                                        }}
-                                    >
-                                        View Details
-                                    </button>
                                 </div>
+
+                                {/* Actions - Compact Context Menu style */}
+                                {user?.id === journey.userId && (
+                                    <div className="flex flex-col gap-1 ml-auto">
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingJourney(journey);
+                                                setIsEditModalOpen(true);
+                                            }}
+                                            sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } }}
+                                        >
+                                            <EditIcon sx={{ fontSize: 14, color: 'gray' }} />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeletingJourney(journey);
+                                                setIsDeleteModalOpen(true);
+                                            }}
+                                            sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' } }}
+                                        >
+                                            <DeleteIcon sx={{ fontSize: 14, color: '#ef4444' }} />
+                                        </IconButton>
+                                    </div>
+                                )}
                             </div>
                         );
                     })
                 )}
             </div>
+
+            {/* Load More */}
+            {!loading && filteredJourneys.length > visibleCount && (
+                <div className="mt-12 text-center">
+                    <button
+                        onClick={() => setVisibleCount(prev => prev + 12)}
+                        className="bg-navy/5 dark:bg-white/5 text-navy dark:text-white px-12 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-navy hover:text-white dark:hover:bg-sand dark:hover:text-navy transition-all active:scale-95 border border-navy/10 dark:border-white/10"
+                    >
+                        Load More Trips
+                    </button>
+                </div>
+            )}
 
             {/* Edit Modal */}
             {editingJourney && (

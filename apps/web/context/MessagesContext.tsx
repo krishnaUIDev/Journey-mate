@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { supabase } from "../lib/supabase";
 import { useUser } from "@clerk/nextjs";
 import { Snackbar, Alert } from "@mui/material";
+import dayjs from "dayjs";
 
 export interface Message {
     id: string;
@@ -35,6 +36,8 @@ interface MessagesContextType {
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
     updateRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
     checkRequestStatus: (journeyId: string) => Promise<'pending' | 'accepted' | 'rejected' | 'none'>;
+    showNotification: (message: string, severity?: 'success' | 'error' | 'info') => void;
+    myRequests: Record<string, 'pending' | 'accepted' | 'rejected' | 'none'>;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -42,6 +45,7 @@ const MessagesContext = createContext<MessagesContextType | undefined>(undefined
 export function MessagesProvider({ children }: { children: ReactNode }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
+    const [myRequests, setMyRequests] = useState<Record<string, 'pending' | 'accepted' | 'rejected' | 'none'>>({});
     const { user } = useUser();
 
     // Notification State
@@ -50,6 +54,66 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         message: '',
         severity: 'info'
     });
+
+    // Fetch all requests for the current user
+    useEffect(() => {
+        if (user && supabase) {
+            const fetchAllMyRequests = async () => {
+                try {
+                    const { data, error } = await (supabase as any)
+                        .from('journey_requests')
+                        .select('journey_id, status')
+                        .eq('requester_id', user.id);
+
+                    if (error) throw error;
+
+                    if (data) {
+                        const requestMap = data.reduce((acc: any, req: any) => {
+                            acc[req.journey_id] = req.status;
+                            return acc;
+                        }, {});
+                        setMyRequests(requestMap);
+                    }
+                } catch (err) {
+                    console.error("[MessagesContext] Error fetching all my requests:", err);
+                }
+            };
+
+            fetchAllMyRequests();
+
+            // Realtime subscription for current user's requests
+            const channel = (supabase as any)
+                .channel(`my_requests_${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_requests',
+                        filter: `requester_id=eq.${user.id}`,
+                    },
+                    (payload: any) => {
+                        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                            setMyRequests(prev => ({
+                                ...prev,
+                                [payload.new.journey_id]: payload.new.status
+                            }));
+                        } else if (payload.eventType === 'DELETE') {
+                            setMyRequests(prev => {
+                                const next = { ...prev };
+                                delete next[payload.old.journey_id];
+                                return next;
+                            });
+                        }
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                (supabase as any).removeChannel(channel);
+            };
+        }
+    }, [user]);
 
     const showNotification = (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
         setNotification({ open: true, message, severity });
@@ -97,7 +161,31 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             throw new Error(errorMsg);
         }
 
+        // Authorization check: Only owner or accepted requester can send messages
+        // unless it's a past trip (but we don't allow sending messages to past trips usually)
         try {
+            // Check if journey is past
+            const { data: journeyData } = await (supabase as any)
+                .from('journeys')
+                .select('user_id, date')
+                .eq('id', journeyId)
+                .single();
+
+            const isPast = journeyData?.date && dayjs(journeyData.date).isBefore(dayjs(), 'day');
+            if (isPast) {
+                showNotification("Discussion is archived for past trips.", 'info');
+                return;
+            }
+
+            const isOwner = journeyData?.user_id === user.id;
+            if (!isOwner) {
+                const status = await checkRequestStatus(journeyId);
+                if (status !== 'accepted') {
+                    showNotification("You must be an accepted traveler to participate.", 'error');
+                    return;
+                }
+            }
+
             const { error } = await (supabase as any)
                 .from('journey_messages')
                 .insert([{
@@ -129,7 +217,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     status: 'pending'
                 }]);
             if (error) throw error;
-            showNotification("Request sent successfully!", 'success');
+            showNotification("Your request has been sent! We'll notify you once accepted.", 'success');
         } catch (err: any) {
             console.error("[MessagesContext] Error sending request:", err);
             showNotification(`Failed to send request: ${err.message}`, 'error');
@@ -159,7 +247,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 .update({ status })
                 .eq('id', requestId);
             if (error) throw error;
-            showNotification(`Request ${status} successfully!`, 'success');
+            showNotification(`Traveler request ${status === 'accepted' ? 'approved' : 'declined'}.`, status === 'accepted' ? 'success' : 'info');
         } catch (err: any) {
             console.error("[MessagesContext] Error updating request status:", err);
             showNotification(`Failed to update request: ${err.message}`, 'error');
@@ -221,7 +309,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             sendRequest,
             getRequests,
             updateRequestStatus,
-            checkRequestStatus
+            checkRequestStatus,
+            showNotification,
+            myRequests
         }}>
             {children}
 
@@ -230,12 +320,30 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 autoHideDuration={4000}
                 onClose={handleCloseNotification}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                sx={{ mb: 4 }}
             >
                 <Alert
                     onClose={handleCloseNotification}
                     severity={notification.severity}
                     variant="filled"
-                    sx={{ width: '100%', borderRadius: '1rem', fontWeight: 600 }}
+                    sx={{
+                        width: '100%',
+                        borderRadius: '1.5rem',
+                        fontWeight: 900,
+                        textTransform: 'uppercase',
+                        fontSize: '0.75rem',
+                        letterSpacing: '0.05em',
+                        px: 3,
+                        py: 1.5,
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                        backdropFilter: 'blur(10px)',
+                        bgcolor: notification.severity === 'success' ? 'forest' : notification.severity === 'error' ? '#ef4444' : 'navy',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        '& .MuiAlert-icon': {
+                            fontSize: '1.25rem',
+                            mr: 2
+                        }
+                    }}
                 >
                     {notification.message}
                 </Alert>

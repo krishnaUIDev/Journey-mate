@@ -60,7 +60,7 @@ function SetViewBounds({ bounds }: { bounds: L.LatLngBoundsExpression | null }) 
   const map = useMap();
 
   useEffect(() => {
-    if (bounds) {
+    if (bounds && map) {
       // Detect if we are on desktop (lg) to apply sidebar padding
       const isDesktop = window.innerWidth >= 1024;
       const paddingRight = isDesktop ? 520 : 50; // Sidebar is 480px
@@ -68,17 +68,29 @@ function SetViewBounds({ bounds }: { bounds: L.LatLngBoundsExpression | null }) 
       const paddingTop = 100;
       const paddingBottom = 50;
 
-      map.fitBounds(bounds, {
-        paddingTopLeft: [paddingLeft, paddingTop],
-        paddingBottomRight: [paddingRight, paddingBottom],
-        animate: true,
-        duration: 1.5
-      });
+      try {
+        map.fitBounds(bounds, {
+          paddingTopLeft: [paddingLeft, paddingTop],
+          paddingBottomRight: [paddingRight, paddingBottom],
+          animate: true,
+          duration: 1.5
+        });
+      } catch (e) {
+        console.warn("Leaflet fitBounds failed, likely map not ready:", e);
+      }
 
       // Ensure map size is correct after sidebar transitions
-      setTimeout(() => {
-        map.invalidateSize();
+      const timer = setTimeout(() => {
+        if (map) {
+          try {
+            map.invalidateSize();
+          } catch (e) {
+            console.warn("Leaflet invalidateSize failed:", e);
+          }
+        }
       }, 500);
+
+      return () => clearTimeout(timer);
     }
   }, [bounds, map]);
 

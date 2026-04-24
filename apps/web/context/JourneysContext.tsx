@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { useMessages } from "./MessagesContext";
 
 export interface JourneyPost {
     id: string;
@@ -53,6 +54,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
     const [journeys, setJourneys] = useState<JourneyPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { showNotification } = useMessages();
 
     const fetchJourneys = async () => {
         if (!supabase) {
@@ -105,7 +107,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
     const addJourney = async (newJourney: Omit<JourneyPost, "id">) => {
         if (!supabase) {
             console.error("Supabase client is null. Cannot add journey.");
-            alert("Database connection error: Missing credentials.");
+            showNotification("Database connection error: Missing credentials.", 'error');
             return;
         }
 
@@ -151,10 +153,11 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     }
                 };
                 setJourneys(prev => [addedJourney, ...prev]);
+                showNotification("Journey published successfully!", 'success');
             }
         } catch (err: any) {
             console.error("Error adding journey:", err);
-            alert(`Failed to post journey: ${err.message}`);
+            showNotification(`Failed to post journey: ${err.message}`, 'error');
         }
     };
 
@@ -169,9 +172,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (supabaseError) throw supabaseError;
 
             setJourneys(prev => prev.filter(j => j.id !== id));
+            showNotification("Journey deleted successfully.", 'info');
         } catch (err: any) {
             console.error("Error deleting journey:", err);
-            alert(`Failed to delete journey: ${err.message}`);
+            showNotification(`Failed to delete journey: ${err.message}`, 'error');
         }
     };
 
@@ -195,9 +199,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (supabaseError) throw supabaseError;
 
             setJourneys(prev => prev.map(j => (j.id === id ? { ...j, ...updates } : j)));
+            showNotification("Journey updated successfully!", 'success');
         } catch (err: any) {
             console.error("Error updating journey:", err);
-            alert(`Failed to update journey: ${err.message}`);
+            showNotification(`Failed to update journey: ${err.message}`, 'error');
         }
     };
 
