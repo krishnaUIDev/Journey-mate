@@ -284,9 +284,21 @@ export default function PostJourneyPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-center mb-0.5">
                                                         <span className="text-[10px] font-black tracking-widest uppercase">{flight.flight.iata}</span>
-                                                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${flightNumber === flight.flight.iata ? 'bg-white/20' : 'bg-forest/10 text-forest'
+                                                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full ${flightNumber === flight.flight.iata
+                                                            ? 'bg-white/20'
+                                                            : flight.flight_status === 'cancelled'
+                                                                ? 'bg-red-50 text-red-600'
+                                                                : ((flight.departure?.delay ?? 0) > 15 || flight.flight_status === 'diverted')
+                                                                    ? 'bg-orange-50 text-orange-600'
+                                                                    : 'bg-forest/10 text-forest'
                                                             }`}>
-                                                            {flight.flight_status === 'active' ? 'Live' : 'Daily'}
+                                                            {flight.flight_status === 'cancelled'
+                                                                ? 'Cancelled'
+                                                                : (flight.departure?.delay ?? 0) > 0
+                                                                    ? `Delayed ${(flight.departure?.delay ?? 0)}m`
+                                                                    : flight.flight_status === 'active'
+                                                                        ? 'Live'
+                                                                        : 'On Time'}
                                                         </span>
                                                     </div>
                                                     <p className="text-[9px] font-bold opacity-70 uppercase truncate mb-0.5">{flight.airline.name}</p>

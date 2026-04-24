@@ -19,6 +19,7 @@ export function Footer({ theme }: FooterProps) {
                                     src="/logo.png"
                                     alt="Journey-mate Logo"
                                     fill
+                                    sizes="32px"
                                     className="object-contain dark:brightness-200 dark:contrast-150"
                                 />
                             </div>
@@ -80,10 +81,7 @@ export function Footer({ theme }: FooterProps) {
                     <p className="text-gray-400 dark:text-offwhite/30 text-xs">
                         © 2024 Journey-mate. <FormattedMessage id="footer.rights" />
                     </p>
-                    <div className="flex gap-6">
-                        <span className="text-gray-400 dark:text-offwhite/30 text-xs cursor-pointer hover:text-navy dark:hover:text-offwhite">English (US)</span>
-                        <span className="text-gray-400 dark:text-offwhite/30 text-xs cursor-pointer hover:text-navy dark:hover:text-offwhite">USD ($)</span>
-                    </div>
+                    <div />
                 </div>
             </div>
         </footer>

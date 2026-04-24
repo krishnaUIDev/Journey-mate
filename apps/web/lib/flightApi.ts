@@ -7,11 +7,13 @@ export interface FlightDetails {
         airport: string;
         iata: string;
         scheduled: string;
+        delay?: number;
     };
     arrival: {
         airport: string;
         iata: string;
         scheduled: string;
+        delay?: number;
     };
     airline: {
         name: string;

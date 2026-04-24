@@ -61,6 +61,7 @@ export function Mission() {
                                     src="/mission-visual.png"
                                     alt="A travel companion assisting an elderly traveler in an airport"
                                     fill
+                                    sizes="(max-width: 768px) 300px, 400px"
                                     className="object-cover"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

@@ -102,6 +102,67 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         fetchJourneys();
+
+        if (!supabase) return;
+
+        const channel = (supabase as any)
+            .channel('public:journeys')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'journeys'
+            }, (payload: any) => {
+                const { eventType, new: newRecord, old: oldRecord } = payload;
+
+                if (eventType === 'INSERT') {
+                    const newItem: JourneyPost = {
+                        id: newRecord.id,
+                        userId: newRecord.user_id,
+                        from: newRecord.origin,
+                        to: newRecord.destination,
+                        date: newRecord.date,
+                        flightNumber: newRecord.flight_number,
+                        contactInfo: newRecord.contact_info,
+                        description: newRecord.description || "",
+                        tags: newRecord.tags || [],
+                        user: {
+                            name: newRecord.user_name,
+                            avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
+                            rating: newRecord.user_rating || 0,
+                            verified: newRecord.user_verified ?? false
+                        }
+                    };
+                    setJourneys(prev => {
+                        if (prev.some(j => j.id === newItem.id)) return prev;
+                        return [newItem, ...prev];
+                    });
+                } else if (eventType === 'UPDATE') {
+                    setJourneys(prev => prev.map(j => (j.id === newRecord.id ? {
+                        ...j,
+                        from: newRecord.origin,
+                        to: newRecord.destination,
+                        date: newRecord.date,
+                        flightNumber: newRecord.flight_number,
+                        contactInfo: newRecord.contact_info,
+                        description: newRecord.description || "",
+                        tags: newRecord.tags || [],
+                        user: {
+                            ...j.user,
+                            name: newRecord.user_name,
+                            avatar: newRecord.user_avatar || j.user.avatar,
+                            rating: newRecord.user_rating || 0,
+                            verified: newRecord.user_verified ?? false
+                        }
+                    } : j)));
+                } else if (eventType === 'DELETE') {
+                    setJourneys(prev => prev.filter(j => j.id !== oldRecord.id));
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const addJourney = async (newJourney: Omit<JourneyPost, "id">) => {

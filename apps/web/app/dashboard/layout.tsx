@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                     src="/logo.png"
                                                     alt="Journey-mate Logo"
                                                     fill
+                                                    sizes="40px"
                                                     className="object-contain dark:brightness-200 dark:contrast-150"
                                                 />
                                             </div>
