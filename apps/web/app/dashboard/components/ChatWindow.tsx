@@ -334,7 +334,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         >
             {/* Chat Header */}
             <Box sx={{
-                p: 2,
+                p: 1.5,
+                px: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -431,10 +432,10 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
             <Box sx={{
                 flex: 1,
                 overflowY: "auto",
-                p: 2,
+                p: 1.5,
                 display: "flex",
                 flexDirection: "column",
-                gap: 2,
+                gap: 1.5,
                 bgcolor: 'transparent',
                 '.dark &': { bgcolor: '#09090b' },
                 '&::-webkit-scrollbar': { width: '4px' },
@@ -477,7 +478,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                         flexDirection: isMe ? 'row-reverse' : 'row',
                                         alignItems: 'flex-end',
                                         gap: 1,
-                                        maxWidth: '85%'
+                                        maxWidth: '92%'
                                     }}>
                                         <Avatar
                                             src={msg.sender_avatar}
@@ -804,12 +805,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     <Box sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
+                        gap: 0,
                         bgcolor: 'rgba(0,0,0,0.03)',
                         '.dark &': { bgcolor: '#18181b', border: '1px solid rgba(255,255,255,0.05)' },
                         borderRadius: '1.25rem',
                         p: 0.5,
-                        pl: 1
+                        pl: 0.5
                     }}>
                         <Tooltip title="Add emoji">
                             <IconButton
@@ -1009,7 +1010,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                     handleSend();
                                 }
                             }}
-                            sx={{ px: 1 }}
+                            sx={{ px: 0.5 }}
                             slotProps={{
                                 input: {
                                     disableUnderline: true,
@@ -1078,7 +1079,7 @@ function CallLogMessage({ msg }: { msg: Message }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1.5,
-                maxWidth: '80%',
+                maxWidth: '95%',
                 transition: 'all 0.2s',
                 '&:hover': { bgcolor: 'rgba(0,0,0,0.05)', transform: 'translateY(-1px)' }
             }}>
