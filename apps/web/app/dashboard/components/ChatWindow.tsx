@@ -113,6 +113,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     const [participants, setParticipants] = useState<any[]>([]);
     const currentTypingUsers = typingUsers[journeyId] || [];
@@ -165,8 +166,30 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     }, [journeyId, subscribeToJourney]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, currentTypingUsers]);
+        const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+            if (scrollContainerRef.current) {
+                if (behavior === "auto") {
+                    scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+                } else {
+                    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+                }
+            }
+        };
+
+        if (!loading) {
+            // Snappy snap on initial load or if few messages
+            const behavior = messages.length <= 1 ? "auto" : "smooth";
+            const timer = setTimeout(() => scrollToBottom(behavior), 100);
+            return () => clearTimeout(timer);
+        }
+    }, [messages.length, currentTypingUsers.length, loading]);
+
+    // Force snap on mount
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+    }, [journeyId]);
 
     useEffect(() => {
         return () => {
@@ -500,22 +523,24 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
             <Divider sx={{ opacity: 0.5 }} />
 
             {/* Messages Area */}
-            <Box sx={{
-                flex: 1,
-                overflowY: "auto",
-                p: 1.5,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1.5,
-                bgcolor: 'transparent',
-                '.dark &': { bgcolor: '#09090b' },
-                '&::-webkit-scrollbar': { width: '4px' },
-                '&::-webkit-scrollbar-thumb': {
-                    bgcolor: 'rgba(0,0,0,0.1)',
-                    borderRadius: '10px',
-                    '.dark &': { bgcolor: 'rgba(255,255,255,0.1)' }
-                }
-            }}>
+            <Box
+                ref={scrollContainerRef}
+                sx={{
+                    flex: 1,
+                    overflowY: "auto",
+                    p: 1.5,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1.5,
+                    bgcolor: 'transparent',
+                    '.dark &': { bgcolor: '#09090b' },
+                    '&::-webkit-scrollbar': { width: '4px' },
+                    '&::-webkit-scrollbar-thumb': {
+                        bgcolor: 'rgba(0,0,0,0.1)',
+                        borderRadius: '10px',
+                        '.dark &': { bgcolor: 'rgba(255,255,255,0.1)' }
+                    }
+                }}>
                 {loading && messages.length === 0 ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                         <CircularProgress size={24} color="inherit" sx={{ opacity: 0.3 }} />
