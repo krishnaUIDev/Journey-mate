@@ -12,12 +12,12 @@ Journey-mate is a mission-driven platform designed to connect travelers with ver
 
 - **✅ Verified Mates**: Every companion undergoes a thorough vetting process for your peace of mind.
 - **💬 Elite Chat Experience**: Rich media messaging with images, voice notes, and a modern **Floating Chat Box** widget for seamless multitasking.
-- **🛡️ Group Squad Identity**: Customize your travel crew with custom group names and avatars.
+- **🛡️ Custom Squad Identity**: Personalize your travel crew with custom group names and dynamic avatar branding.
 - **🌑 Elite Dark Mode**: A premium, high-contrast **Matte Black** theme optimized for night-time coordination.
 - **🎥 Real-Time Audio & Video Calls**: Immersive communication with floating call banners, full-screen modes, and AI-powered video filters (Blur/Beauty).
 - **📍 Interactive Maps**: High-fidelity map visualizations with pathing between origins and destinations.
+- **📱 Universal Responsiveness**: A "Liquid UI" that adapts perfectly to **Mobile, Tablet, and Desktop** with zero layout breakage.
 - **🔔 Global Notifications**: Stay updated with a smart notification center and real-time alerts.
-- **📱 Premium Dashboard**: A glassmorphic, responsive interface designed for world-class travel companions.
 - **🌍 Global Community**: Building a worldwide network of assisted travel, powered by compassion.
 
 ## 🚀 Getting Started
