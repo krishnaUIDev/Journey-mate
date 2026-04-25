@@ -3,10 +3,10 @@
 import Image from "next/image";
 import { FormattedMessage } from "react-intl";
 import {
-    Show,
     SignInButton,
     SignUpButton,
-    UserButton
+    UserButton,
+    useUser
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { ThemeToggle } from "./ThemeToggle";
@@ -32,6 +32,7 @@ export function Header({
     handleLocaleChange
 }: HeaderProps) {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { user, isLoaded } = useUser();
 
     const toggleMobileMenu = () => setMobileOpen(!mobileOpen);
 
@@ -79,7 +80,7 @@ export function Header({
                     </ListItem>
                 ))}
 
-                <Show when="signed-in">
+                {isLoaded && user && (
                     <ListItem disablePadding>
                         <ListItemButton
                             component="a"
@@ -96,7 +97,7 @@ export function Header({
                             />
                         </ListItemButton>
                     </ListItem>
-                </Show>
+                )}
             </List>
 
             <Divider sx={{ my: 4, opacity: 0.1 }} />
@@ -113,13 +114,13 @@ export function Header({
             </Box>
 
             <Box sx={{ mt: 'auto', pt: 6 }}>
-                <Show when="signed-out">
+                {isLoaded && !user && (
                     <SignUpButton mode="modal">
                         <button className="w-full bg-navy dark:bg-sand dark:text-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">
                             Get Started
                         </button>
                     </SignUpButton>
-                </Show>
+                )}
             </Box>
         </Box>
     );
@@ -187,39 +188,41 @@ export function Header({
                     <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
                     <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-                    <Show when="signed-out">
-                        <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                            <button className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium cursor-pointer mx-2" aria-label="Sign in to your account">
-                                <FormattedMessage id="nav.logIn" />
-                            </button>
-                        </SignInButton>
-                        <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                            <button className="bg-navy dark:bg-sand dark:text-navy text-white px-6 py-2 rounded-full font-bold hover:bg-forest dark:hover:bg-white transition-all text-sm shadow-sm" aria-label="Create a new account">
-                                <FormattedMessage id="nav.signUp" />
-                            </button>
-                        </SignUpButton>
-                    </Show>
-                    <Show when="signed-in">
-                        <a href="/dashboard" className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium mx-2">
-                            Dashboard
-                        </a>
-                        <UserButton />
-                    </Show>
+                    {isLoaded && !user && (
+                        <>
+                            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                                <button className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium cursor-pointer mx-2" aria-label="Sign in to your account">
+                                    <FormattedMessage id="nav.logIn" />
+                                </button>
+                            </SignInButton>
+                            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                                <button className="bg-navy dark:bg-sand dark:text-navy text-white px-6 py-2 rounded-full font-bold hover:bg-forest dark:hover:bg-white transition-all text-sm shadow-sm" aria-label="Create a new account">
+                                    <FormattedMessage id="nav.signUp" />
+                                </button>
+                            </SignUpButton>
+                        </>
+                    )}
+                    {isLoaded && user && (
+                        <>
+                            <a href="/dashboard" className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium mx-2">
+                                Dashboard
+                            </a>
+                            <UserButton />
+                        </>
+                    )}
                 </div>
             </div>
 
             {/* Mobile User Profile (Right) */}
             <div className="flex md:hidden items-center gap-3">
-                <Show when="signed-in">
-                    <UserButton />
-                </Show>
-                <Show when="signed-out">
+                {isLoaded && user && <UserButton />}
+                {isLoaded && !user && (
                     <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                         <button className="text-xs font-black uppercase tracking-widest text-navy dark:text-offwhite bg-gray-100 dark:bg-white/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all">
                             Log In
                         </button>
                     </SignInButton>
-                </Show>
+                )}
             </div>
 
             <Drawer
