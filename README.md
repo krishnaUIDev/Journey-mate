@@ -85,7 +85,8 @@ The application will be available at `http://localhost:3000`.
 │   ├── ui           # Shared Design System & Components
 │   ├── eslint-config # Professional Linting Rules
 │   └── typescript-config # Strict TS Configurations
-└── supabase         # Database Migrations & RLS Policies
+├── supabase         # Database Migrations & RLS Policies
+└── database_schema.md # [View Database Relationships](./database_schema.md)
 ```
 
 ---
