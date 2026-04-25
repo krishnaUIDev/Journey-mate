@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"]);
 
@@ -6,8 +7,11 @@ const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.
 
 export default clerkMiddleware(async (auth, req) => {
     if (isProtectedRoute(req)) {
-        const { userId, redirectToSignIn } = await auth();
-        if (!userId) return redirectToSignIn();
+        const { userId } = await auth();
+        if (!userId) {
+            const homeUrl = new URL("/", req.url);
+            return NextResponse.redirect(homeUrl);
+        }
     }
 }, {
     publishableKey
