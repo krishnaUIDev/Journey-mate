@@ -351,7 +351,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             fontWeight: 900
                         }}
                     >
-                        {journey?.groupName?.charAt(0) || <ChatIcon />}
+                        {journey?.groupName?.charAt(0) || <ChatIcon sx={{ color: 'white' }} />}
                     </Avatar>
                     <Box>
                         <Typography variant="subtitle2" sx={{
@@ -373,10 +373,11 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',
                             fontSize: '0.65rem',
-                            '.dark &': { color: 'slate.400' }
+                            mt: 0.5,
+                            '.dark &': { color: 'slate.300 !important' }
                         }}>
-                            <PeopleIcon sx={{ fontSize: 12 }} />
-                            {participants.length} {participants.length === 1 ? 'Member' : 'Members'} in Group
+                            <PeopleIcon sx={{ fontSize: 12, color: 'inherit' }} />
+                            {participants.length + 1} {participants.length === 0 ? 'Member' : 'Members'} in Group
                         </Typography>
                     </Box>
                 </Box>
@@ -386,14 +387,10 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             <IconButton
                                 onClick={(e) => setSettingsAnchorEl(e.currentTarget)}
                                 size="small"
-                                sx={{
-                                    bgcolor: 'rgba(34, 197, 94, 0.1)',
-                                    color: 'forest.main',
-                                    '&:hover': { bgcolor: 'forest.main', color: 'white' },
-                                    ml: 1
-                                }}
+                                className="bg-green-500/10 text-green-600 dark:bg-white/10 dark:text-white"
+                                sx={{ ml: 1 }}
                             >
-                                <SettingsIcon sx={{ fontSize: 18 }} />
+                                <SettingsIcon sx={{ fontSize: 18 }} className="dark:text-white" />
                             </IconButton>
                         </Tooltip>
                     )}
@@ -401,23 +398,27 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         <IconButton
                             onClick={() => startCall(journeyId, 'audio')}
                             size="small"
-                            sx={{ color: 'forest.main' }}
+                            className="text-green-600 dark:text-white"
                         >
-                            <PhoneIcon fontSize="small" />
+                            <PhoneIcon fontSize="small" className="dark:text-white" />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Video Call">
                         <IconButton
                             onClick={() => startCall(journeyId, 'video')}
                             size="small"
-                            sx={{ color: 'forest.main' }}
+                            className="text-green-600 dark:text-white"
                         >
-                            <VideoCallIcon fontSize="small" />
+                            <VideoCallIcon fontSize="small" className="dark:text-white" />
                         </IconButton>
                     </Tooltip>
                     {onClose && (
-                        <IconButton onClick={onClose} size="small" sx={{ ml: 1 }}>
-                            <CloseIcon fontSize="small" />
+                        <IconButton
+                            onClick={onClose}
+                            size="small"
+                            className="text-navy/60 dark:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                        >
+                            <CloseIcon fontSize="small" className="dark:text-white" />
                         </IconButton>
                     )}
                 </Box>
@@ -434,9 +435,13 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 flexDirection: "column",
                 gap: 2,
                 bgcolor: 'transparent',
-                '.dark &': { bgcolor: '#0f172a' },
+                '.dark &': { bgcolor: '#09090b' },
                 '&::-webkit-scrollbar': { width: '4px' },
-                '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: '10px' }
+                '&::-webkit-scrollbar-thumb': {
+                    bgcolor: 'rgba(0,0,0,0.1)',
+                    borderRadius: '10px',
+                    '.dark &': { bgcolor: 'rgba(255,255,255,0.1)' }
+                }
             }}>
                 {loading && messages.length === 0 ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -484,7 +489,14 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                             alignItems: isMe ? 'flex-end' : 'flex-start'
                                         }}>
                                             {!isMe && (
-                                                <Typography variant="caption" sx={{ fontWeight: 800, fontSize: '0.65rem', opacity: 0.5, ml: 1 }}>
+                                                <Typography variant="caption" sx={{
+                                                    ml: 1,
+                                                    mb: 0.5,
+                                                    display: 'block',
+                                                    fontWeight: 800,
+                                                    color: 'navy.main',
+                                                    '.dark &': { color: 'white !important' }
+                                                }}>
                                                     {msg.sender_name}
                                                 </Typography>
                                             )}
@@ -617,8 +629,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                     visibility: editingMessageId === msg.id ? 'hidden' : 'visible'
                                                 }} className="action-btns">
                                                     <Tooltip title="Reply">
-                                                        <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' } }}>
-                                                            <ReplyIcon fontSize="small" />
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => setReplyingTo(msg)}
+                                                            className="text-slate-400 dark:text-slate-400 hover:text-navy dark:hover:text-white"
+                                                        >
+                                                            <ReplyIcon sx={{ fontSize: '0.9rem' }} />
                                                         </IconButton>
                                                     </Tooltip>
                                                     {isMe && (
@@ -630,21 +646,23 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                                         setEditingMessageId(msg.id);
                                                                         setEditContent(msg.content);
                                                                     }}
-                                                                    sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' } }}
+                                                                    className="text-slate-400 dark:text-slate-400 hover:text-navy dark:hover:text-white"
                                                                 >
-                                                                    <EditIcon fontSize="small" />
+                                                                    <EditIcon sx={{ fontSize: '0.9rem' }} />
                                                                 </IconButton>
                                                             </Tooltip>
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    deleteMessage(msg.id);
-                                                                }}
-                                                                sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' }, '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
-                                                            >
-                                                                <DeleteIcon fontSize="small" />
-                                                            </IconButton>
+                                                            <Tooltip title="Delete">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deleteMessage(msg.id);
+                                                                    }}
+                                                                    className="text-slate-400 dark:text-slate-400 hover:text-red-500"
+                                                                >
+                                                                    <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                                                                </IconButton>
+                                                            </Tooltip>
                                                         </>
                                                     )}
                                                 </Box>
@@ -677,73 +695,79 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
             <Divider sx={{ opacity: 0.5 }} />
 
             {/* Preview Areas (Reply / Image / Audio) */}
-            {(replyingTo || previewUrl || audioBlob) && (
-                <Box sx={{
-                    p: 2,
-                    bgcolor: 'rgba(0,0,0,0.02)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                    borderTop: '1px solid rgba(0,0,0,0.05)',
-                    '.dark &': { bgcolor: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden', flex: 1 }}>
-                        {(previewUrl || audioBlob) && (
-                            <Box sx={{ position: 'relative' }}>
-                                {previewUrl ? (
-                                    <Box
-                                        component="img"
-                                        src={previewUrl}
-                                        sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
-                                    />
+            {
+                (replyingTo || previewUrl || audioBlob) && (
+                    <Box sx={{
+                        p: 2,
+                        bgcolor: 'rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2,
+                        borderTop: '1px solid rgba(0,0,0,0.05)',
+                        '.dark &': { bgcolor: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, overflow: 'hidden', flex: 1 }}>
+                            {(previewUrl || audioBlob) && (
+                                <Box sx={{ position: 'relative' }}>
+                                    {previewUrl ? (
+                                        <Box
+                                            component="img"
+                                            src={previewUrl}
+                                            sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <Box sx={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: 1,
+                                            bgcolor: 'navy',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'white'
+                                        }}>
+                                            <MicIcon fontSize="small" />
+                                        </Box>
+                                    )}
+                                    {uploading && (
+                                        <CircularProgress
+                                            size={40}
+                                            sx={{ position: 'absolute', top: 0, left: 0, color: 'forest' }}
+                                        />
+                                    )}
+                                </Box>
+                            )}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, overflow: 'hidden' }}>
+                                {replyingTo ? (
+                                    <>
+                                        <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                                            Replying to {replyingTo.sender_name}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {replyingTo.content}
+                                        </Typography>
+                                    </>
                                 ) : (
-                                    <Box sx={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 1,
-                                        bgcolor: 'navy',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white'
-                                    }}>
-                                        <MicIcon fontSize="small" />
-                                    </Box>
-                                )}
-                                {uploading && (
-                                    <CircularProgress
-                                        size={40}
-                                        sx={{ position: 'absolute', top: 0, left: 0, color: 'forest' }}
-                                    />
+                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>
+                                        {previewUrl ? 'Image ready to send' : 'Voice note ready to send'}
+                                    </Typography>
                                 )}
                             </Box>
-                        )}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, overflow: 'hidden' }}>
-                            {replyingTo ? (
-                                <>
-                                    <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                                        Replying to {replyingTo.sender_name}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {replyingTo.content}
-                                    </Typography>
-                                </>
-                            ) : (
-                                <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                                    {previewUrl ? 'Image ready to send' : 'Voice note ready to send'}
-                                </Typography>
-                            )}
                         </Box>
+                        <IconButton size="small" onClick={() => { setReplyingTo(null); setSelectedFile(null); setPreviewUrl(null); setAudioBlob(null); }}>
+                            <CancelIcon sx={{ fontSize: '1rem' }} />
+                        </IconButton>
                     </Box>
-                    <IconButton size="small" onClick={() => { setReplyingTo(null); setSelectedFile(null); setPreviewUrl(null); setAudioBlob(null); }}>
-                        <CancelIcon sx={{ fontSize: '1rem' }} />
-                    </IconButton>
-                </Box>
-            )}
+                )
+            }
 
             {/* Input Area */}
-            <Box sx={{ p: 2, bgcolor: 'background.paper' }}>
+            <Box sx={{
+                p: 2,
+                bgcolor: '#ffffff',
+                '.dark &': { bgcolor: '#09090b !important', borderTop: '1px solid rgba(255,255,255,0.05)' }
+            }}>
                 {isRecording ? (
                     <Box sx={{
                         display: 'flex',
@@ -781,7 +805,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         alignItems: 'center',
                         gap: 1,
                         bgcolor: 'rgba(0,0,0,0.03)',
-                        '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                        '.dark &': { bgcolor: '#18181b', border: '1px solid rgba(255,255,255,0.05)' },
                         borderRadius: '1.25rem',
                         p: 0.5,
                         pl: 1
@@ -789,7 +813,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         <Tooltip title="Add emoji">
                             <IconButton
                                 onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
-                                sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
+                                className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
                             >
                                 <EmojiIcon fontSize="small" />
                             </IconButton>
@@ -798,32 +822,54 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         <Tooltip title="Attach photo">
                             <IconButton
                                 component="label"
-                                sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
+                                className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
                             >
                                 <ImageIcon fontSize="small" />
                                 <input type="file" hidden accept="image/*" onChange={handleFileSelect} />
                             </IconButton>
                         </Tooltip>
 
-                        <IconButton
-                            size="small"
-                            onClick={handleStartRecording}
-                            disabled={uploading}
-                            sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
-                        >
-                            <MicIcon fontSize="small" />
-                        </IconButton>
+                        <Tooltip title="Record voice message">
+                            <IconButton
+                                onClick={handleStartRecording}
+                                disabled={uploading}
+                                className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
+                            >
+                                <MicIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
 
-                        {/* Group Settings Popover */}
                         <Popover
                             open={Boolean(settingsAnchorEl)}
                             anchorEl={settingsAnchorEl}
                             onClose={() => setSettingsAnchorEl(null)}
                             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                            slotProps={{ paper: { sx: { p: 3, width: 280, borderRadius: '1.5rem', mt: 1.5 } } }}
+                            slotProps={{
+                                paper: {
+                                    sx: {
+                                        p: 3,
+                                        width: 280,
+                                        borderRadius: '1.5rem',
+                                        mt: 1.5,
+                                        bgcolor: 'white',
+                                        '.dark &': {
+                                            bgcolor: '#18181b',
+                                            backgroundImage: 'none',
+                                            border: '1px solid rgba(255,255,255,0.1)'
+                                        }
+                                    }
+                                }
+                            }}
                         >
-                            <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            <Typography variant="subtitle2" sx={{
+                                fontWeight: 900,
+                                mb: 2,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                color: 'navy.main',
+                                '.dark &': { color: 'white' }
+                            }}>
                                 Group Settings
                             </Typography>
 
@@ -831,7 +877,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 <Box sx={{ position: 'relative', width: 80, height: 80, mx: 'auto', mb: 1 }}>
                                     <Avatar
                                         src={stagedGroupAvatar || journey?.groupAvatar}
-                                        sx={{ width: 80, height: 80, border: '4px solid rgba(0,0,0,0.05)' }}
+                                        sx={{
+                                            width: 80,
+                                            height: 80,
+                                            border: '4px solid rgba(0,0,0,0.05)',
+                                            '.dark &': { borderColor: 'rgba(255,255,255,0.1)' }
+                                        }}
                                     />
                                     <IconButton
                                         component="label"
@@ -841,9 +892,10 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                             right: -4,
                                             bgcolor: 'forest.main',
                                             color: 'white',
-                                            '&:hover': { bgcolor: 'navy' },
+                                            '&:hover': { bgcolor: 'navy.main' },
                                             width: 32,
-                                            height: 32
+                                            height: 32,
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                                         }}
                                     >
                                         <CameraIcon sx={{ fontSize: 16 }} />
@@ -873,6 +925,15 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                     value={newGroupName}
                                     onChange={(e) => setNewGroupName(e.target.value)}
                                     label="Squad Name"
+                                    sx={{
+                                        '& .MuiInputLabel-root': { '.dark &': { color: 'slate.400' } },
+                                        '& .MuiInputBase-input': { '.dark &': { color: 'white' } },
+                                        '& .MuiOutlinedInput-root': {
+                                            '& fieldset': { '.dark &': { borderColor: 'rgba(255,255,255,0.1)' } },
+                                            '&:hover fieldset': { '.dark &': { borderColor: 'rgba(255,255,255,0.2)' } },
+                                            '&.Mui-focused fieldset': { '.dark &': { borderColor: '#10B981' } }
+                                        }
+                                    }}
                                     slotProps={{
                                         input: { sx: { borderRadius: '1rem', fontWeight: 600 } }
                                     }}
@@ -951,7 +1012,11 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             slotProps={{
                                 input: {
                                     disableUnderline: true,
-                                    sx: { fontSize: '0.875rem', fontWeight: 600 }
+                                    sx: {
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600,
+                                        '.dark &': { color: 'white' }
+                                    }
                                 }
                             }}
                         />
@@ -976,7 +1041,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     </Box>
                 )}
             </Box>
-        </Paper>
+        </Paper >
     );
 }
 
@@ -1007,7 +1072,7 @@ function CallLogMessage({ msg }: { msg: Message }) {
                 py: 1,
                 borderRadius: '1.25rem',
                 bgcolor: 'rgba(0,0,0,0.03)',
-                '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                '.dark &': { bgcolor: '#18181b', borderColor: 'rgba(255,255,255,0.05)' },
                 border: '1px solid rgba(0,0,0,0.05)',
                 display: 'flex',
                 alignItems: 'center',

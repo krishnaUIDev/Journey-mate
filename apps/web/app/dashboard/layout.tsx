@@ -165,10 +165,10 @@ function NotificationBell() {
                     height: 44,
                     borderRadius: '12px'
                 }}
-                className="dark:text-offwhite dark:bg-white/5 dark:hover:bg-white/10"
+                className="dark:text-white dark:bg-white/5 dark:hover:bg-white/10"
             >
                 <Badge badgeContent={unreadCount} color="error" overlap="circular">
-                    <NotificationsIcon />
+                    <NotificationsIcon className="dark:text-white" />
                 </Badge>
             </IconButton>
 
@@ -192,8 +192,20 @@ function NotificationBell() {
                     }
                 }}
             >
-                <MuiBox sx={{ px: 2.5, py: 2, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                    <MuiTypography variant="subtitle2" sx={{ fontWeight: 900, color: 'navy.main', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <MuiBox sx={{
+                    px: 2.5,
+                    py: 2,
+                    borderBottom: '1px solid rgba(0,0,0,0.05)',
+                    bgcolor: 'white',
+                    '.dark &': { bgcolor: '#09090b', borderBottomColor: 'rgba(255,255,255,0.05)' }
+                }}>
+                    <MuiTypography variant="subtitle2" sx={{
+                        fontWeight: 900,
+                        color: 'navy.main',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        '.dark &': { color: 'white' }
+                    }}>
                         Notifications
                     </MuiTypography>
                 </MuiBox>
@@ -213,8 +225,13 @@ function NotificationBell() {
                                 px: 2.5,
                                 gap: 2,
                                 borderBottom: '1px solid rgba(0,0,0,0.03)',
-                                bgcolor: notif.read ? 'transparent' : 'rgba(14, 165, 233, 0.03)',
-                                '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' }
+                                bgcolor: notif.read ? 'white' : 'rgba(14, 165, 233, 0.03)',
+                                '&:hover': { bgcolor: 'rgba(0,0,0,0.02)' },
+                                '.dark &': {
+                                    bgcolor: notif.read ? '#09090b' : 'rgba(14, 165, 233, 0.1)',
+                                    borderBottomColor: 'rgba(255,255,255,0.02)',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' }
+                                }
                             }}
                         >
                             <ListItemIcon sx={{ minWidth: 'auto' }}>
@@ -233,12 +250,24 @@ function NotificationBell() {
                             </ListItemIcon>
                             <ListItemText
                                 primary={
-                                    <MuiTypography variant="caption" sx={{ fontWeight: 900, display: 'block', mb: 0.2, color: 'navy.main' }}>
+                                    <MuiTypography variant="caption" sx={{
+                                        fontWeight: 900,
+                                        display: 'block',
+                                        mb: 0.2,
+                                        color: 'navy.main',
+                                        '.dark &': { color: 'white' }
+                                    }}>
                                         {notif.title}
                                     </MuiTypography>
                                 }
                                 secondary={
-                                    <MuiTypography variant="caption" sx={{ fontSize: '11px', fontWeight: 600, color: 'text.secondary', lineHeight: 1.2 }}>
+                                    <MuiTypography variant="caption" sx={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: 'text.secondary',
+                                        lineHeight: 1.2,
+                                        '.dark &': { color: 'slate.400' }
+                                    }}>
                                         {notif.message}
                                     </MuiTypography>
                                 }

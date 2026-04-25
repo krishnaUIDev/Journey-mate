@@ -108,8 +108,15 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1 }}>
-                <GroupIcon sx={{ color: 'forest', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'slate.500' }}>
+                <GroupIcon sx={{ color: '#10B981', fontSize: 20 }} />
+                <Typography variant="subtitle2" sx={{
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.15em',
+                    color: 'slate.500',
+                    fontSize: '11px',
+                    '.dark &': { color: 'slate.400' }
+                }}>
                     Pairing Requests ({pendingRequests.length})
                 </Typography>
             </Box>
@@ -136,10 +143,22 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                 sx={{ width: 44, height: 44, borderRadius: '14px', border: '1px solid rgba(0,0,0,0.1)' }}
                             />
                             <Box>
-                                <Typography variant="body1" sx={{ fontWeight: 900, lineHeight: 1.2 }}>
+                                <Typography variant="body1" sx={{
+                                    fontWeight: 900,
+                                    lineHeight: 1.2,
+                                    color: 'navy.main',
+                                    '.dark &': { color: 'white' }
+                                }}>
                                     {request.requester_name}
                                 </Typography>
-                                <Typography variant="caption" sx={{ color: request.status === 'accepted' ? 'forest' : request.status === 'rejected' ? 'error.main' : 'slate.400', fontWeight: 800, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.05em' }}>
+                                <Typography variant="caption" sx={{
+                                    color: request.status === 'accepted' ? '#10B981' : request.status === 'rejected' ? 'error.main' : 'slate.400',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    fontSize: '9px',
+                                    letterSpacing: '0.05em',
+                                    '.dark &': { color: request.status === 'accepted' ? '#10B981' : request.status === 'rejected' ? '#ef4444' : 'slate.500' }
+                                }}>
                                     {request.status}
                                 </Typography>
                             </Box>
@@ -185,7 +204,14 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                     borderRadius: 'full',
                                     bgcolor: request.status === 'accepted' ? '#22c55e' : '#ef4444'
                                 }} />
-                                <Typography variant="caption" sx={{ opacity: 0.5, fontWeight: 800, textTransform: 'uppercase', fontSize: '9px' }}>
+                                <Typography variant="caption" sx={{
+                                    opacity: 0.6,
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    fontSize: '9px',
+                                    color: 'inherit',
+                                    '.dark &': { color: 'slate.400' }
+                                }}>
                                     {request.status === 'accepted' ? 'Added' : 'Declined'}
                                 </Typography>
                             </Box>
