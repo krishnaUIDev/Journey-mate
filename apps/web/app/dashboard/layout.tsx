@@ -14,6 +14,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { JourneysProvider } from "../../context/JourneysContext";
 import { RoleProvider } from "../../context/RoleContext";
 import { MessagesProvider, useMessages } from "../../context/MessagesContext";
+import { CallingProvider } from "../../context/CallingContext";
+import { CallOverlay } from "./components/CallOverlay";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import {
     Badge,
@@ -67,69 +69,71 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <LocalizationProvider dateAdapter={AdapterDayjs}>
                 <RoleProvider>
                     <MessagesProvider>
-                        <JourneysProvider>
-                            <div className="min-h-screen bg-offwhite dark:bg-navy font-sans transition-colors duration-300">
-                                {/* ... existing nav ... */}
-                                <nav className="sticky top-0 z-50 flex items-center justify-between px-4 lg:px-6 py-3.5 bg-white/80 dark:bg-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
-                                    <div className="flex items-center gap-8">
-                                        <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">
-                                            <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
-                                                <Image
-                                                    src="/logo.png"
-                                                    alt="Journey-mate Logo"
-                                                    fill
-                                                    sizes="40px"
-                                                    className="object-contain dark:brightness-200 dark:contrast-150"
-                                                />
-                                            </div>
-                                            <span
-                                                className="text-xl font-bold text-navy dark:text-offwhite tracking-tight flex items-center gap-1.5"
-                                                style={{
-                                                    textShadow: theme === "light"
-                                                        ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
-                                                        : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
-                                                }}
-                                            >
-                                                Journey<span className="text-forest dark:text-sand/80 font-bold">-mate</span>
-                                                <FlightTakeoffIcon sx={{ fontSize: 22, color: 'forest.main', ml: 0.5, transform: 'rotate(5deg)' }} />
-                                            </span>
-                                        </Link>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 lg:gap-4">
-                                        {/* Post a Journey Button */}
-                                        <Link
-                                            href="/dashboard/post"
-                                            className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95 text-decoration-none"
-                                        >
-                                            Post a Journey
-                                        </Link>
-
-                                        <Show when="signed-in">
-                                            <NotificationBell />
-                                        </Show>
-
-                                        <div className="flex items-center gap-2 lg:gap-3 border-l border-gray-100 dark:border-white/10 pl-3 lg:pl-4">
-                                            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                                            <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
-                                            <Show when="signed-in">
-                                                <UserButton />
-                                            </Show>
+                        <CallingProvider>
+                            <JourneysProvider>
+                                <div className="min-h-screen bg-offwhite dark:bg-navy font-sans transition-colors duration-300">
+                                    <CallOverlay />
+                                    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 lg:px-6 py-3.5 bg-white/80 dark:bg-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
+                                        <div className="flex items-center gap-8">
+                                            <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">
+                                                <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
+                                                    <Image
+                                                        src="/logo.png"
+                                                        alt="Journey-mate Logo"
+                                                        fill
+                                                        sizes="40px"
+                                                        className="object-contain dark:brightness-200 dark:contrast-150"
+                                                    />
+                                                </div>
+                                                <span
+                                                    className="text-xl font-bold text-navy dark:text-offwhite tracking-tight flex items-center gap-1.5"
+                                                    style={{
+                                                        textShadow: theme === "light"
+                                                            ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
+                                                            : "0 1px 0 #222, 0 2px 0 #1a1a1a, 0 3px 0 #111, 0 1px 2px rgba(0,0,0,0.5)"
+                                                    }}
+                                                >
+                                                    Journey<span className="text-forest dark:text-sand/80 font-bold">-mate</span>
+                                                    <FlightTakeoffIcon sx={{ fontSize: 22, color: 'forest.main', ml: 0.5, transform: 'rotate(5deg)' }} />
+                                                </span>
+                                            </Link>
                                         </div>
-                                    </div>
-                                </nav>
 
-                                <main>
-                                    {children}
-                                </main>
-                            </div>
-                        </JourneysProvider>
+                                        <div className="flex items-center gap-3 lg:gap-4">
+                                            <Link
+                                                href="/dashboard/post"
+                                                className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95 text-decoration-none"
+                                            >
+                                                Post a Journey
+                                            </Link>
+
+                                            <Show when="signed-in">
+                                                <NotificationBell />
+                                            </Show>
+
+                                            <div className="flex items-center gap-2 lg:gap-3 border-l border-gray-100 dark:border-white/10 pl-3 lg:pl-4">
+                                                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                                                <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                                                <Show when="signed-in">
+                                                    <UserButton />
+                                                </Show>
+                                            </div>
+                                        </div>
+                                    </nav>
+
+                                    <main>
+                                        {children}
+                                    </main>
+                                </div>
+                            </JourneysProvider>
+                        </CallingProvider>
                     </MessagesProvider>
                 </RoleProvider>
             </LocalizationProvider>
         </IntlProvider>
     );
 }
+
 function NotificationBell() {
     const { notifications, unreadCount, markAsRead } = useMessages();
     const router = useRouter();

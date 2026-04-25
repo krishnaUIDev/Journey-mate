@@ -11,7 +11,8 @@ import {
     Divider,
     CircularProgress,
     Tooltip,
-    Popover
+    Popover,
+    Badge
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -27,8 +28,15 @@ import {
     Image as ImageIcon,
     Mic as MicIcon,
     Stop as StopIcon,
+    Phone as PhoneIcon,
+    VideoCall as VideoCallIcon,
+    PhoneMissed as MissedIcon,
+    PhoneCallback as AcceptedIcon,
+    CallMade as OutgoingIcon,
+    CallReceived as IncomingIcon,
 } from "@mui/icons-material";
 import { useMessages, Message } from "../../../context/MessagesContext";
+import { useCalling } from "../../../context/CallingContext";
 import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -42,6 +50,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
+    const { startCall } = useCalling();
     const {
         messages,
         loading,
@@ -273,16 +282,36 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' }
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <ChatIcon sx={{ color: 'forest' }} />
+                    <ChatIcon sx={{ color: 'forest.main' }} />
                     <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
                         Trip Discussion
                     </Typography>
                 </Box>
-                {onClose && (
-                    <IconButton onClick={onClose} size="small">
-                        <CloseIcon fontSize="small" />
-                    </IconButton>
-                )}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title="Audio Call">
+                        <IconButton
+                            onClick={() => startCall(journeyId, 'audio')}
+                            size="small"
+                            sx={{ color: 'forest.main' }}
+                        >
+                            <PhoneIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Video Call">
+                        <IconButton
+                            onClick={() => startCall(journeyId, 'video')}
+                            size="small"
+                            sx={{ color: 'forest.main' }}
+                        >
+                            <VideoCallIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    {onClose && (
+                        <IconButton onClick={onClose} size="small" sx={{ ml: 1 }}>
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    )}
+                </Box>
             </Box>
 
             <Divider sx={{ opacity: 0.5 }} />
@@ -310,6 +339,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 ) : (
                     <>
                         {messages.map((msg) => {
+                            if (msg.call_metadata) {
+                                return <CallLogMessage key={msg.id} msg={msg} />;
+                            }
                             const isMe = msg.sender_id === user?.id;
                             const parentMsg = msg.reply_to_id ? messages.find(m => m.id === msg.reply_to_id) : null;
 
@@ -743,5 +775,91 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 )}
             </Box>
         </Paper>
+    );
+}
+
+function CallLogMessage({ msg }: { msg: Message }) {
+    const { call_metadata: meta, created_at, sender_avatar, sender_name } = msg;
+    if (!meta) return null;
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const isMissed = meta.status === "missed";
+    const isDeclined = meta.status === "declined";
+    const isVideo = meta.type === "video";
+
+    return (
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            my: 2,
+            width: '100%'
+        }}>
+            <Paper elevation={0} sx={{
+                px: 2,
+                py: 1,
+                borderRadius: '1.25rem',
+                bgcolor: 'rgba(0,0,0,0.03)',
+                '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' },
+                border: '1px solid rgba(0,0,0,0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                maxWidth: '80%',
+                transition: 'all 0.2s',
+                '&:hover': { bgcolor: 'rgba(0,0,0,0.05)', transform: 'translateY(-1px)' }
+            }}>
+                <Badge
+                    overlap="circular"
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    badgeContent={
+                        <Box sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: isMissed || isDeclined ? '#ef4444' : '#22c55e',
+                            color: 'white',
+                            border: '2px solid white',
+                            '.dark &': { border: '2px solid #1e293b' }
+                        }}>
+                            {isMissed ? <MissedIcon sx={{ fontSize: 12 }} /> : isDeclined ? <CloseIcon sx={{ fontSize: 12 }} /> : <AcceptedIcon sx={{ fontSize: 12 }} />}
+                        </Box>
+                    }
+                >
+                    <Avatar
+                        src={sender_avatar}
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: '12px',
+                            border: '1px solid rgba(0,0,0,0.05)',
+                            '.dark &': { border: '1px solid rgba(255,255,255,0.05)' }
+                        }}
+                    >
+                        {sender_name?.[0]}
+                    </Avatar>
+                </Badge>
+                <Box sx={{ flex: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, display: 'block', color: 'navy.main', fontSize: '0.75rem', letterSpacing: '-0.01em' }}>
+                        {isMissed ? 'Missed Call' : isDeclined ? 'Declined Call' : isVideo ? 'Video Call' : 'Audio Call'}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.6 }}>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
+                            {meta.status === "finished" ? `${formatDuration(meta.duration)} • ` : ''}
+                            {dayjs(created_at).format('hh:mm A')}
+                        </Typography>
+                    </Box>
+                </Box>
+                {isVideo ? <VideoCallIcon fontSize="small" sx={{ opacity: 0.5, ml: 1 }} /> : <PhoneIcon fontSize="small" sx={{ opacity: 0.5, ml: 1 }} />}
+            </Paper>
+        </Box>
     );
 }

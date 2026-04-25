@@ -17,6 +17,13 @@ export interface Message {
     audio_url?: string | null;
     created_at: string;
     reply_to_id?: string | null;
+    call_metadata?: {
+        status: "missed" | "accepted" | "declined" | "finished";
+        type: "audio" | "video";
+        duration: number;
+        callerId: string;
+        callerName: string;
+    } | null;
 }
 
 export interface JourneyRequest {

@@ -11,7 +11,9 @@ Journey-mate is a mission-driven platform designed to connect travelers with ver
 ## 🌟 Core Features
 
 - **✅ Verified Mates**: Every companion undergoes a thorough vetting process for your peace of mind.
-- **💬 Advanced Real-time Chat**: Connect instantly with travel-themed emojis, threaded replies, and message editing/deletion.
+- **🎥 Real-Time Audio & Video Calls**: Immersive, low-latency communication with floating call banners and full-screen modes.
+- **✨ Professional Video Effects**: Real-time background blur and beauty filters powered by AI extensions.
+- **💬 Rich Media Messaging**: Connect instantly with images, voice notes, typing indicators, and threaded replies.
 - **🔔 Global Notifications**: Stay updated with a smart notification center and real-time alerts for requests and messages.
 - **📍 Interactive Maps**: High-fidelity map visualizations with pathing between origins and destinations.
 - **📱 Premium Dashboard**: A glassmorphic, responsive interface designed for both mobile and desktop.
@@ -52,6 +54,7 @@ This project is a modern monorepo built with [Turborepo](https://turbo.build/):
 - **[Supabase](https://supabase.com/)**: Real-time database, Auth, and Edge Functions.
 - **[Clerk](https://clerk.com/)**: Premium identity and user management.
 - **[Material UI](https://mui.com/)**: Comprehensive component library for a polished look.
+- **[Agora RTC](https://www.agora.io/)**: For ultra-low latency audio and video communication.
 - **[Tailwind CSS](https://tailwindcss.com/)**: For custom layout systems and utility-first styling.
 - **[pnpm](https://pnpm.io/)**: Fast, disk-efficient package management.
 
