@@ -5,13 +5,10 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY;
 
 export default clerkMiddleware(async (auth, req) => {
-    // Temporarily disabled for development purpose
-    /*
     if (isProtectedRoute(req)) {
         const { userId, redirectToSignIn } = await auth();
         if (!userId) return redirectToSignIn();
     }
-    */
 }, {
     publishableKey
 });
