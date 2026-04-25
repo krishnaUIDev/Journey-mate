@@ -20,6 +20,8 @@ export interface JourneyPost {
     };
     description: string;
     tags: string[];
+    groupName?: string;
+    groupAvatar?: string;
 }
 
 interface JourneyRow {
@@ -36,6 +38,8 @@ interface JourneyRow {
     user_rating: number | null;
     user_verified: boolean | null;
     tags: string[] | null;
+    group_name: string | null;
+    group_avatar: string | null;
     created_at: string;
 }
 
@@ -83,6 +87,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 contactInfo: item.contact_info ?? undefined,
                 description: item.description || "",
                 tags: item.tags || [],
+                groupName: item.group_name ?? undefined,
+                groupAvatar: item.group_avatar ?? undefined,
                 user: {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
@@ -125,6 +131,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         contactInfo: newRecord.contact_info,
                         description: newRecord.description || "",
                         tags: newRecord.tags || [],
+                        groupName: newRecord.group_name,
+                        groupAvatar: newRecord.group_avatar,
                         user: {
                             name: newRecord.user_name,
                             avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
@@ -146,6 +154,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         contactInfo: newRecord.contact_info,
                         description: newRecord.description || "",
                         tags: newRecord.tags || [],
+                        groupName: newRecord.group_name,
+                        groupAvatar: newRecord.group_avatar,
                         user: {
                             ...j.user,
                             name: newRecord.user_name,
@@ -251,6 +261,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (updates.contactInfo) mappedUpdates.contact_info = updates.contactInfo;
             if (updates.description) mappedUpdates.description = updates.description;
             if (updates.tags) mappedUpdates.tags = updates.tags;
+            if (updates.groupName) mappedUpdates.group_name = updates.groupName;
+            if (updates.groupAvatar) mappedUpdates.group_avatar = updates.groupAvatar;
 
             const { error: supabaseError } = await (supabase as any)
                 .from('journeys')

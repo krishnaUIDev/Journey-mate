@@ -12,7 +12,9 @@ import {
     CircularProgress,
     Tooltip,
     Popover,
-    Badge
+    Badge,
+    AvatarGroup,
+    Button,
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -34,9 +36,12 @@ import {
     PhoneCallback as AcceptedIcon,
     CallMade as OutgoingIcon,
     CallReceived as IncomingIcon,
+    SettingsOutlined as SettingsIcon,
+    PhotoCamera as CameraIcon,
 } from "@mui/icons-material";
 import { useMessages, Message } from "../../../context/MessagesContext";
 import { useCalling } from "../../../context/CallingContext";
+import { useJourneys } from "../../../context/JourneysContext";
 import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -51,6 +56,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const { startCall } = useCalling();
+    const { journeys, updateJourney } = useJourneys();
     const {
         messages,
         loading,
@@ -61,15 +67,22 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         editMessage,
         deleteMessage,
         typingUsers,
-        setTypingStatus
+        setTypingStatus,
+        getRequests
     } = useMessages();
+    const { supabase } = useMessages() as any;
     const { user } = useUser();
     const [input, setInput] = useState("");
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editContent, setEditContent] = useState("");
     const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const [emojiAnchorEl, setEmojiAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const [settingsAnchorEl, setSettingsAnchorEl] = useState<HTMLButtonElement | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+
+    const [newGroupName, setNewGroupName] = useState("");
+    const [stagedGroupAvatar, setStagedGroupAvatar] = useState<string | null>(null);
+    const [updatingGroup, setUpdatingGroup] = useState(false);
 
     // File state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -87,7 +100,47 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const [participants, setParticipants] = useState<any[]>([]);
     const currentTypingUsers = typingUsers[journeyId] || [];
+    const journey = journeys.find(j => j.id === journeyId);
+    const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
+
+    useEffect(() => {
+        if (journey) {
+            console.log("[ChatWindow] Ownership Status:", {
+                user: user?.id,
+                journeyOwner: journey?.userId,
+                isOwner,
+                journeyId
+            });
+        }
+    }, [user?.id, journey, isOwner, journeyId]);
+
+    useEffect(() => {
+        if (journey?.groupName) {
+            setNewGroupName(journey.groupName);
+        }
+    }, [journey?.groupName]);
+
+    useEffect(() => {
+        const loadParticipants = async () => {
+            const data = await getRequests(journeyId);
+            setParticipants(data.filter((r: any) => r.status === 'accepted'));
+        };
+        loadParticipants();
+
+        // Listen for status changes
+        const channel = (supabase as any)
+            ?.channel(`chat_participants_${journeyId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'journey_requests', filter: `journey_id=eq.${journeyId}` }, () => {
+                loadParticipants();
+            })
+            .subscribe();
+
+        return () => {
+            if (channel) (supabase as any).removeChannel(channel);
+        };
+    }, [journeyId, getRequests, supabase]);
 
     useEffect(() => {
         const unsubscribe = subscribeToJourney(journeyId);
@@ -266,7 +319,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 display: "flex",
                 flexDirection: "column",
                 border: "1px solid rgba(0,0,0,0.05)",
-                '.dark &': { border: '1px solid rgba(255,255,255,0.05)', bgcolor: '#0f172a' },
+                bgcolor: 'white',
+                '.dark &': {
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    bgcolor: '#0f172a',
+                    color: '#f8fafc'
+                },
                 borderRadius: '1.5rem',
                 overflow: 'hidden',
                 position: 'relative'
@@ -278,16 +336,52 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                bgcolor: 'rgba(0,0,0,0.02)',
-                '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' }
+                bgcolor: 'rgba(0,0,0,0.01)',
+                '.dark &': { bgcolor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <ChatIcon sx={{ color: 'forest.main' }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
-                        Trip Discussion
-                    </Typography>
+                    <Avatar
+                        src={journey?.groupAvatar}
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            bgcolor: 'forest.main',
+                            fontSize: '14px',
+                            fontWeight: 900
+                        }}
+                    >
+                        {journey?.groupName?.charAt(0) || <ChatIcon />}
+                    </Avatar>
+                    <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                            {journey?.groupName || "Trip Discussion"}
+                        </Typography>
+                        {participants.length > 0 && (
+                            <Tooltip title={participants.map(p => p.requester_name).join(", ")}>
+                                <Typography variant="caption" sx={{ color: 'forest.main', fontWeight: 800, fontSize: '9px', cursor: 'pointer' }}>
+                                    {participants.length + 1} MEMBERS IN GROUP
+                                </Typography>
+                            </Tooltip>
+                        )}
+                    </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    {isOwner && (
+                        <Tooltip title="Update Group Squad Identity">
+                            <IconButton
+                                onClick={(e) => setSettingsAnchorEl(e.currentTarget)}
+                                size="small"
+                                sx={{
+                                    bgcolor: 'rgba(34, 197, 94, 0.1)',
+                                    color: 'forest.main',
+                                    '&:hover': { bgcolor: 'forest.main', color: 'white' },
+                                    ml: 1
+                                }}
+                            >
+                                <SettingsIcon sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
                     <Tooltip title="Audio Call">
                         <IconButton
                             onClick={() => startCall(journeyId, 'audio')}
@@ -319,11 +413,13 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
             {/* Messages Area */}
             <Box sx={{
                 flex: 1,
-                overflowY: 'auto',
-                p: 3,
-                display: 'flex',
-                flexDirection: 'column',
+                overflowY: "auto",
+                p: 2,
+                display: "flex",
+                flexDirection: "column",
                 gap: 2,
+                bgcolor: 'transparent',
+                '.dark &': { bgcolor: '#0f172a' },
                 '&::-webkit-scrollbar': { width: '4px' },
                 '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(0,0,0,0.1)', borderRadius: '10px' }
             }}>
@@ -703,6 +799,98 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             accept="image/*"
                             onChange={handleFileSelect}
                         />
+
+                        {/* Group Settings Popover */}
+                        <Popover
+                            open={Boolean(settingsAnchorEl)}
+                            anchorEl={settingsAnchorEl}
+                            onClose={() => setSettingsAnchorEl(null)}
+                            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                            slotProps={{ paper: { sx: { p: 3, width: 280, borderRadius: '1.5rem', mt: 1.5 } } }}
+                        >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Group Settings
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ position: 'relative', width: 80, height: 80, mx: 'auto', mb: 1 }}>
+                                    <Avatar
+                                        src={stagedGroupAvatar || journey?.groupAvatar}
+                                        sx={{ width: 80, height: 80, border: '4px solid rgba(0,0,0,0.05)' }}
+                                    />
+                                    <IconButton
+                                        component="label"
+                                        sx={{
+                                            position: 'absolute',
+                                            bottom: -4,
+                                            right: -4,
+                                            bgcolor: 'forest.main',
+                                            color: 'white',
+                                            '&:hover': { bgcolor: 'navy' },
+                                            width: 32,
+                                            height: 32
+                                        }}
+                                    >
+                                        <CameraIcon sx={{ fontSize: 16 }} />
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    setUpdatingGroup(true);
+                                                    const url = await uploadChatImage(file);
+                                                    if (url) {
+                                                        setStagedGroupAvatar(url);
+                                                    }
+                                                    setUpdatingGroup(false);
+                                                }
+                                            }}
+                                        />
+                                    </IconButton>
+                                </Box>
+
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    placeholder="Squad Name"
+                                    value={newGroupName}
+                                    onChange={(e) => setNewGroupName(e.target.value)}
+                                    label="Squad Name"
+                                    slotProps={{
+                                        input: { sx: { borderRadius: '1rem', fontWeight: 600 } }
+                                    }}
+                                />
+
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    disabled={updatingGroup || (newGroupName === journey?.groupName && !stagedGroupAvatar)}
+                                    onClick={async () => {
+                                        setUpdatingGroup(true);
+                                        const updates: any = {};
+                                        if (newGroupName !== journey?.groupName) updates.groupName = newGroupName;
+                                        if (stagedGroupAvatar) updates.groupAvatar = stagedGroupAvatar;
+
+                                        await updateJourney(journeyId, updates);
+                                        setUpdatingGroup(false);
+                                        setStagedGroupAvatar(null);
+                                        setSettingsAnchorEl(null);
+                                    }}
+                                    sx={{
+                                        borderRadius: '1rem',
+                                        py: 1,
+                                        fontWeight: 900,
+                                        bgcolor: 'navy',
+                                        '&:hover': { bgcolor: 'black' }
+                                    }}
+                                >
+                                    {updatingGroup ? <CircularProgress size={20} color="inherit" /> : "Save Changes"}
+                                </Button>
+                            </Box>
+                        </Popover>
 
                         <Popover
                             open={Boolean(emojiAnchorEl)}

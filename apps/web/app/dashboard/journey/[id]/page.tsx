@@ -11,6 +11,9 @@ import {
     Divider,
     Box,
     CircularProgress,
+    AvatarGroup,
+    Avatar,
+    Tooltip
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
@@ -19,7 +22,8 @@ import {
     Email as MailIcon,
     Verified as VerifiedIcon,
     ChatBubbleOutlined as ChatIcon,
-    Instagram as InstagramIcon
+    Instagram as InstagramIcon,
+    Edit as EditPenIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -110,6 +114,17 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
+    const [acceptedParticipants, setAcceptedParticipants] = useState<any[]>([]);
+
+    const fetchAcceptedParticipants = useCallback(async () => {
+        if (!supabase) return;
+        const { data } = await supabase
+            .from('journey_requests')
+            .select('requester_id, requester_name, requester_avatar')
+            .eq('journey_id', id)
+            .eq('status', 'accepted');
+        if (data) setAcceptedParticipants(data);
+    }, [id, supabase]);
 
     const toggleChat = () => {
         const newState = !chatOpen;
@@ -117,8 +132,18 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         setIsChatOpen(newState);
     };
 
-    const isOwner = user?.id === journey?.userId;
+    const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
     const isPastTrip = journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day');
+
+    useEffect(() => {
+        if (journey) {
+            console.log("[JourneyDetailPage] Status:", {
+                userId: user?.id,
+                journeyOwnerId: journey?.userId,
+                isOwner
+            });
+        }
+    }, [user?.id, journey, isOwner]);
 
     // Notification suppression logic
     useEffect(() => {
@@ -131,9 +156,9 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         if (found) {
             setJourney(found);
             setTimeout(() => setMapLoaded(true), 500);
+            fetchAcceptedParticipants();
 
             // Initial status check
-            // Past trips are exempt from gating
             if (user?.id && user.id !== found.userId && !isPastTrip) {
                 checkRequestStatus(id).then(status => {
                     setRequestStatus(status);
@@ -150,15 +175,36 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 event: 'UPDATE',
                                 schema: 'public',
                                 table: 'journey_requests',
-                                filter: `journey_id=eq.${id} AND requester_id=eq.${user.id}`,
+                                filter: `journey_id=eq.${id}`,
                             },
                             (payload: any) => {
-                                const newStatus = payload.new.status;
-                                setRequestStatus(newStatus);
-                                if (newStatus === 'accepted') {
-                                    showNotification("Request accepted! You can now join the discussion.", 'success');
-                                } else if (newStatus === 'rejected') {
-                                    showNotification("Your request to pair was declined.", 'info');
+                                // If our own status changed
+                                if (payload.new.requester_id === user.id) {
+                                    const newStatus = payload.new.status;
+                                    setRequestStatus(newStatus);
+                                    if (newStatus === 'accepted') {
+                                        showNotification("Request accepted! You can now join the discussion.", 'success');
+                                    } else if (newStatus === 'rejected') {
+                                        showNotification("Your request to pair was declined.", 'info');
+                                    }
+                                }
+                                // Always refresh participant list if a status becomes accepted
+                                if (payload.new.status === 'accepted') {
+                                    fetchAcceptedParticipants();
+                                }
+                            }
+                        )
+                        .on(
+                            'postgres_changes',
+                            {
+                                event: 'INSERT',
+                                schema: 'public',
+                                table: 'journey_requests',
+                                filter: `journey_id=eq.${id}`,
+                            },
+                            (payload: any) => {
+                                if (payload.new.status === 'accepted') {
+                                    fetchAcceptedParticipants();
                                 }
                             }
                         )
@@ -169,16 +215,26 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     };
                 }
             } else if (isPastTrip || (user?.id && user.id === found.userId)) {
-                // If it's a past trip or the owner, they can join.
                 setRequestStatus('accepted');
                 setRequestLoading(false);
+
+                // If owner, also subscribe to all request changes to refresh participants
+                if (user?.id === found.userId && supabase) {
+                    const channel = supabase
+                        .channel(`journey_participants_${id}`)
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'journey_requests', filter: `journey_id=eq.${id}` }, () => {
+                            fetchAcceptedParticipants();
+                        })
+                        .subscribe();
+                    return () => supabase.removeChannel(channel);
+                }
             } else {
                 setRequestLoading(false);
             }
         } else {
             setRequestLoading(false);
         }
-    }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification]);
+    }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification, fetchAcceptedParticipants]);
 
 
     const handleShare = async () => {
@@ -353,13 +409,36 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         {/* Header Info in Sheet */}
                         <div className="flex flex-col mb-8">
                             <div className="flex items-center gap-3 flex-wrap">
-                                <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                    {journey.from.split(' (')[0]}
-                                </h1>
-                                <span className="text-2xl font-bold text-slate-300 dark:text-slate-700">→</span>
-                                <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                    {journey.to.split(' (')[0]}
-                                </h1>
+                                <Box>
+                                    {journey.groupName && (
+                                        <Typography sx={{ color: 'forest.main', fontWeight: 900, mb: 1, letterSpacing: '0.1em', fontSize: '10px', textTransform: 'uppercase' }}>
+                                            {journey.groupName}
+                                        </Typography>
+                                    )}
+                                    <div className="flex items-center gap-3">
+                                        <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                                            {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
+                                        </h1>
+                                        {isOwner && (
+                                            <Tooltip title="Edit Group Identity">
+                                                <Box sx={{ flexShrink: 0 }}>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={toggleChat}
+                                                        sx={{
+                                                            bgcolor: 'rgba(34, 197, 94, 0.1)',
+                                                            color: 'forest.main',
+                                                            border: '1px solid rgba(34, 197, 94, 0.2)',
+                                                            '&:hover': { bgcolor: 'forest.main', color: 'white' }
+                                                        }}
+                                                    >
+                                                        <EditPenIcon sx={{ fontSize: 18 }} />
+                                                    </IconButton>
+                                                </Box>
+                                            </Tooltip>
+                                        )}
+                                    </div>
+                                </Box>
                             </div>
                             <p className="text-slate-500 dark:text-slate-400 font-bold tracking-tight mt-2">
                                 Scheduled for {dayjs(journey.date).format('dddd, MMMM DD')}
@@ -387,6 +466,31 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
                                         </span>
                                     </div>
+
+                                    {/* Mates Joined Section */}
+                                    {acceptedParticipants.length > 0 && (
+                                        <div className="mt-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700 w-fit">
+                                            <AvatarGroup max={4} sx={{
+                                                '& .MuiAvatar-root': {
+                                                    width: 28,
+                                                    height: 28,
+                                                    fontSize: 10,
+                                                    fontWeight: 900,
+                                                    border: '2px solid white',
+                                                    '.dark &': { border: '2px solid #1e293b' }
+                                                }
+                                            }}>
+                                                {acceptedParticipants.map((p: any) => (
+                                                    <Avatar key={p.requester_id} src={p.requester_avatar} alt={p.requester_name}>
+                                                        {p.requester_name?.charAt(0)}
+                                                    </Avatar>
+                                                ))}
+                                            </AvatarGroup>
+                                            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                {acceptedParticipants.length} {acceptedParticipants.length === 1 ? 'Mate' : 'Mates'} Joined
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -531,7 +635,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                     borderColor: 'slate.200',
                                                     '&:hover': { bgcolor: '#f8fafc', borderColor: 'slate.300', scale: 1.02 },
                                                     '.dark &': {
-                                                        bgcolor: 'white/10',
+                                                        bgcolor: '#334155',
                                                         color: 'white',
                                                         borderColor: 'white/10',
                                                         '&:hover': { bgcolor: 'white/20', borderColor: 'white/20' }
