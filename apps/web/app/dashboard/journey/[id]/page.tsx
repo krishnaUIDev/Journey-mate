@@ -18,7 +18,8 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    TextField
+    TextField,
+    Stack
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
@@ -33,6 +34,8 @@ import {
     Stop as StopIcon,
     Delete as TrashIcon,
     PlayArrow as PlayIcon,
+    Image as ImageIcon,
+    CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -134,6 +137,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const recorderRef = useRef<MediaRecorder | null>(null);
     const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Trust Features State
+    const [boardingPassFile, setBoardingPassFile] = useState<File | null>(null);
+    const [boardingPassPreview, setBoardingPassPreview] = useState<string | null>(null);
+    const [mutualCompanions, setMutualCompanions] = useState<string[]>([]);
+    const { getMutualCompanions, uploadChatImage } = useMessages();
 
     const fetchAcceptedParticipants = useCallback(async () => {
         if (!supabase) return;
@@ -264,6 +273,22 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         }
     }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification, fetchAcceptedParticipants]);
 
+    useEffect(() => {
+        if (user?.id && journey?.userId && user.id !== journey.userId) {
+            getMutualCompanions(user.id, journey.userId).then(setMutualCompanions);
+        }
+    }, [user?.id, journey?.userId, getMutualCompanions]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBoardingPassFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setBoardingPassPreview(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
 
     const handleShare = async () => {
         const shareData = {
@@ -349,7 +374,13 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             const rating = (user?.unsafeMetadata?.rating as number) || 5.0;
             const verified = (user?.unsafeMetadata?.verified as boolean) ?? true;
 
-            await sendRequest(id, requestMessage, rating, verified, audioUrl);
+            let boardingPassUrl = "";
+            if (boardingPassFile) {
+                const uploaded = await uploadChatImage(boardingPassFile);
+                if (uploaded) boardingPassUrl = uploaded;
+            }
+
+            await sendRequest(id, requestMessage, rating, verified, audioUrl, boardingPassUrl);
             const newStatus = await checkRequestStatus(id);
             setRequestStatus(newStatus);
             setIsRequestModalOpen(false);
@@ -602,6 +633,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                                 {acceptedParticipants.length} {acceptedParticipants.length === 1 ? 'Mate' : 'Mates'} Joined
                                             </span>
+                                        </div>
+                                    )}
+
+                                    {/* Mutual Connections Badge */}
+                                    {mutualCompanions.length > 0 && !isOwner && (
+                                        <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-xl w-fit">
+                                            <VerifiedIcon sx={{ fontSize: 14, color: '#10B981' }} />
+                                            <Typography sx={{ fontSize: '10px', fontWeight: 900, color: '#065f46', '.dark &': { color: '#34d399' }, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                                You both know {mutualCompanions[0]}{mutualCompanions.length > 1 ? ` & ${mutualCompanions.length - 1} more` : ''}
+                                            </Typography>
                                         </div>
                                     )}
                                 </div>
@@ -910,6 +951,47 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             }
                         }}
                     />
+
+                    {/* Boarding Pass Upload UI */}
+                    <Box sx={{
+                        mt: 3,
+                        p: 2,
+                        borderRadius: '1.25rem',
+                        border: '1px dashed rgba(0,0,0,0.1)',
+                        bgcolor: 'rgba(16, 185, 129, 0.02)',
+                        '.dark &': { borderColor: 'rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.01)' },
+                        textAlign: 'center',
+                        position: 'relative',
+                        transition: 'all 0.2s',
+                        '&:hover': { bgcolor: 'rgba(16, 185, 129, 0.05)', borderColor: '#10B981' }
+                    }}>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', zIndex: 10 }}
+                            onChange={handleFileChange}
+                        />
+                        {boardingPassPreview ? (
+                            <Box sx={{ position: 'relative', height: 120, width: '100%', borderRadius: '1rem', overflow: 'hidden' }}>
+                                <Image src={boardingPassPreview} alt="Boarding Pass Preview" fill style={{ objectFit: 'cover' }} />
+                                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(0,0,0,0.4)', opacity: 0, '&:hover': { opacity: 1 }, transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Typography variant="caption" sx={{ color: 'white', fontWeight: 900 }}>Click to change</Typography>
+                                </Box>
+                            </Box>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                                <UploadIcon sx={{ color: '#10B981', opacity: 0.6 }} />
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'forest.main' }}>
+                                        Attach Boarding Pass
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.5, display: 'block' }}>
+                                        Highly recommended for trust (Optional)
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
+                    </Box>
 
                     {/* Audio Recorder UI */}
                     <Box sx={{

@@ -10,7 +10,11 @@ import {
     CircularProgress,
     Stack,
     IconButton,
-    Tooltip
+    Tooltip,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    Link
 } from "@mui/material";
 import {
     Check as AcceptIcon,
@@ -26,6 +30,7 @@ import {
     Pause as PauseIcon
 } from "@mui/icons-material";
 import { useMessages, JourneyRequest } from "../../../context/MessagesContext";
+import { useUser } from "@clerk/nextjs";
 
 interface RequestCardProps {
     request: JourneyRequest;
@@ -35,6 +40,16 @@ interface RequestCardProps {
 function RequestCard({ request, onAction }: RequestCardProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const { getMutualCompanions } = useMessages();
+    const { user } = useUser();
+    const [mutualCompanions, setMutualCompanions] = useState<string[]>([]);
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (user?.id && request.requester_id) {
+            getMutualCompanions(user.id, request.requester_id).then(setMutualCompanions);
+        }
+    }, [user?.id, request.requester_id, getMutualCompanions]);
 
     const togglePlay = () => {
         if (!audioRef.current) return;
@@ -115,55 +130,77 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                     </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    {request.status === 'pending' ? (
-                        <>
-                            <Tooltip title="Decline">
-                                <IconButton
-                                    onClick={() => onAction(request.id, 'rejected')}
-                                    size="small"
-                                    sx={{
-                                        bgcolor: 'rgba(239, 68, 68, 0.1)',
-                                        color: '#ef4444',
-                                        '&:hover': { bgcolor: '#ef4444', color: 'white' }
-                                    }}
-                                >
-                                    <RejectIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Accept">
-                                <IconButton
-                                    onClick={() => onAction(request.id, 'accepted')}
-                                    size="small"
-                                    sx={{
-                                        bgcolor: 'rgba(34, 197, 94, 0.1)',
-                                        color: '#22c55e',
-                                        '&:hover': { bgcolor: '#22c55e', color: 'white' }
-                                    }}
-                                >
-                                    <AcceptIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        </>
-                    ) : (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {mutualCompanions.length > 0 && (
+                        <Tooltip title={`Shared companions: ${mutualCompanions.join(', ')}`}>
                             <Box sx={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: 'full',
-                                bgcolor: request.status === 'accepted' ? '#22c55e' : '#ef4444'
-                            }} />
-                            <Typography variant="caption" sx={{
-                                fontWeight: 800,
-                                textTransform: 'uppercase',
-                                fontSize: '9px',
-                                color: request.status === 'accepted' ? '#064e3b' : '#991b1b',
-                                '.dark &': { color: request.status === 'accepted' ? '#10b981' : '#ef4444' }
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                bgcolor: 'rgba(16, 185, 129, 0.1)',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '8px',
+                                border: '1px solid rgba(16, 185, 129, 0.1)'
                             }}>
-                                {request.status === 'accepted' ? 'Added' : 'Declined'}
-                            </Typography>
-                        </Box>
+                                <VerifiedIcon sx={{ fontSize: 12, color: '#10B981' }} />
+                                <Typography sx={{ fontSize: '9px', fontWeight: 900, color: '#065f46', '.dark &': { color: '#34d399' }, textTransform: 'uppercase' }}>
+                                    {mutualCompanions.length} Mutual
+                                </Typography>
+                            </Box>
+                        </Tooltip>
                     )}
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        {request.status === 'pending' ? (
+                            <>
+                                <Tooltip title="Decline">
+                                    <IconButton
+                                        onClick={() => onAction(request.id, 'rejected')}
+                                        size="small"
+                                        sx={{
+                                            bgcolor: 'rgba(239, 68, 68, 0.1)',
+                                            color: '#ef4444',
+                                            '&:hover': { bgcolor: '#ef4444', color: 'white' }
+                                        }}
+                                    >
+                                        <RejectIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Accept">
+                                    <IconButton
+                                        onClick={() => onAction(request.id, 'accepted')}
+                                        size="small"
+                                        sx={{
+                                            bgcolor: 'rgba(34, 197, 94, 0.1)',
+                                            color: '#22c55e',
+                                            '&:hover': { bgcolor: '#22c55e', color: 'white' }
+                                        }}
+                                    >
+                                        <AcceptIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </>
+                        ) : (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1 }}>
+                                <Box sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: 'full',
+                                    bgcolor: request.status === 'accepted' ? '#22c55e' : '#ef4444'
+                                }} />
+                                <Typography variant="caption" sx={{
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    fontSize: '9px',
+                                    color: request.status === 'accepted' ? '#064e3b' : '#991b1b',
+                                    '.dark &': { color: request.status === 'accepted' ? '#10b981' : '#ef4444' }
+                                }}>
+                                    {request.status === 'accepted' ? 'Added' : 'Declined'}
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
                 </Box>
             </Box>
 
@@ -260,6 +297,111 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                     </Typography>
                 </Box>
             )}
+
+            {request.boarding_pass_url && (
+                <Box sx={{
+                    p: 1.5,
+                    borderRadius: '1rem',
+                    bgcolor: 'rgba(14, 165, 233, 0.05)',
+                    '.dark &': { bgcolor: 'rgba(14, 165, 233, 0.08)' },
+                    border: '1px solid rgba(14, 165, 233, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            bgcolor: '#0ea5e9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white'
+                        }}>
+                            <VerifiedIcon sx={{ fontSize: 18 }} />
+                        </Box>
+                        <Box>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: '#0369a1', '.dark &': { color: '#7dd3fc' }, display: 'block', fontSize: '8px' }}>
+                                Flight Validation
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontSize: '10px', fontWeight: 700, color: '#0c4a6e', '.dark &': { color: '#bae6fd' } }}>
+                                Boarding Pass Verified
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Button
+                        size="small"
+                        onClick={() => setIsPreviewModalOpen(true)}
+                        sx={{
+                            borderRadius: '8px',
+                            textTransform: 'none',
+                            fontWeight: 800,
+                            fontSize: '10px',
+                            bgcolor: 'rgba(14, 165, 233, 0.1)',
+                            color: '#0284c7',
+                            '&:hover': { bgcolor: '#0ea5e9', color: 'white' }
+                        }}
+                    >
+                        View Proof
+                    </Button>
+                </Box>
+            )}
+
+            {/* Proof Preview Modal */}
+            <Dialog
+                open={isPreviewModalOpen}
+                onClose={() => setIsPreviewModalOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '2rem',
+                            overflow: 'hidden',
+                            bgcolor: 'white',
+                            '.dark &': { bgcolor: '#18181b' }
+                        }
+                    }
+                }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 900 }}>
+                    Flight Validation Proof
+                    <IconButton size="small" onClick={() => setIsPreviewModalOpen(false)}>
+                        <RejectIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 0 }}>
+                    <Box sx={{
+                        position: 'relative',
+                        width: '100%',
+                        height: 500,
+                        bgcolor: 'rgba(0,0,0,0.05)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <img
+                            src={request.boarding_pass_url}
+                            alt="Boarding Pass Proof"
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain'
+                            }}
+                        />
+                    </Box>
+                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ opacity: 0.7, mb: 1 }}>
+                            This traveler has provided their boarding pass for this flight to verify their travel plans.
+                        </Typography>
+                        <Link href={request.boarding_pass_url} target="_blank" sx={{ fontWeight: 800, color: '#0ea5e9' }}>
+                            View original file
+                        </Link>
+                    </Box>
+                </DialogContent>
+            </Dialog>
         </Paper>
     );
 }

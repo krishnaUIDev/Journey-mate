@@ -37,6 +37,8 @@ export interface JourneyRequest {
     requester_rating?: number;
     requester_verified?: boolean;
     requester_audio_url?: string;
+    boarding_pass_url?: string;
+    mutual_companions?: string[];
     created_at: string;
 }
 
@@ -58,9 +60,10 @@ interface MessagesContextType {
     uploadChatAudio: (file: File | Blob) => Promise<string | null>;
     subscribeToJourney: (journeyId: string) => () => void;
     // New Request Flow
-    sendRequest: (journeyId: string, message?: string, rating?: number, isVerified?: boolean, audioUrl?: string) => Promise<void>;
+    sendRequest: (journeyId: string, message?: string, rating?: number, isVerified?: boolean, audioUrl?: string, boardingPassUrl?: string) => Promise<void>;
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
     updateRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
+    getMutualCompanions: (userId1: string, userId2: string) => Promise<string[]>;
     checkRequestStatus: (journeyId: string) => Promise<'pending' | 'accepted' | 'rejected' | 'none'>;
     editMessage: (messageId: string, content: string) => Promise<void>;
     deleteMessage: (messageId: string) => Promise<void>;
@@ -498,7 +501,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const sendRequest = async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '') => {
+    const sendRequest = async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '', boardingPassUrl: string = '') => {
         if (!user || !supabase) return;
         try {
             const { error } = await (supabase as any)
@@ -512,13 +515,54 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     message: message || '',
                     requester_rating: rating || 5.0,
                     requester_verified: isVerified ?? true,
-                    requester_audio_url: audioUrl || null
+                    requester_audio_url: audioUrl || null,
+                    boarding_pass_url: boardingPassUrl || null
                 }]);
             if (error) throw error;
             showNotification("Your request has been sent! We'll notify you once accepted.", 'success');
         } catch (err: any) {
             console.error("[MessagesContext] Error sending request:", err);
             showNotification(`Failed to send request: ${err.message}`, 'error');
+        }
+    };
+
+    const getMutualCompanions = async (userId1: string, userId2: string): Promise<string[]> => {
+        if (!supabase) return [];
+        try {
+            // Find shared journeys where both users were accepted
+            const { data: journeys1 } = await (supabase as any)
+                .from('journey_requests')
+                .select('journey_id')
+                .eq('requester_id', userId1)
+                .eq('status', 'accepted');
+
+            const { data: journeys2 } = await (supabase as any)
+                .from('journey_requests')
+                .select('journey_id')
+                .eq('requester_id', userId2)
+                .eq('status', 'accepted');
+
+            if (!journeys1 || !journeys2) return [];
+
+            const ids1 = new Set(journeys1.map((j: any) => j.journey_id));
+            const commonIds = (journeys2 as any[]).map(j => j.journey_id).filter(id => ids1.has(id));
+
+            if (commonIds.length === 0) return [];
+
+            // Get names of other travelers in those common journeys
+            const { data: connections } = await (supabase as any)
+                .from('journey_requests')
+                .select('requester_name')
+                .in('journey_id', commonIds)
+                .neq('requester_id', userId1)
+                .neq('requester_id', userId2)
+                .eq('status', 'accepted')
+                .limit(3);
+
+            return connections ? connections.map((c: any) => c.requester_name) : [];
+        } catch (err) {
+            console.error("[MessagesContext] Error fetching mutual companions:", err);
+            return [];
         }
     };
 
@@ -675,6 +719,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             sendRequest,
             getRequests,
             updateRequestStatus,
+            getMutualCompanions,
             checkRequestStatus,
             editMessage,
             deleteMessage,
