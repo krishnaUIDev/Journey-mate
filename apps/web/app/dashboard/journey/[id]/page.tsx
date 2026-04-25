@@ -691,7 +691,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     <Box sx={{ py: 3, textAlign: 'center' }}>
                                         <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'white' } }} />
                                     </Box>
-                                ) : (isOwner || isPastTrip) ? (
+                                ) : (isOwner || requestStatus === 'accepted' || isPastTrip) ? (
                                     <Stack spacing={2}>
                                         <Button
                                             fullWidth
@@ -740,33 +740,6 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
                                         </Button>
                                     </Stack>
-                                ) : requestStatus === 'accepted' ? (
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        onClick={toggleChat}
-                                        startIcon={<ChatIcon />}
-                                        sx={{
-                                            bgcolor: '#09090b',
-                                            color: 'white',
-                                            borderRadius: '1.5rem',
-                                            py: 2.5,
-                                            fontWeight: 900,
-                                            textTransform: 'none',
-                                            fontSize: '1.1rem',
-                                            letterSpacing: '-0.02em',
-                                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
-                                            '&:hover': { bgcolor: 'black', scale: 1.01 },
-                                            '.dark &': {
-                                                bgcolor: 'white',
-                                                color: '#09090b',
-                                                boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
-                                                '&:hover': { bgcolor: '#f1f5f9' }
-                                            }
-                                        }}
-                                    >
-                                        Join Discussion
-                                    </Button>
                                 ) : requestStatus === 'pending' ? (
                                     <Button
                                         fullWidth

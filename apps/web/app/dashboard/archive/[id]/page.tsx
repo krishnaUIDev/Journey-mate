@@ -36,13 +36,15 @@ export default function JourneyArchivePage() {
     const { id } = useParams();
     const router = useRouter();
     const { user } = useUser();
-    const { getExpenses, messages, getRequests } = useMessages();
+    const { getExpenses, messages, getRequests, getSouvenirs, addSouvenir, uploadChatImage } = useMessages();
     const { journeys } = useJourneys();
 
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
     const [journey, setJourney] = useState<any>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [participants, setParticipants] = useState<JourneyRequest[]>([]);
+    const [souvenirs, setSouvenirs] = useState<any[]>([]);
     const [photos, setPhotos] = useState<string[]>([]);
 
     useEffect(() => {
@@ -63,6 +65,10 @@ export default function JourneyArchivePage() {
             const reqs = await getRequests(id as string);
             setParticipants((reqs || []).filter((r: JourneyRequest) => r.status === 'accepted'));
 
+            // Fetch souvenirs
+            const souvs = await getSouvenirs(id as string);
+            setSouvenirs(souvs);
+
             // Extract photos from chat messages
             const chatPhotos = messages
                 .filter((m: Message) => m.journey_id === id && m.image_url)
@@ -72,7 +78,24 @@ export default function JourneyArchivePage() {
             setLoading(false);
         };
         loadData();
-    }, [id, journeys, messages, getExpenses, getRequests, router]);
+    }, [id, journeys, messages, getExpenses, getRequests, getSouvenirs, router]);
+
+    const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !id) return;
+
+        setUploading(true);
+        try {
+            const url = await uploadChatImage(file);
+            if (url) {
+                await addSouvenir(id as string, url, "Journey Memory");
+                const freshSouvs = await getSouvenirs(id as string);
+                setSouvenirs(freshSouvs);
+            }
+        } finally {
+            setUploading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -169,15 +192,27 @@ export default function JourneyArchivePage() {
 
                     {/* Photo Gallery */}
                     <Grid size={{ xs: 12 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 900, mb: 3, '.dark &': { color: 'white' } }}>Shared Moments</Typography>
-                        {photos.length === 0 ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 900, '.dark &': { color: 'white' } }}>Shared Moments</Typography>
+                            <Button
+                                component="label"
+                                variant="outlined"
+                                disabled={uploading}
+                                startIcon={uploading ? <CircularProgress size={16} /> : <PhotoIcon />}
+                                sx={{ borderRadius: '1rem', fontWeight: 700, borderColor: 'rgba(0,0,0,0.1)', color: 'text.secondary', '.dark &': { color: 'white', borderColor: 'rgba(255,255,255,0.1)' } }}
+                            >
+                                {uploading ? 'Uploading...' : 'Add Memory'}
+                                <input type="file" hidden accept="image/*" onChange={handleUploadPhoto} />
+                            </Button>
+                        </Box>
+                        {photos.length === 0 && souvenirs.length === 0 ? (
                             <Box sx={{ py: 10, textAlign: 'center', border: '2px dashed rgba(0,0,0,0.1)', borderRadius: '2rem', '.dark &': { borderColor: 'rgba(255,255,255,0.1)' } }}>
                                 <PhotoIcon sx={{ fontSize: 48, opacity: 0.2, mb: 2, '.dark &': { color: 'white' } }} />
                                 <Typography variant="body2" sx={{ opacity: 0.5, fontWeight: 700, '.dark &': { color: 'white' } }}>No photos were captured during this journey.</Typography>
                             </Box>
                         ) : (
                             <Grid container spacing={2}>
-                                {photos.map((url, i) => (
+                                {[...souvenirs.map(s => s.image_url), ...photos].map((url, i) => (
                                     <Grid size={{ xs: 6, md: 3 }} key={i}>
                                         <Card sx={{ borderRadius: '1.5rem', boxShadow: 3, transition: 'transform 0.2s', '&:hover': { transform: 'scale(1.05)' } }}>
                                             <CardMedia
@@ -185,6 +220,7 @@ export default function JourneyArchivePage() {
                                                 height="200"
                                                 image={url}
                                                 alt={`Journey moment ${i + 1}`}
+                                                sx={{ objectFit: 'cover' }}
                                             />
                                         </Card>
                                     </Grid>

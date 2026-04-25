@@ -93,6 +93,8 @@ interface MessagesContextType {
     deleteEmergencyContact: (journeyId: string) => Promise<void>;
     shareLocation: (journeyId: string, lat: number, lng: number) => Promise<void>;
     squadLocations: Record<string, { userId: string; userName: string; lat: number; lng: number; updatedAt: string }>;
+    getSouvenirs: (journeyId: string) => Promise<any[]>;
+    addSouvenir: (journeyId: string, imageUrl: string, caption: string) => Promise<any>;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -999,6 +1001,45 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const addSouvenir = async (journey_id: string, image_url: string, caption: string) => {
+        if (!supabase || !user) return null;
+        try {
+            const { data, error } = await (supabase as any)
+                .from('journey_souvenirs')
+                .insert([{
+                    journey_id,
+                    user_id: user.id,
+                    user_name: user.fullName || "Traveler",
+                    user_avatar: user.imageUrl,
+                    image_url,
+                    caption
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error("[MessagesContext] Supabase Error adding souvenir:", error);
+                throw error;
+            }
+            showNotification("Memory added to souvenirs!", "success");
+            return data;
+        } catch (err: any) {
+            console.error("[MessagesContext] Error adding souvenir:", err);
+            showNotification(`Failed to add memory: ${err.message || 'Unknown error'}`, "error");
+            return null;
+        }
+    };
+
+    const getSouvenirs = async (journey_id: string) => {
+        if (!supabase) return [];
+        const { data } = await (supabase as any)
+            .from('journey_souvenirs')
+            .select('*')
+            .eq('journey_id', journey_id)
+            .order('created_at', { ascending: false });
+        return data || [];
+    };
+
     const saveEmergencyContact = async (journeyId: string, name: string, phone: string, relation: string) => {
         if (!supabase || !user) return;
         try {
@@ -1102,7 +1143,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             submitReview,
             getEmergencyContacts,
             saveEmergencyContact,
-            deleteEmergencyContact
+            deleteEmergencyContact,
+            getSouvenirs,
+            addSouvenir
         }}>
             {children}
 
