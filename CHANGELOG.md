@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.0.2] - 2026-04-25
+
+### Added
+- **Real-Time Meetup Map**: Pulse logic for squad coordination, interactive Leaflet integration, and live sharing toggle.
+- **Journey Archive (Souvenirs)**: Post-trip memory page with aggregated expenses, chat media, and member stats.
+- **Dedicated Memory Uploads**: Functionality for squad members to upload curated trip photos directly to the archive.
+- **PWA & Offline Resilience**: Progressive Web App support, custom service worker for asset caching, and persistent Security Vault for zero-connectivity situations.
+
+### Fixed
+- **Squad Permissions**: Refined RLS policies for souvenirs to ensure seamless collaborative archiving.
+- **Logic Polish**: Hardened request status types and visibility logic for memory triggers.
+- **Context Hardening**: Improved error logging and real-time state synchronization for utilities.
+
+---
+
 ## [v1.1.0] - 2026-04-25
 
 ### Added
