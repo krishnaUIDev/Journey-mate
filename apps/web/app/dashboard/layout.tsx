@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                                     />
                                                 </div>
                                                 <span
-                                                    className="text-xl font-bold text-navy dark:text-offwhite tracking-tight flex items-center gap-1.5"
+                                                    className="hidden sm:flex text-xl font-bold text-navy dark:text-offwhite tracking-tight items-center gap-1.5"
                                                     style={{
                                                         textShadow: theme === "light"
                                                             ? "0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 1px 2px rgba(0,0,0,0.2)"
@@ -99,21 +99,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                             </Link>
                                         </div>
 
-                                        <div className="flex items-center gap-3 lg:gap-4">
+                                        <div className="flex items-center gap-1.5 sm:gap-3 lg:gap-4">
                                             <Link
                                                 href="/dashboard/post"
-                                                className="bg-navy dark:bg-sand text-white dark:text-navy px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95 text-decoration-none"
+                                                className="bg-navy dark:bg-sand text-white dark:text-navy px-4 lg:px-6 py-2 md:py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-forest transition-all shadow-md active:scale-95 text-decoration-none whitespace-nowrap"
                                             >
-                                                Post a Journey
+                                                <span className="hidden sm:inline">Post a Journey</span>
+                                                <span className="sm:hidden">Post</span>
                                             </Link>
 
                                             <Show when="signed-in">
                                                 <NotificationBell />
                                             </Show>
 
-                                            <div className="flex items-center gap-2 lg:gap-3 border-l border-gray-100 dark:border-white/10 pl-3 lg:pl-4">
-                                                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                                                <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                                            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 border-l border-gray-100 dark:border-white/10 pl-2 sm:pl-3 lg:pl-4">
+                                                <div className="hidden sm:flex items-center gap-2">
+                                                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                                                    <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                                                </div>
                                                 <Show when="signed-in">
                                                     <UserButton />
                                                 </Show>

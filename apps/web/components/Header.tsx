@@ -13,6 +13,11 @@ import { ThemeToggle } from "./ThemeToggle";
 import { LocaleSelector } from "./LocaleSelector";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 
+import React, { useState } from "react";
+import { Drawer, List, ListItem, ListItemText, ListItemButton, Divider, Box, Typography, IconButton } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
+
 interface HeaderProps {
     theme: "light" | "dark";
     toggleTheme: () => void;
@@ -26,22 +31,118 @@ export function Header({
     locale,
     handleLocaleChange
 }: HeaderProps) {
-    return (
-        <nav className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
-            {/* Mobile Nav toggle and tools */}
-            <div className="flex md:hidden items-center gap-4">
-                <Show when="signed-out">
-                    <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                        <button className="text-sm font-bold text-navy dark:text-offwhite">Log in</button>
-                    </SignInButton>
-                </Show>
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const toggleMobileMenu = () => setMobileOpen(!mobileOpen);
+
+    const navLinks = [
+        { id: "nav.howItWorks", href: "#" },
+        { id: "nav.safety", href: "#" }
+    ];
+
+    const mobileMenu = (
+        <Box sx={{
+            width: '100%',
+            height: '100%',
+            bgcolor: theme === 'dark' ? '#09090b' : '#ffffff',
+            color: theme === 'dark' ? '#fafafa' : '#1e293b',
+            p: 3
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+                <div className="flex items-center gap-2">
+                    <Image src="/logo.png" alt="Logo" width={32} height={32} className="dark:brightness-200" />
+                    <Typography variant="h6" sx={{ fontWeight: 900 }}>Journey-mate</Typography>
+                </div>
+                <IconButton onClick={toggleMobileMenu} color="inherit">
+                    <CloseIcon />
+                </IconButton>
+            </Box>
+
+            <List sx={{ gap: 2, display: 'flex', flexDirection: 'column' }}>
+                {navLinks.map((link) => (
+                    <ListItem key={link.id} disablePadding>
+                        <ListItemButton
+                            component="a"
+                            href={link.href}
+                            onClick={toggleMobileMenu}
+                            sx={{ borderRadius: '1rem' }}
+                        >
+                            <ListItemText
+                                primary={
+                                    <Typography sx={{ fontWeight: 800, fontSize: '1.1rem' }}>
+                                        <FormattedMessage id={link.id} />
+                                    </Typography>
+                                }
+                            />
+                        </ListItemButton>
+                    </ListItem>
+                ))}
+
                 <Show when="signed-in">
-                    <UserButton />
+                    <ListItem disablePadding>
+                        <ListItemButton
+                            component="a"
+                            href="/dashboard"
+                            onClick={toggleMobileMenu}
+                            sx={{ borderRadius: '1rem', bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}
+                        >
+                            <ListItemText
+                                primary={
+                                    <Typography sx={{ fontWeight: 900, fontSize: '1.1rem' }}>
+                                        Go to Dashboard
+                                    </Typography>
+                                }
+                            />
+                        </ListItemButton>
+                    </ListItem>
                 </Show>
-                <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            </List>
+
+            <Divider sx={{ my: 4, opacity: 0.1 }} />
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Language</Typography>
+                    <LocaleSelector locale={locale} handleLocaleChange={handleLocaleChange} />
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Appearance</Typography>
+                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                </Box>
+            </Box>
+
+            <Box sx={{ mt: 'auto', pt: 6 }}>
+                <Show when="signed-out">
+                    <SignUpButton mode="modal">
+                        <button className="w-full bg-navy dark:bg-sand dark:text-navy text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">
+                            Get Started
+                        </button>
+                    </SignUpButton>
+                </Show>
+            </Box>
+        </Box>
+    );
+
+    return (
+        <nav className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
+            {/* Mobile Brand Link (Left) */}
+            <div className="flex md:hidden items-center gap-3">
+                <IconButton onClick={toggleMobileMenu} color="inherit" sx={{ bgcolor: 'rgba(0,0,0,0.03)', '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                    <MenuIcon />
+                </IconButton>
+                <Link href="/" className="flex items-center gap-2">
+                    <div className="relative w-8 h-8">
+                        <Image
+                            src="/logo.png"
+                            alt="Logo"
+                            fill
+                            className="object-contain dark:brightness-200"
+                        />
+                    </div>
+                </Link>
             </div>
 
-            {/* Brand Logo & Name */}
+            {/* Desktop Brand Link (Left) */}
             <Link href="/" className="hidden md:flex items-center gap-2 group cursor-pointer">
                 <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
                     <Image
@@ -65,7 +166,7 @@ export function Header({
                 </span>
             </Link>
 
-            {/* Desktop Nav Group */}
+            {/* Desktop Navigation (Center/Right) */}
             <div className="hidden md:flex items-center gap-8">
                 <div className="flex items-center gap-6 font-medium text-navy dark:text-offwhite/80 lg:px-4">
                     <a href="#" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
@@ -100,6 +201,34 @@ export function Header({
                     </Show>
                 </div>
             </div>
+
+            {/* Mobile User Profile (Right) */}
+            <div className="flex md:hidden items-center gap-3">
+                <Show when="signed-in">
+                    <UserButton />
+                </Show>
+                <Show when="signed-out">
+                    <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                        <button className="text-xs font-black uppercase tracking-widest text-navy dark:text-offwhite bg-gray-100 dark:bg-white/10 px-3 py-1.5 rounded-lg active:scale-95 transition-all">
+                            Log In
+                        </button>
+                    </SignInButton>
+                </Show>
+            </div>
+
+            <Drawer
+                anchor="left"
+                open={mobileOpen}
+                onClose={toggleMobileMenu}
+                transitionDuration={400}
+                slotProps={{
+                    paper: {
+                        sx: { width: '85%', maxWidth: '320px' }
+                    }
+                }}
+            >
+                {mobileMenu}
+            </Drawer>
         </nav>
     );
 }

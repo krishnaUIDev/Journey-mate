@@ -94,7 +94,8 @@ export function CallOverlay() {
                                 boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
                                 pointerEvents: 'auto', // Enable pointer events for the banner itself
                                 border: '1px solid rgba(255,255,255,0.1)',
-                                minWidth: 320,
+                                minWidth: { xs: 'calc(100% - 16px)', sm: 320 },
+                                maxWidth: { xs: 'calc(100% - 16px)', sm: 400 },
                                 mt: 2
                             }}
                         >
@@ -162,8 +163,14 @@ export function CallOverlay() {
                 {/* Active Call Grid (Full Screen) */}
                 {callState === "active" && (
                     <Fade in={true}>
-                        <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <Box sx={{ flex: 1, display: 'grid', gridTemplateColumns: remoteUsers.length > 0 ? '1fr 1fr' : '1fr', gap: 2 }}>
+                        <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: { xs: 1, sm: 0 } }}>
+                            <Box sx={{
+                                flex: 1,
+                                display: 'grid',
+                                gridTemplateColumns: { xs: '1fr', sm: remoteUsers.length > 0 ? '1fr 1fr' : '1fr' },
+                                gap: 2,
+                                overflowY: 'auto'
+                            }}>
                                 {/* Local Video */}
                                 <Box sx={{
                                     position: 'relative',
@@ -202,15 +209,17 @@ export function CallOverlay() {
 
                             {/* Controls */}
                             <Paper sx={{
-                                p: 2,
+                                p: { xs: 1, sm: 2 },
                                 borderRadius: '2rem',
                                 bgcolor: 'rgba(255,255,255,0.1)',
                                 backdropFilter: 'blur(20px)',
                                 display: 'flex',
-                                gap: 2,
+                                gap: { xs: 1, sm: 2 },
+                                flexWrap: 'wrap',
                                 justifyContent: 'center',
                                 alignSelf: 'center',
-                                border: '1px solid rgba(255,255,255,0.1)'
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                maxWidth: '100%'
                             }}>
                                 <IconButton onClick={toggleMute} sx={{ color: 'white', bgcolor: isMuted ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
                                     {isMuted ? <MicOffIcon /> : <MicIcon />}

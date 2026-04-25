@@ -319,15 +319,15 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
-                border: "1px solid rgba(0,0,0,0.05)",
+                border: { xs: 'none', sm: "1px solid rgba(0,0,0,0.05)" },
                 bgcolor: 'white',
                 '.dark &': {
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: { xs: 'none', sm: '1px solid rgba(255,255,255,0.05)' },
                     bgcolor: '#09090b',
                     color: '#fafafa'
                 },
-                borderRadius: '1.5rem',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
+                borderRadius: { xs: 0, sm: '1.5rem' },
+                boxShadow: { xs: 'none', sm: '0 20px 50px rgba(0,0,0,0.1)' },
                 overflow: 'hidden',
                 position: 'relative'
             }}
@@ -346,8 +346,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     <Avatar
                         src={journey?.groupAvatar}
                         sx={{
-                            width: 32,
-                            height: 32,
+                            width: { xs: 36, sm: 32 },
+                            height: { xs: 36, sm: 32 },
                             bgcolor: 'forest.main',
                             fontSize: '14px',
                             fontWeight: 900
@@ -374,7 +374,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             fontWeight: 700,
                             textTransform: 'uppercase',
                             letterSpacing: '0.05em',
-                            fontSize: '0.65rem',
+                            fontSize: { xs: '0.75rem', sm: '0.65rem' },
                             mt: 0.5,
                             '.dark &': { color: 'slate.300 !important' }
                         }}>
@@ -419,8 +419,11 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             onClick={onClose}
                             size="small"
                             className="text-navy/60 dark:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                            sx={{
+                                padding: { xs: 1.5, sm: 1 } // Larger tap target on mobile
+                            }}
                         >
-                            <CloseIcon fontSize="small" className="dark:text-white" />
+                            <CloseIcon sx={{ fontSize: { xs: 24, sm: 20 } }} className="dark:text-white" />
                         </IconButton>
                     )}
                 </Box>

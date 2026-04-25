@@ -84,10 +84,10 @@ export function JourneyFeed() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Marketplace Header */}
             <div className="text-center mb-10">
-                <h1 className="text-5xl font-black text-navy dark:text-offwhite mb-4">
+                <h1 className="text-3xl sm:text-5xl font-black text-navy dark:text-offwhite mb-4">
                     Travel Together, <span className="text-forest dark:text-sand">Safely</span>
                 </h1>
                 <p className="text-gray-500 dark:text-offwhite/50 text-lg font-medium max-w-2xl mx-auto">
@@ -96,8 +96,8 @@ export function JourneyFeed() {
             </div>
 
             {/* Advanced Search Bar */}
-            <div className="bg-white dark:bg-white/5 p-4 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/10 mb-12 flex flex-col lg:flex-row gap-4 items-center">
-                <div className="flex-1 flex gap-4 w-full">
+            <div className="bg-white dark:bg-white/5 p-4 rounded-[2rem] sm:rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/10 mb-12 flex flex-col lg:flex-row gap-4 items-center">
+                <div className="flex-1 flex flex-col sm:flex-row gap-4 w-full">
                     <AirportAutocomplete
                         label="Coming From"
                         placeholder="e.g. HYD"

@@ -121,7 +121,7 @@ export default function PostJourneyPage() {
                             <BackIcon sx={{ color: 'text.primary' }} />
                         </IconButton>
                         <div>
-                            <h1 className="text-3xl font-black text-navy dark:text-offwhite">Post a New Journey</h1>
+                            <h1 className="text-2xl sm:text-3xl font-black text-navy dark:text-offwhite">Post a New Journey</h1>
                             <p className="text-sm text-gray-500 dark:text-offwhite/50 font-medium">Find a companion for your next flight.</p>
                         </div>
                     </div>
@@ -130,8 +130,8 @@ export default function PostJourneyPage() {
                 <div className="grid lg:grid-cols-5 gap-8 items-start">
                     {/* Form Side */}
                     <div className="lg:col-span-3">
-                        <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-white/5 p-8 rounded-[2.5rem] shadow-xl border border-white/20">
-                            <div className="grid grid-cols-2 gap-4">
+                        <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-white/5 p-5 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] shadow-xl border border-white/20">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <AirportAutocomplete
                                     label="From"
                                     placeholder="Origin Airport"
@@ -146,7 +146,7 @@ export default function PostJourneyPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                                     <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
                                         Departure Date
@@ -268,10 +268,10 @@ export default function PostJourneyPage() {
                                                 key={idx}
                                                 onClick={() => flight.flight_status !== 'cancelled' && handleSelectFlight(flight)}
                                                 className={`p-3.5 rounded-2xl border transition-all flex items-center gap-4 ${flight.flight_status === 'cancelled'
-                                                        ? 'opacity-50 grayscale cursor-not-allowed bg-gray-50 dark:bg-white/5 border-transparent'
-                                                        : flightNumber === flight.flight.iata
-                                                            ? 'bg-forest text-white border-forest shadow-lg scale-[1.02]'
-                                                            : 'bg-white dark:bg-white/5 border-transparent hover:border-forest/30 dark:hover:border-sand/30 cursor-pointer'
+                                                    ? 'opacity-50 grayscale cursor-not-allowed bg-gray-50 dark:bg-white/5 border-transparent'
+                                                    : flightNumber === flight.flight.iata
+                                                        ? 'bg-forest text-white border-forest shadow-lg scale-[1.02]'
+                                                        : 'bg-white dark:bg-white/5 border-transparent hover:border-forest/30 dark:hover:border-sand/30 cursor-pointer'
                                                     }`}
                                             >
                                                 <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 border border-black/5 shadow-sm">
