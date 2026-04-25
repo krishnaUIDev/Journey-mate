@@ -13,6 +13,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Journey-mate | Modern Travel Companion Platform",
   description: "Connect with verified travel companions, coordinate flights, and travel safer together. The world's largest community for assisted travel.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     title: "Journey-mate | Travel Together, Safely",
     description: "Find your perfect travel companion and never travel alone again.",

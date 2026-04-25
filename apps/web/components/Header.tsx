@@ -50,10 +50,10 @@ export function Header({
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
                 <div className="flex items-center gap-2">
-                    <Image src="/logo.png" alt="Logo" width={32} height={32} className="dark:brightness-200" />
+                    <Image src="/logo.png" alt="Journey-mate Logo" width={32} height={32} className="dark:brightness-200" />
                     <Typography variant="h6" sx={{ fontWeight: 900 }}>Journey-mate</Typography>
                 </div>
-                <IconButton onClick={toggleMobileMenu} color="inherit" aria-label="Close menu">
+                <IconButton onClick={toggleMobileMenu} color="inherit" aria-label="Close mobile menu">
                     <CloseIcon />
                 </IconButton>
             </Box>
@@ -66,6 +66,7 @@ export function Header({
                             href={link.href}
                             onClick={toggleMobileMenu}
                             sx={{ borderRadius: '1rem' }}
+                            aria-label={`Navigate to ${link.id.split('.').pop()}`}
                         >
                             <ListItemText
                                 primary={
@@ -135,11 +136,11 @@ export function Header({
                 >
                     <MenuIcon />
                 </IconButton>
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2" aria-label="Journey-mate Logo Home Link">
                     <div className="relative w-8 h-8">
                         <Image
                             src="/logo.png"
-                            alt="Logo"
+                            alt="Journey-mate Logo"
                             fill
                             className="object-contain dark:brightness-200"
                         />
@@ -188,12 +189,12 @@ export function Header({
 
                     <Show when="signed-out">
                         <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                            <button className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium cursor-pointer mx-2">
+                            <button className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium cursor-pointer mx-2" aria-label="Sign in to your account">
                                 <FormattedMessage id="nav.logIn" />
                             </button>
                         </SignInButton>
                         <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                            <button className="bg-navy dark:bg-sand dark:text-navy text-white px-6 py-2 rounded-full font-bold hover:bg-forest dark:hover:bg-white transition-all text-sm shadow-sm">
+                            <button className="bg-navy dark:bg-sand dark:text-navy text-white px-6 py-2 rounded-full font-bold hover:bg-forest dark:hover:bg-white transition-all text-sm shadow-sm" aria-label="Create a new account">
                                 <FormattedMessage id="nav.signUp" />
                             </button>
                         </SignUpButton>

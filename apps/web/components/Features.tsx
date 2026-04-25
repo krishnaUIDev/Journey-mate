@@ -35,7 +35,7 @@ export function Features() {
                     <h2 className="text-4xl md:text-5xl font-black text-navy dark:text-offwhite mb-4 tracking-tight">
                         <FormattedMessage id="features.title" />
                     </h2>
-                    <p className="text-xl text-gray-700 dark:text-offwhite/70 max-w-2xl font-medium">
+                    <p className="text-xl text-gray-800 dark:text-offwhite/90 max-w-2xl font-medium">
                         <FormattedMessage id="features.subtitle" />
                     </p>
                 </div>

@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { FormattedMessage } from "react-intl";
-import { SignUpButton, SignInButton } from "@clerk/nextjs";
+import { SignUpButton, SignInButton, Show } from "@clerk/nextjs";
+import Link from "next/link";
 
 export function Hero() {
     return (
@@ -12,12 +13,12 @@ export function Hero() {
                     src="/hero-premium.png"
                     alt="Travelers in an airport"
                     fill
-                    className="object-cover brightness-75 dark:brightness-50 blur-[8px]"
+                    className="object-cover brightness-50 blur-[8px]"
                     priority
                 />
                 {/* Advanced Dynamic Overlays for Visibility */}
-                <div className="absolute inset-0 bg-gradient-to-b from-navy/40 via-transparent to-navy/60 dark:from-deep-navy/70 dark:via-transparent dark:to-deep-navy/80" />
-                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-b from-navy/60 via-transparent to-navy/80 dark:from-black/70 dark:via-transparent dark:to-black/90" />
+                <div className="absolute inset-0 bg-black/40" />
             </div>
 
             <div className="relative z-10 text-center max-w-4xl animate-fade-in group">
@@ -31,17 +32,29 @@ export function Hero() {
                     <FormattedMessage id="hero.subtitle" />
                 </p>
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-                    <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                        <button className="group relative bg-emerald-600 text-white px-10 py-5 rounded-full font-black text-lg hover:bg-emerald-700 transition-all duration-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transform hover:-translate-y-1 overflow-hidden">
-                            <span className="relative z-10 font-black tracking-wide"><FormattedMessage id="hero.ctaPrimary" /></span>
-                            <div className="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-                        </button>
-                    </SignUpButton>
-                    <SignInButton mode="modal" forceRedirectUrl="/dashboard">
-                        <button className="bg-transparent border-2 border-white/40 backdrop-blur-md text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-white/10 hover:border-white transition-all duration-300 transform hover:-translate-y-1">
-                            <FormattedMessage id="hero.ctaSecondary" />
-                        </button>
-                    </SignInButton>
+                    <Show when="signed-out">
+                        <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                            <button className="group relative bg-emerald-600 text-white px-10 py-5 rounded-full font-black text-lg hover:bg-emerald-700 transition-all duration-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transform hover:-translate-y-1 overflow-hidden" aria-label="Join Journey Mate">
+                                <span className="relative z-10 font-black tracking-wide">
+                                    <FormattedMessage id="hero.ctaPrimary" />
+                                </span>
+                                <div className="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                            </button>
+                        </SignUpButton>
+                        <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+                            <button className="bg-transparent border-2 border-white/40 backdrop-blur-md text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-white/10 hover:border-white transition-all duration-300 transform hover:-translate-y-1" aria-label="Browse Companions">
+                                Browse Companions
+                            </button>
+                        </SignInButton>
+                    </Show>
+                    <Show when="signed-in">
+                        <Link href="/dashboard" className="w-full sm:w-auto">
+                            <button className="w-full group relative bg-emerald-600 text-white px-10 py-5 rounded-full font-black text-lg hover:bg-emerald-700 transition-all duration-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] hover:shadow-[0_0_60px_rgba(16,185,129,0.5)] transform hover:-translate-y-1 overflow-hidden" aria-label="Go to Dashboard">
+                                <span className="relative z-10 font-black tracking-wide">Browse Companions</span>
+                                <div className="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                            </button>
+                        </Link>
+                    </Show>
                 </div>
             </div>
         </section>

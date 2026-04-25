@@ -19,7 +19,7 @@ export function Mission() {
                                     <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3 tracking-tight">
                                         <FormattedMessage id="mission.safety.title" />
                                     </h3>
-                                    <p className="text-gray-600 dark:text-offwhite/60 leading-relaxed max-w-md">
+                                    <p className="text-gray-700 dark:text-offwhite/70 leading-relaxed max-w-md">
                                         <FormattedMessage id="mission.safety.desc" />
                                     </p>
                                 </div>
@@ -33,7 +33,7 @@ export function Mission() {
                                     <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3 tracking-tight">
                                         <FormattedMessage id="mission.tracking.title" />
                                     </h3>
-                                    <p className="text-gray-600 dark:text-offwhite/60 leading-relaxed max-w-md">
+                                    <p className="text-gray-700 dark:text-offwhite/70 leading-relaxed max-w-md">
                                         <FormattedMessage id="mission.tracking.desc" />
                                     </p>
                                 </div>
