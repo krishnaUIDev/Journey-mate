@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     Box,
     Typography,
@@ -33,6 +33,18 @@ interface RequestCardProps {
 }
 
 function RequestCard({ request, onAction }: RequestCardProps) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
+
+    const togglePlay = () => {
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
+        }
+    };
+
     return (
         <Paper
             elevation={0}
@@ -201,22 +213,16 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                             width: 32,
                             height: 32,
                             borderRadius: '50%',
-                            bgcolor: '#10B981',
+                            bgcolor: isPlaying ? '#ef4444' : '#10B981',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'white',
                             cursor: 'pointer',
-                            '&:hover': { bgcolor: '#059669', transform: 'scale(1.05)' },
+                            '&:hover': { bgcolor: isPlaying ? '#dc2626' : '#059669', transform: 'scale(1.05)' },
                             transition: 'all 0.2s'
-                        }} onClick={() => {
-                            const audio = document.getElementById(`audio-${request.id}`) as HTMLAudioElement;
-                            if (audio) {
-                                if (audio.paused) audio.play();
-                                else audio.pause();
-                            }
-                        }}>
-                            <PlayIcon sx={{ fontSize: 18 }} />
+                        }} onClick={togglePlay}>
+                            {isPlaying ? <PauseIcon sx={{ fontSize: 18 }} /> : <PlayIcon sx={{ fontSize: 18 }} />}
                         </Box>
                         <Box sx={{ flex: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: '#065f46', '.dark &': { color: '#34d399' }, display: 'block', fontSize: '8px' }}>
@@ -226,23 +232,28 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(i => (
                                     <Box key={i} sx={{
                                         width: 3,
-                                        height: Math.random() * 10 + 2,
+                                        height: isPlaying ? Math.random() * 10 + 2 : 4,
                                         bgcolor: '#10B981',
                                         borderRadius: 1,
-                                        opacity: 0.5
+                                        opacity: isPlaying ? 1 : 0.5,
+                                        transition: 'height 0.2s',
+                                        animation: isPlaying ? `wave 0.5s infinite ease-in-out ${i * 0.05}s` : 'none',
+                                        '@keyframes wave': {
+                                            '0%, 100%': { height: 4 },
+                                            '50%': { height: 12 }
+                                        }
                                     }} />
                                 ))}
                             </Box>
                         </Box>
                     </Box>
                     <audio
-                        id={`audio-${request.id}`}
+                        ref={audioRef}
                         src={request.requester_audio_url}
                         style={{ display: 'none' }}
-                        onPlay={(e) => {
-                            const btn = e.currentTarget.previousSibling?.firstChild?.firstChild as SVGElement;
-                            // This is a bit hacky for a demo, but works for the UI
-                        }}
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                        onEnded={() => setIsPlaying(false)}
                     />
                     <Typography variant="caption" sx={{ fontWeight: 800, color: '#10B981', fontSize: '10px' }}>
                         Audio

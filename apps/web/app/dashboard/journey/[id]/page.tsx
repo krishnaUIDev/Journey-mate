@@ -332,6 +332,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     };
 
     const handleSubmitRequest = async () => {
+        if (isRecording) {
+            handleStopRecording();
+            // Wait a tiny bit for the onstop handler to set the blob
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         setSubmittingRequest(true);
         try {
             let audioUrl = "";
