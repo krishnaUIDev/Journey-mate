@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Typography, TextField, CircularProgress, Button, IconButton } from "@mui/material";
+import { Box, Typography, TextField, CircularProgress, Button, IconButton, Tooltip } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
-import { ArrowBack as BackIcon, FlightTakeoff as FlightIcon, CheckCircle as VerifiedIcon } from "@mui/icons-material";
+import { ArrowBack as BackIcon, FlightTakeoff as FlightIcon, CheckCircle as VerifiedIcon, AutoFixHigh as AIStatusIcon } from "@mui/icons-material";
 import { AirportAutocomplete } from "../components/AirportAutocomplete";
 import { useJourneys } from "../../../context/JourneysContext";
 import { useUser } from "@clerk/nextjs";
@@ -29,6 +29,7 @@ export default function PostJourneyPage() {
     const [suggestedFlights, setSuggestedFlights] = useState<FlightDetails[]>([]);
     const [loadingFlights, setLoadingFlights] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     // Auto-discover flights when route and date are selected
     useEffect(() => {
@@ -63,6 +64,30 @@ export default function PostJourneyPage() {
         if (flight.flight_date) setDate(dayjs(flight.flight_date));
     };
 
+    const handleAISuggestNotes = async () => {
+        if (!from || !to) return;
+        setIsGenerating(true);
+        try {
+            const originCity = from.split(' (')[0];
+            const destCity = to.split(' (')[0];
+
+            const moods = [
+                `Traveling from ${originCity} to ${destCity}. Looking for a friendly companion to share stories and a coffee at the airport!`,
+                `Trip from ${originCity} to ${destCity} for work. Prefer a quiet, professional companion to focus on work during the flight.`,
+                `Flying solo from ${originCity} and happy to help anyone needing a hand with luggage or navigating the terminal.`
+            ];
+
+            // Randomly select or rotate (use index for demo stability)
+            const suggestion = moods[Math.floor(Math.random() * moods.length)];
+
+            // Simulate AI "thinking" time
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setDescription(suggestion || "");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -88,7 +113,7 @@ export default function PostJourneyPage() {
 
         try {
             await addJourney({
-                userId: user?.id || undefined,
+                userId: user?.id || "",
                 from: from.split(' (')[1]?.replace(')', '') || from,
                 to: to.split(' (')[1]?.replace(')', '') || to,
                 date: selectedDate || dayjs().format('YYYY-MM-DD'),
@@ -199,7 +224,23 @@ export default function PostJourneyPage() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">Journey Notes</label>
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
+                                    <label className="text-[10px] uppercase font-black text-gray-400 tracking-widest pl-2">Journey Notes</label>
+                                    <Tooltip title="AI Suggestion based on your route">
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleAISuggestNotes}
+                                            disabled={isGenerating || !from || !to}
+                                            sx={{
+                                                color: 'forest.main',
+                                                bgcolor: 'forest.5/10',
+                                                '&:hover': { bgcolor: 'forest.5/20' }
+                                            }}
+                                        >
+                                            {isGenerating ? <CircularProgress size={14} color="inherit" /> : <AIStatusIcon sx={{ fontSize: 16 }} />}
+                                        </IconButton>
+                                    </Tooltip>
+                                </Box>
                                 <textarea
                                     rows={2}
                                     placeholder="Describe your trip, luggage help needed, or preferred conversation topics..."

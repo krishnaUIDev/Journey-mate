@@ -82,6 +82,11 @@ interface MessagesContextType {
     setIsChatOpen: (isOpen: boolean) => void;
     typingUsers: Record<string, { id: string; name: string; avatar: string }[]>;
     setTypingStatus: (journeyId: string, isTyping: boolean) => void;
+    addExpense: (journeyId: string, amount: number, description: string) => Promise<void>;
+    getExpenses: (journeyId: string) => Promise<any[]>;
+    submitReview: (journeyId: string, revieweeId: string, rating: number, comment: string) => Promise<void>;
+    getEmergencyContacts: (journeyId: string) => Promise<any[]>;
+    saveEmergencyContact: (journeyId: string, name: string, phone: string, relation: string) => Promise<void>;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -814,6 +819,92 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     };
 
+    const addExpense = async (journeyId: string, amount: number, description: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_expenses')
+                .insert([{
+                    journey_id: journeyId,
+                    payer_id: user.id,
+                    payer_name: user.fullName || user.username || "Anonymous",
+                    amount,
+                    description,
+                    currency: 'USD'
+                }]);
+            if (error) throw error;
+            showNotification("Expense added and shared with the group!", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error adding expense:", err);
+            showNotification("Failed to add expense.", "error");
+        }
+    };
+
+    const getExpenses = async (journeyId: string) => {
+        if (!supabase) return [];
+        const { data } = await (supabase as any)
+            .from('journey_expenses')
+            .select('*')
+            .eq('journey_id', journeyId)
+            .order('created_at', { ascending: false });
+        return data || [];
+    };
+
+    const submitReview = async (journeyId: string, revieweeId: string, rating: number, comment: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_reviews')
+                .insert([{
+                    journey_id: journeyId,
+                    reviewer_id: user.id,
+                    reviewee_id: revieweeId,
+                    rating,
+                    comment
+                }]);
+            if (error) throw error;
+            showNotification("Thank you for your review!", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error submitting review:", err);
+            showNotification("Failed to submit review.", "error");
+        }
+    };
+
+    const getEmergencyContacts = async (journeyId: string) => {
+        if (!supabase) return [];
+        const { data } = await (supabase as any)
+            .from('journey_emergency_contacts')
+            .select('*')
+            .eq('journey_id', journeyId);
+
+        // Soft self-destruct: Filter out expired contacts
+        return (data || []).filter((c: any) => dayjs().isBefore(dayjs(c.expires_at)));
+    };
+
+    const saveEmergencyContact = async (journeyId: string, name: string, phone: string, relation: string) => {
+        if (!supabase || !user) return;
+        try {
+            // Set expiry to 7 days from now as a placeholder
+            const expiresAt = dayjs().add(7, 'day').toISOString();
+
+            const { error } = await (supabase as any)
+                .from('journey_emergency_contacts')
+                .insert([{
+                    journey_id: journeyId,
+                    user_id: user.id,
+                    contact_name: name,
+                    contact_phone: phone,
+                    relation,
+                    expires_at: expiresAt
+                }]);
+            if (error) throw error;
+            showNotification("Emergency contact saved in the Security Vault.", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error saving contact:", err);
+            showNotification("Failed to save contact.", "error");
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
@@ -842,7 +933,12 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             setIsChatOpen,
             typingUsers,
             setTypingStatus,
-            uploadChatAudio
+            uploadChatAudio,
+            addExpense,
+            getExpenses,
+            submitReview,
+            getEmergencyContacts,
+            saveEmergencyContact
         }}>
             {children}
 

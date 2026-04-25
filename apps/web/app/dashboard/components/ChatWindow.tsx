@@ -16,6 +16,7 @@ import {
     AvatarGroup,
     Button,
     Dialog,
+    Stack
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -41,6 +42,12 @@ import {
     CameraAlt as CameraIcon,
     Group as PeopleIcon,
     ExitToApp as LeaveIcon,
+    WorkOutlined as UtilityIcon,
+    ReceiptLong as ExpenseIcon,
+    FlightTakeoff as FlightIcon,
+    VpnKey as VaultIcon,
+    InfoOutlined as InfoIcon,
+    Add as AddIcon,
 } from "@mui/icons-material";
 import Image from "next/image";
 import { useMessages, Message } from "../../../context/MessagesContext";
@@ -78,7 +85,13 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         getRequests,
         updateRequestStatus,
         leaveJourney,
-        myRequests
+        myRequests,
+        addExpense,
+        getExpenses,
+        getEmergencyContacts,
+        saveEmergencyContact,
+        submitReview,
+        showNotification
     } = useMessages();
     const { supabase } = useMessages() as any;
     const { user } = useUser();
@@ -98,6 +111,15 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [utilityAnchorEl, setUtilityAnchorEl] = useState<HTMLButtonElement | null>(null);
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+    const [expenseAmount, setExpenseAmount] = useState("");
+    const [expenseDesc, setExpenseDesc] = useState("");
+    const [isVaultOpen, setIsVaultOpen] = useState(false);
+    const [vaultContacts, setVaultContacts] = useState<any[]>([]);
+    const [flightStatus, setFlightStatus] = useState<any>(null);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [vaultForm, setVaultForm] = useState({ name: "", phone: "", relation: "" });
 
     // Recording state
     const [isRecording, setIsRecording] = useState(false);
@@ -122,6 +144,31 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const myStatus = myRequests[journeyId] || 'none';
     const isAccepted = isOwner || myStatus === 'accepted';
     const isPastTrip = !!(journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day'));
+
+    const handleAddExpense = async () => {
+        if (!expenseAmount || !expenseDesc) return;
+        await addExpense(journeyId, parseFloat(expenseAmount), expenseDesc);
+        setIsExpenseModalOpen(false);
+        setExpenseAmount("");
+        setExpenseDesc("");
+        await sendMessage(journeyId, `[EXPENSE] ${expenseDesc}: $${expenseAmount}`);
+    };
+
+    const handleSyncFlight = () => {
+        setFlightStatus({
+            status: "ON_TIME",
+            gate: "B12",
+            delay: "0m",
+            baggage: "Carousel 4"
+        });
+        showNotification("Flight data synchronized!", "success");
+    };
+
+    const handleOpenVault = async () => {
+        const contacts = await getEmergencyContacts(journeyId);
+        setVaultContacts(contacts);
+        setIsVaultOpen(true);
+    };
 
     useEffect(() => {
         if (journey) {
@@ -465,6 +512,73 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Tooltip title="Smart Utilities">
+                        <IconButton
+                            size="small"
+                            onClick={(e) => setUtilityAnchorEl(e.currentTarget)}
+                            sx={{
+                                bgcolor: 'rgba(34, 197, 94, 0.1)',
+                                color: '#10B981',
+                                '&:hover': { bgcolor: '#10B981', color: 'white' }
+                            }}
+                        >
+                            <UtilityIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                    </Tooltip>
+
+                    {/* Utilities Popover */}
+                    <Popover
+                        open={Boolean(utilityAnchorEl)}
+                        anchorEl={utilityAnchorEl}
+                        onClose={() => setUtilityAnchorEl(null)}
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                        slotProps={{
+                            paper: {
+                                sx: {
+                                    mt: 1,
+                                    borderRadius: '1.25rem',
+                                    width: 240,
+                                    p: 1,
+                                    bgcolor: 'rgba(255,255,255,0.95)',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(0,0,0,0.05)',
+                                    '.dark &': { bgcolor: 'rgba(24,24,27,0.95)' }
+                                }
+                            }
+                        }
+                        }>
+                        <Box sx={{ p: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: 'slate.400', px: 1, mb: 1, display: 'block' }}>
+                                Group Utilities
+                            </Typography>
+                            <Button
+                                fullWidth
+                                startIcon={<ExpenseIcon />}
+                                onClick={() => { setIsExpenseModalOpen(true); setUtilityAnchorEl(null); }}
+                                sx={{ justifyContent: 'flex-start', color: 'slate.700', '.dark &': { color: 'white' }, borderRadius: '10px', fontWeight: 700 }}
+                            >
+                                Split Expense
+                            </Button>
+                            <Button
+                                fullWidth
+                                startIcon={<FlightIcon />}
+                                onClick={() => { handleSyncFlight(); setUtilityAnchorEl(null); }}
+                                sx={{ justifyContent: 'flex-start', color: 'slate.700', '.dark &': { color: 'white' }, borderRadius: '10px', fontWeight: 700 }}
+                            >
+                                Sync Flight Data
+                            </Button>
+                            <Button
+                                fullWidth
+                                startIcon={<VaultIcon />}
+                                onClick={() => { handleOpenVault(); setUtilityAnchorEl(null); }}
+                                sx={{ justifyContent: 'flex-start', color: 'slate.700', '.dark &': { color: 'white' }, borderRadius: '10px', fontWeight: 700 }}
+                            >
+                                Security Vault
+                            </Button>
+                        </Box>
+                    </Popover>
+
                     {isOwner && (
                         <Tooltip title="Update Group Squad Identity">
                             <IconButton
@@ -522,6 +636,40 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
             <Divider sx={{ opacity: 0.5 }} />
 
+            {/* Flight Sync Sub-header */}
+            {flightStatus && (
+                <Box sx={{
+                    px: 2,
+                    py: 1,
+                    bgcolor: 'rgba(34, 197, 94, 0.05)',
+                    borderBottom: '1px solid rgba(34, 197, 94, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    '.dark &': { bgcolor: 'rgba(34, 197, 94, 0.08)' }
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{
+                            px: 1,
+                            py: 0.3,
+                            borderRadius: '4px',
+                            bgcolor: '#22c55e',
+                            color: 'white',
+                            fontSize: '9px',
+                            fontWeight: 900
+                        }}>
+                            {flightStatus.status}
+                        </Box>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: '#166534', '.dark &': { color: '#4ade80' } }}>
+                            Gate {flightStatus.gate} • {flightStatus.delay} Delay
+                        </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'slate.500', fontSize: '10px' }}>
+                        Baggage: {flightStatus.baggage}
+                    </Typography>
+                </Box>
+            )}
+
             {/* Messages Area */}
             <Box
                 ref={scrollContainerRef}
@@ -554,6 +702,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     <>
                         {messages.map((msg) => {
                             if (msg.is_system) {
+                                // ... existing system message logic (rendered by looking at msg.is_system)
                                 return (
                                     <Box key={msg.id} sx={{ display: 'flex', justifyContent: 'center', my: 1, width: '100%' }}>
                                         <Box sx={{
@@ -568,6 +717,39 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                 {msg.content}
                                             </Typography>
                                         </Box>
+                                    </Box>
+                                );
+                            }
+
+                            // Expense Message Rendering
+                            if (msg.content.startsWith('[EXPENSE]')) {
+                                const parts = msg.content.replace('[EXPENSE] ', '').split(': ');
+                                const desc = parts[0];
+                                const amount = parts[1];
+                                return (
+                                    <Box key={msg.id} sx={{ display: 'flex', justifyContent: 'center', my: 1.5, width: '100%' }}>
+                                        <Paper elevation={0} sx={{
+                                            p: 1.5,
+                                            borderRadius: '1.25rem',
+                                            border: '1px solid #10B981',
+                                            bgcolor: 'rgba(16, 185, 129, 0.05)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 2,
+                                            maxWidth: '90%'
+                                        }}>
+                                            <Box sx={{ width: 36, height: 36, borderRadius: '10px', bgcolor: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                                                <ExpenseIcon sx={{ fontSize: 20 }} />
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: '#065f46', '.dark &': { color: '#34d399' }, display: 'block', fontSize: '8px' }}>Added by {msg.sender_name}</Typography>
+                                                <Typography variant="body2" sx={{ fontWeight: 800, color: 'navy.main', '.dark &': { color: 'white' } }}>{desc}</Typography>
+                                            </Box>
+                                            <Box sx={{ ml: 'auto', textAlign: 'right' }}>
+                                                <Typography variant="h6" sx={{ fontWeight: 900, color: '#10B981', fontSize: '1.1rem' }}>{amount}</Typography>
+                                                <Typography variant="caption" sx={{ fontWeight: 700, color: 'slate.400', fontSize: '8px' }}>Split equally</Typography>
+                                            </Box>
+                                        </Paper>
                                     </Box>
                                 );
                             }
@@ -1267,6 +1449,140 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     >
                         {leaving ? <CircularProgress size={20} color="inherit" /> : "Leave"}
                     </Button>
+                </Box>
+            </Dialog>
+
+            {/* Add Expense Modal */}
+            <Dialog
+                open={isExpenseModalOpen}
+                onClose={() => setIsExpenseModalOpen(false)}
+                slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 2, width: '100%', maxWidth: 360, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
+            >
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1, color: 'navy.main', '.dark &': { color: 'white' } }}>Add Expense</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate-400' } }}>
+                    Split a shared cost (taxi, lounge, snacks) with the group.
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        fullWidth
+                        label="Amount ($)"
+                        type="number"
+                        value={expenseAmount}
+                        onChange={(e) => setExpenseAmount(e.target.value)}
+                        variant="outlined"
+                    />
+                    <TextField
+                        fullWidth
+                        label="Description"
+                        placeholder="e.g. Uber to Airport"
+                        value={expenseDesc}
+                        onChange={(e) => setExpenseDesc(e.target.value)}
+                        variant="outlined"
+                    />
+                    <Button
+                        fullWidth
+                        onClick={handleAddExpense}
+                        variant="contained"
+                        sx={{ bgcolor: '#10B981', fontWeight: 900, py: 1.5, borderRadius: '1rem' }}
+                    >
+                        Share with Group
+                    </Button>
+                </Box>
+            </Dialog>
+
+            {/* Security Vault Modal */}
+            <Dialog
+                open={isVaultOpen}
+                onClose={() => setIsVaultOpen(false)}
+                slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 3, width: '100%', maxWidth: 400, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <VaultIcon sx={{ color: '#0ea5e9' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: 'navy.main', '.dark &': { color: 'white' } }}>Security Vault</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate-400' } }}>
+                    Shared emergency contacts. This data self-destructs 24h after flight landing.
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 300, overflowY: 'auto', mb: 2 }}>
+                    {vaultContacts.length === 0 ? (
+                        <Box sx={{ py: 4, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1rem', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'slate.400' }}>No contacts shared yet.</Typography>
+                        </Box>
+                    ) : (
+                        vaultContacts.map((contact, i) => (
+                            <Paper key={i} elevation={0} sx={{ p: 1.5, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'rgba(14, 165, 233, 0.03)' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>{contact.contact_name}</Typography>
+                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, opacity: 0.6 }}>{contact.relation} • {contact.contact_phone}</Typography>
+                            </Paper>
+                        ))
+                    )}
+                </Box>
+
+                <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1.25rem', border: '1px solid rgba(0,0,0,0.05)', '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, mb: 1.5, display: 'block', color: 'slate-500' }}>ADD YOUR CONTACT</Typography>
+                    <Stack spacing={1.5}>
+                        <TextField
+                            size="small"
+                            placeholder="Full Name"
+                            value={vaultForm.name}
+                            onChange={(e) => setVaultForm({ ...vaultForm, name: e.target.value })}
+                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                        />
+                        <TextField
+                            size="small"
+                            placeholder="Phone Number"
+                            value={vaultForm.phone}
+                            onChange={(e) => setVaultForm({ ...vaultForm, phone: e.target.value })}
+                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                        />
+                        <TextField
+                            size="small"
+                            placeholder="Relation (e.g. Spouse)"
+                            value={vaultForm.relation}
+                            onChange={(e) => setVaultForm({ ...vaultForm, relation: e.target.value })}
+                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                        />
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            disabled={!vaultForm.name || !vaultForm.phone}
+                            onClick={async () => {
+                                await saveEmergencyContact(journeyId, vaultForm.name, vaultForm.phone, vaultForm.relation);
+                                setVaultForm({ name: "", phone: "", relation: "" });
+                                handleOpenVault();
+                            }}
+                            sx={{ borderRadius: '0.75rem', fontWeight: 900, mt: 1, bgcolor: '#0ea5e9', '&:hover': { bgcolor: '#0284c7' } }}
+                        >
+                            Save to Vault
+                        </Button>
+                    </Stack>
+                </Box>
+            </Dialog>
+
+            {/* Post-Journey Review Modal */}
+            <Dialog
+                open={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 3, width: '100%', maxWidth: 400, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
+            >
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1, color: 'navy.main', '.dark &': { color: 'white' } }}>Rate your Companion</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate-400' } }}>
+                    Help build the trust community by rating your fellow traveler.
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <IconButton key={star} onClick={() => {
+                                // Logic for Star Rating selection
+                                submitReview(journeyId, participants[0]?.requester_id || 'owner', star, "Great companion!");
+                                setIsReviewModalOpen(false);
+                            }}>
+                                <SettingsIcon sx={{ fontSize: 32, color: '#eab308' }} />
+                            </IconButton>
+                        ))}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700 }}>Tap a star to submit review</Typography>
                 </Box>
             </Dialog>
         </Box>

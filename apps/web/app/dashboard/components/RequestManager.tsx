@@ -30,7 +30,11 @@ import {
     Pause as PauseIcon,
     AutoGraph as MatchIcon
 } from "@mui/icons-material";
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { useMessages, JourneyRequest } from "../../../context/MessagesContext";
+
+dayjs.extend(relativeTime);
 import { useUser } from "@clerk/nextjs";
 
 interface RequestCardProps {
@@ -99,19 +103,28 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                             </Box>
                         )}
                     </Box>
-                    <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                             <Typography variant="body1" sx={{
                                 fontWeight: 900,
-                                lineHeight: 1.2,
+                                lineHeight: 1,
                                 color: 'navy.main',
                                 '.dark &': { color: 'white' }
                             }}>
                                 {request.requester_name}
                             </Typography>
                             {request.requester_rating && (
-                                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(16, 185, 129, 0.1)', px: 0.8, py: 0.2, borderRadius: '6px' }}>
-                                    <StarIcon sx={{ fontSize: 10, color: '#10B981', mr: 0.3 }} />
+                                <Box sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    bgcolor: 'rgba(16, 185, 129, 0.08)',
+                                    px: 1,
+                                    py: 0.4,
+                                    borderRadius: '8px',
+                                    height: 22,
+                                    border: '1px solid rgba(16, 185, 129, 0.1)'
+                                }}>
+                                    <StarIcon sx={{ fontSize: 10, color: '#10B981', mr: 0.4 }} />
                                     <Typography variant="caption" sx={{ fontWeight: 900, color: '#065f46', fontSize: '9px', '.dark &': { color: '#34d399' } }}>
                                         {request.requester_rating.toFixed(1)}
                                     </Typography>
@@ -124,27 +137,30 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                             textTransform: 'uppercase',
                             fontSize: '9px',
                             letterSpacing: '0.05em',
+                            mt: 0.3,
                             '.dark &': { color: request.status === 'accepted' ? '#34d399' : request.status === 'rejected' ? '#f87171' : 'slate.500' }
                         }}>
-                            {request.status}
+                            {request.status} • {request.created_at ? dayjs(request.created_at).fromNow() : 'just now'}
                         </Typography>
                     </Box>
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     {request.compatibility_score !== undefined && (
                         <Tooltip title={`AI Insight: ${request.compatibility_reason}`}>
                             <Box sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 0.5,
-                                bgcolor: request.compatibility_score >= 80 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                px: 1,
-                                py: 0.5,
+                                gap: 0.6,
+                                bgcolor: request.compatibility_score >= 80 ? 'rgba(34, 197, 94, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                                px: 1.2,
+                                py: 0.4,
                                 borderRadius: '8px',
-                                border: '1px solid rgba(0,0,0,0.05)'
+                                height: 22,
+                                border: '1px solid rgba(0,0,0,0.05)',
+                                '.dark &': { borderColor: 'rgba(255,255,255,0.05)' }
                             }}>
-                                <MatchIcon sx={{ fontSize: 12, color: request.compatibility_score >= 80 ? '#22c55e' : '#f59e0b' }} />
+                                <MatchIcon sx={{ fontSize: 11, color: request.compatibility_score >= 80 ? '#22c55e' : '#f59e0b' }} />
                                 <Typography sx={{ fontSize: '9px', fontWeight: 900, color: request.compatibility_score >= 80 ? '#166534' : '#92400e', '.dark &': { color: request.compatibility_score >= 80 ? '#4ade80' : '#fbbf24' }, textTransform: 'uppercase' }}>
                                     {request.compatibility_score}% Match
                                 </Typography>
@@ -157,14 +173,15 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                             <Box sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 0.5,
-                                bgcolor: 'rgba(16, 185, 129, 0.1)',
-                                px: 1,
-                                py: 0.5,
+                                gap: 0.6,
+                                bgcolor: 'rgba(16, 185, 129, 0.08)',
+                                px: 1.2,
+                                py: 0.4,
                                 borderRadius: '8px',
-                                border: '1px solid rgba(16, 185, 129, 0.1)'
+                                height: 22,
+                                border: '1px solid rgba(16, 185, 129, 0.05)'
                             }}>
-                                <VerifiedIcon sx={{ fontSize: 12, color: '#10B981' }} />
+                                <VerifiedIcon sx={{ fontSize: 11, color: '#10B981' }} />
                                 <Typography sx={{ fontSize: '9px', fontWeight: 900, color: '#065f46', '.dark &': { color: '#34d399' }, textTransform: 'uppercase' }}>
                                     {mutualCompanions.length} Mutual
                                 </Typography>
@@ -237,10 +254,10 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                         borderColor: 'rgba(255,255,255,0.05)'
                     }
                 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, justifyContent: 'space-between' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <MessageIcon sx={{ fontSize: 12, opacity: 0.5 }} />
-                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5, fontSize: '8px' }}>
+                            <MessageIcon sx={{ fontSize: 13, opacity: 0.5 }} />
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.6, fontSize: '9px' }}>
                                 Join Message
                             </Typography>
                         </Box>
