@@ -17,7 +17,9 @@ import {
     Button,
     Dialog,
     Stack,
-    MenuItem
+    MenuItem,
+    Switch,
+    FormControlLabel
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -49,6 +51,7 @@ import {
     VpnKey as VaultIcon,
     InfoOutlined as InfoIcon,
     Add as AddIcon,
+    LocationOn as LocationIcon,
 } from "@mui/icons-material";
 import Image from "next/image";
 import { useMessages, Message } from "../../../context/MessagesContext";
@@ -60,6 +63,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import dynamic from "next/dynamic";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
+const MeetupMap = dynamic(() => import("./MeetupMap"), { ssr: false });
 import { Theme as EmojiTheme } from "emoji-picker-react";
 
 dayjs.extend(relativeTime);
@@ -96,6 +100,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         deleteEmergencyContact,
         submitReview,
         recordSettlement,
+        shareLocation,
+        squadLocations,
         showNotification
     } = useMessages();
     const { supabase } = useMessages() as any;
@@ -132,6 +138,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const [isSettleFormOpen, setIsSettleFormOpen] = useState(false);
     const [selectedReceiver, setSelectedReceiver] = useState<{ id: string, name: string } | null>(null);
     const [settleAmount, setSettleAmount] = useState("");
+    const [isMeetupMapOpen, setIsMeetupMapOpen] = useState(false);
+    const [isSharingLocation, setIsSharingLocation] = useState(false);
 
     // Recording state
     const [isRecording, setIsRecording] = useState(false);
@@ -195,6 +203,26 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
 
         setIsVaultOpen(true);
     };
+
+    useEffect(() => {
+        if (!isSharingLocation || !isMeetupMapOpen) return;
+
+        const pulse = () => {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    shareLocation(journeyId, pos.coords.latitude, pos.coords.longitude);
+                }, (err) => {
+                    console.warn("[MeetupMap] Geolocation error:", err);
+                    setIsSharingLocation(false);
+                    showNotification("Location sharing disabled. Check permissions.", "error");
+                });
+            }
+        };
+
+        pulse();
+        const interval = setInterval(pulse, 10000);
+        return () => clearInterval(interval);
+    }, [isSharingLocation, isMeetupMapOpen, journeyId, shareLocation, showNotification]);
 
     useEffect(() => {
         if (journey) {
@@ -593,6 +621,14 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 sx={{ justifyContent: 'flex-start', color: 'slate.700', '.dark &': { color: 'white' }, borderRadius: '10px', fontWeight: 700 }}
                             >
                                 Sync Flight Data
+                            </Button>
+                            <Button
+                                fullWidth
+                                startIcon={<LocationIcon />}
+                                onClick={() => { setIsMeetupMapOpen(true); setUtilityAnchorEl(null); }}
+                                sx={{ justifyContent: 'flex-start', color: '#10B981', '.dark &': { color: '#34d399' }, borderRadius: '10px', fontWeight: 700 }}
+                            >
+                                Meetup Map
                             </Button>
                             <Button
                                 fullWidth
@@ -1911,6 +1947,47 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         ))}
                     </Box>
                     <Typography variant="caption" sx={{ fontWeight: 700 }}>Tap a star to submit review</Typography>
+                </Box>
+            </Dialog>
+
+            {/* Meetup Map Modal */}
+            <Dialog
+                open={isMeetupMapOpen}
+                fullScreen
+                onClose={() => setIsMeetupMapOpen(false)}
+            >
+                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc', '.dark &': { bgcolor: '#0f172a' } }}>
+                    <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'white', borderBottom: '1px solid rgba(0,0,0,0.05)', '.dark &': { bgcolor: '#1e293b', borderColor: 'rgba(255,255,255,0.05)' } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                            <Box sx={{ p: 1, bgcolor: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
+                                <LocationIcon sx={{ color: '#10B981' }} />
+                            </Box>
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2 }}>Meetup Map</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>Find your squad in real-time</Typography>
+                            </Box>
+                        </Box>
+                        <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={isSharingLocation}
+                                        onChange={(e) => setIsSharingLocation(e.target.checked)}
+                                        color="success"
+                                        size="small"
+                                    />
+                                }
+                                label={<Typography variant="caption" sx={{ fontWeight: 800 }}>LIVE SHARING</Typography>}
+                                labelPlacement="start"
+                            />
+                            <IconButton onClick={() => setIsMeetupMapOpen(false)} sx={{ bgcolor: 'rgba(0,0,0,0.05)' }}>
+                                <CloseIcon />
+                            </IconButton>
+                        </Stack>
+                    </Box>
+                    <Box sx={{ flex: 1 }}>
+                        <MeetupMap locations={squadLocations} />
+                    </Box>
                 </Box>
             </Dialog>
         </Box>

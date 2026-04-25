@@ -91,6 +91,8 @@ interface MessagesContextType {
     getEmergencyContacts: (journeyId: string) => Promise<any[]>;
     saveEmergencyContact: (journeyId: string, name: string, phone: string, relation: string) => Promise<void>;
     deleteEmergencyContact: (journeyId: string) => Promise<void>;
+    shareLocation: (journeyId: string, lat: number, lng: number) => Promise<void>;
+    squadLocations: Record<string, { userId: string; userName: string; lat: number; lng: number; updatedAt: string }>;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -98,6 +100,7 @@ const MessagesContext = createContext<MessagesContextType | undefined>(undefined
 export function MessagesProvider({ children }: { children: ReactNode }) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [loading, setLoading] = useState(false);
+    const [squadLocations, setSquadLocations] = useState<Record<string, { userId: string; userName: string; lat: number; lng: number; updatedAt: string }>>({});
     const [myRequests, setMyRequests] = useState<Record<string, 'pending' | 'accepted' | 'rejected' | 'none'>>({});
     const [ownedJourneys, setOwnedJourneys] = useState<{ id: string; origin: string; destination: string }[]>([]);
     const [participatingJourneys, setParticipatingJourneys] = useState<string[]>([]);
@@ -788,6 +791,35 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     }
                 }
             )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'journey_locations',
+                    filter: `journey_id=eq.${journeyId}`,
+                },
+                (payload: any) => {
+                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                        setSquadLocations(prev => ({
+                            ...prev,
+                            [payload.new.user_id]: {
+                                userId: payload.new.user_id,
+                                userName: payload.new.user_name,
+                                lat: payload.new.lat,
+                                lng: payload.new.lng,
+                                updatedAt: payload.new.updated_at
+                            }
+                        }));
+                    } else if (payload.eventType === 'DELETE') {
+                        setSquadLocations(prev => {
+                            const next = { ...prev };
+                            delete next[payload.old.user_id];
+                            return next;
+                        });
+                    }
+                }
+            )
             .on('presence', { event: 'sync' }, () => {
                 const newState = channel.presenceState();
                 const typing: { id: string; name: string; avatar: string }[] = [];
@@ -938,14 +970,33 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     };
 
     const getEmergencyContacts = async (journeyId: string) => {
-        if (!supabase) return [];
-        const { data } = await (supabase as any)
-            .from('journey_emergency_contacts')
-            .select('*')
-            .eq('journey_id', journeyId);
+        const cacheKey = `emergency_contacts_${journeyId}`;
+        if (!supabase) {
+            // Fallback to local cache if offline
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : [];
+        }
 
-        // Soft self-destruct: Filter out expired contacts
-        return (data || []).filter((c: any) => dayjs().isBefore(dayjs(c.expires_at)));
+        try {
+            const { data, error } = await (supabase as any)
+                .from('journey_emergency_contacts')
+                .select('*')
+                .eq('journey_id', journeyId);
+
+            if (error) throw error;
+
+            // Soft self-destruct: Filter out expired contacts
+            const validContacts = (data || []).filter((c: any) => dayjs().isBefore(dayjs(c.expires_at)));
+
+            // Update local cache
+            localStorage.setItem(cacheKey, JSON.stringify(validContacts));
+
+            return validContacts;
+        } catch (err: any) {
+            console.error("[MessagesContext] Error fetching emergency contacts:", err);
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : [];
+        }
     };
 
     const saveEmergencyContact = async (journeyId: string, name: string, phone: string, relation: string) => {
@@ -993,6 +1044,25 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const shareLocation = async (journeyId: string, lat: number, lng: number) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_locations')
+                .upsert([{
+                    journey_id: journeyId,
+                    user_id: user.id,
+                    user_name: user.firstName || "Traveler",
+                    lat,
+                    lng,
+                    updated_at: new Date().toISOString()
+                }], { onConflict: 'journey_id,user_id' });
+            if (error) throw error;
+        } catch (err: any) {
+            console.error("[MessagesContext] Error sharing location:", err);
+        }
+    };
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
@@ -1026,6 +1096,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             updateExpense,
             deleteExpense,
             recordSettlement,
+            shareLocation,
+            squadLocations,
             getExpenses,
             submitReview,
             getEmergencyContacts,

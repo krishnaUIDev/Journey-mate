@@ -42,6 +42,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [theme, setTheme] = useState<"light" | "dark">("light");
     const [locale, setLocale] = useState<Locale>("en");
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+    const [isOnline, setIsOnline] = useState(true);
+
+    useEffect(() => {
+        setIsOnline(navigator.onLine);
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('SW registered:', registration);
+                }).catch(error => {
+                    console.log('SW registration failed:', error);
+                });
+            });
+        }
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -75,6 +100,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             <JourneysProvider>
                                 <div className="min-h-screen bg-offwhite dark:bg-navy font-sans transition-colors duration-300">
                                     <CallOverlay />
+                                    {!isOnline && (
+                                        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1.5 text-center sticky top-0 z-[60] shadow-md">
+                                            Offline Mode — Accessing Cached Travel Data
+                                        </div>
+                                    )}
                                     <nav className="sticky top-0 z-50 flex items-center justify-between px-4 lg:px-6 py-3.5 bg-white/80 dark:bg-navy/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 shadow-sm">
                                         <div className="flex items-center gap-8">
                                             <Link href="/" className="flex items-center gap-2 group cursor-pointer text-decoration-none">

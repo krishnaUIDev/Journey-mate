@@ -36,7 +36,8 @@ import {
     PlayArrow as PlayIcon,
     Image as ImageIcon,
     CloudUpload as UploadIcon,
-    AutoFixHigh as MagicIcon
+    AutoFixHigh as MagicIcon,
+    CameraAlt as PhotoIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -691,32 +692,54 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'white' } }} />
                                     </Box>
                                 ) : (isOwner || isPastTrip) ? (
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        onClick={toggleChat}
-                                        startIcon={<ChatIcon />}
-                                        sx={{
-                                            bgcolor: '#09090b',
-                                            color: 'white',
-                                            borderRadius: '1.5rem',
-                                            py: 2.5,
-                                            fontWeight: 900,
-                                            textTransform: 'none',
-                                            fontSize: '1.1rem',
-                                            letterSpacing: '-0.02em',
-                                            boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
-                                            '&:hover': { bgcolor: 'black', scale: 1.01 },
-                                            '.dark &': {
-                                                bgcolor: 'white',
-                                                color: '#09090b',
-                                                boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
-                                                '&:hover': { bgcolor: '#f1f5f9' }
-                                            }
-                                        }}
-                                    >
-                                        {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
-                                    </Button>
+                                    <Stack spacing={2}>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={() => router.push(`/dashboard/archive/${id}`)}
+                                            startIcon={<PhotoIcon />}
+                                            sx={{
+                                                bgcolor: 'forest.main',
+                                                color: 'white',
+                                                borderRadius: '1.5rem',
+                                                py: 2.5,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1.1rem',
+                                                letterSpacing: '-0.02em',
+                                                boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.3)',
+                                                '&:hover': { bgcolor: 'forest.dark' }
+                                            }}
+                                        >
+                                            View Journey Memories
+                                        </Button>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={toggleChat}
+                                            startIcon={<ChatIcon />}
+                                            sx={{
+                                                bgcolor: '#09090b',
+                                                color: 'white',
+                                                borderRadius: '1.5rem',
+                                                py: 2.5,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '1.1rem',
+                                                letterSpacing: '-0.02em',
+                                                boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
+                                                '&:hover': { bgcolor: 'black', scale: 1.01 },
+                                                '.dark &': {
+                                                    bgcolor: 'white',
+                                                    color: '#09090b',
+                                                    boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
+                                                    '&:hover': { bgcolor: '#f1f5f9' }
+                                                }
+                                            }}
+                                        >
+                                            {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
+                                        </Button>
+                                    </Stack>
                                 ) : requestStatus === 'accepted' ? (
                                     <Button
                                         fullWidth

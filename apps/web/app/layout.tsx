@@ -13,6 +13,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Journey-mate | Modern Travel Companion Platform",
   description: "Connect with verified travel companions, coordinate flights, and travel safer together. The world's largest community for assisted travel.",
+  manifest: "/manifest.json",
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
