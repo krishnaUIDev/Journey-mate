@@ -17,6 +17,7 @@ export interface Message {
     audio_url?: string | null;
     created_at: string;
     reply_to_id?: string | null;
+    is_system?: boolean;
     call_metadata?: {
         status: "missed" | "accepted" | "declined" | "finished";
         type: "audio" | "video";
@@ -63,6 +64,7 @@ interface MessagesContextType {
     sendRequest: (journeyId: string, message?: string, rating?: number, isVerified?: boolean, audioUrl?: string, boardingPassUrl?: string) => Promise<void>;
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
     updateRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
+    leaveJourney: (journeyId: string) => Promise<void>;
     getMutualCompanions: (userId1: string, userId2: string) => Promise<string[]>;
     checkRequestStatus: (journeyId: string) => Promise<'pending' | 'accepted' | 'rejected' | 'none'>;
     editMessage: (messageId: string, content: string) => Promise<void>;
@@ -584,15 +586,74 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const updateRequestStatus = async (requestId: string, status: 'accepted' | 'rejected') => {
         if (!supabase) return;
         try {
+            // First fetch the request to get the name and current status
+            const { data: request } = await (supabase as any)
+                .from('journey_requests')
+                .select('requester_name, journey_id, requester_id, status')
+                .eq('id', requestId)
+                .single();
+
             const { error } = await (supabase as any)
                 .from('journey_requests')
                 .update({ status })
                 .eq('id', requestId);
+
             if (error) throw error;
+
+            // If it was a removal (rejected from an accepted state), send a system message
+            if (status === 'rejected' && request?.status === 'accepted') {
+                const userName = request.requester_name || 'Someone';
+                await (supabase as any)
+                    .from('journey_messages')
+                    .insert({
+                        journey_id: request.journey_id,
+                        sender_id: request.requester_id,
+                        sender_name: userName,
+                        sender_avatar: '',
+                        content: `${userName} was removed from the group`,
+                        is_system: true
+                    });
+            }
+
             showNotification(`Traveler request ${status === 'accepted' ? 'approved' : 'declined'}.`, status === 'accepted' ? 'success' : 'info');
         } catch (err: any) {
             console.error("[MessagesContext] Error updating request status:", err);
             showNotification(`Failed to update request: ${err.message}`, 'error');
+        }
+    };
+
+    const leaveJourney = async (journeyId: string) => {
+        if (!supabase || !user) return;
+        try {
+            // 1. Send system message first while still accepted
+            const userName = user.fullName || user.username || 'Someone';
+            await (supabase as any)
+                .from('journey_messages')
+                .insert({
+                    journey_id: journeyId,
+                    sender_id: user.id,
+                    sender_name: userName,
+                    sender_avatar: user.imageUrl,
+                    content: `${userName} left the group`,
+                    is_system: true
+                });
+
+            // 2. Update status to rejected (to revoke access)
+            const { error } = await (supabase as any)
+                .from('journey_requests')
+                .update({ status: 'rejected' })
+                .eq('journey_id', journeyId)
+                .eq('requester_id', user.id);
+
+            if (error) throw error;
+
+            setParticipatingJourneys(prev => prev.filter(id => id !== journeyId));
+            setMyRequests(prev => ({ ...prev, [journeyId]: 'rejected' }));
+
+            showNotification("You have left the journey discussion.", 'info');
+        } catch (err: any) {
+            console.error("[MessagesContext] Error leaving journey:", err);
+            showNotification(`Failed to leave journey: ${err.message}`, 'error');
         }
     };
 
@@ -719,6 +780,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             sendRequest,
             getRequests,
             updateRequestStatus,
+            leaveJourney,
             getMutualCompanions,
             checkRequestStatus,
             editMessage,

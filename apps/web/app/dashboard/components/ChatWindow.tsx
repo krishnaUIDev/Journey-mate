@@ -15,6 +15,7 @@ import {
     Badge,
     AvatarGroup,
     Button,
+    Dialog,
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -39,6 +40,7 @@ import {
     Settings as SettingsIcon,
     CameraAlt as CameraIcon,
     Group as PeopleIcon,
+    ExitToApp as LeaveIcon,
 } from "@mui/icons-material";
 import Image from "next/image";
 import { useMessages, Message } from "../../../context/MessagesContext";
@@ -75,6 +77,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         setTypingStatus,
         getRequests,
         updateRequestStatus,
+        leaveJourney,
         myRequests
     } = useMessages();
     const { supabase } = useMessages() as any;
@@ -103,6 +106,10 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const recorderRef = useRef<MediaRecorder | null>(null);
     const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+    const [leaving, setLeaving] = useState(false);
+
+
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -113,6 +120,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
     const myStatus = myRequests[journeyId] || 'none';
     const isAccepted = isOwner || myStatus === 'accepted';
+    const isPastTrip = !!(journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day'));
 
     useEffect(() => {
         if (journey) {
@@ -447,25 +455,31 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             </IconButton>
                         </Tooltip>
                     )}
-                    <Tooltip title="Audio Call">
-                        <IconButton
-                            onClick={() => startCall(journeyId, 'audio')}
-                            size="small"
-                            className="text-green-600 dark:text-white"
-                            aria-label="Start Audio Call"
-                        >
-                            <PhoneIcon fontSize="small" className="dark:text-white" />
-                        </IconButton>
+                    <Tooltip title={isPastTrip ? "Calling disabled for past trips" : "Audio Call"}>
+                        <span>
+                            <IconButton
+                                onClick={() => startCall(journeyId, 'audio')}
+                                disabled={isPastTrip}
+                                size="small"
+                                className={`text-green-600 dark:text-white ${isPastTrip ? 'opacity-30' : ''}`}
+                                aria-label="Start Audio Call"
+                            >
+                                <PhoneIcon fontSize="small" className="dark:text-white" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
-                    <Tooltip title="Video Call">
-                        <IconButton
-                            onClick={() => startCall(journeyId, 'video')}
-                            size="small"
-                            className="text-green-600 dark:text-white"
-                            aria-label="Start Video Call"
-                        >
-                            <VideoCallIcon fontSize="small" className="dark:text-white" />
-                        </IconButton>
+                    <Tooltip title={isPastTrip ? "Calling disabled for past trips" : "Video Call"}>
+                        <span>
+                            <IconButton
+                                onClick={() => startCall(journeyId, 'video')}
+                                disabled={isPastTrip}
+                                size="small"
+                                className={`text-green-600 dark:text-white ${isPastTrip ? 'opacity-30' : ''}`}
+                                aria-label="Start Video Call"
+                            >
+                                <VideoCallIcon fontSize="small" className="dark:text-white" />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                     {onClose && (
                         <IconButton
@@ -514,6 +528,24 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 ) : (
                     <>
                         {messages.map((msg) => {
+                            if (msg.is_system) {
+                                return (
+                                    <Box key={msg.id} sx={{ display: 'flex', justifyContent: 'center', my: 1, width: '100%' }}>
+                                        <Box sx={{
+                                            bgcolor: 'rgba(0,0,0,0.05)',
+                                            px: 2,
+                                            py: 0.5,
+                                            borderRadius: '1rem',
+                                            border: '1px solid rgba(0,0,0,0.03)',
+                                            '.dark &': { bgcolor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.05)' }
+                                        }}>
+                                            <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                                                {msg.content}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                );
+                            }
                             if (msg.call_metadata) {
                                 return <CallLogMessage key={msg.id} msg={msg} />;
                             }
@@ -1066,6 +1098,28 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                         ))
                                     )}
                                 </Box>
+
+                                {!isOwner && (
+                                    <>
+                                        <Divider sx={{ my: 0.5, opacity: 0.1 }} />
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            color="error"
+                                            startIcon={<LeaveIcon />}
+                                            onClick={() => setIsLeaveModalOpen(true)}
+                                            sx={{
+                                                borderRadius: '1rem',
+                                                textTransform: 'none',
+                                                fontWeight: 800,
+                                                borderColor: 'rgba(239, 68, 68, 0.2)',
+                                                '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)', borderColor: '#ef4444' }
+                                            }}
+                                        >
+                                            Leave Group
+                                        </Button>
+                                    </>
+                                )}
                             </Box>
                         </Popover>
 
@@ -1143,6 +1197,53 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     </Box>
                 )}
             </Box>
+
+            {/* Leave Confirmation Modal */}
+            <Dialog
+                open={isLeaveModalOpen}
+                onClose={() => !leaving && setIsLeaveModalOpen(false)}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '1.5rem',
+                            p: 2,
+                            width: '100%',
+                            maxWidth: 320,
+                            bgcolor: 'white',
+                            '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' }
+                        }
+                    }
+                }}
+            >
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Leave Group?</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3 }}>
+                    You will lose access to the chat history and the other participants will be notified.
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button
+                        onClick={() => setIsLeaveModalOpen(false)}
+                        disabled={leaving}
+                        sx={{ fontWeight: 800, textTransform: 'none', color: 'text.secondary' }}
+                    >
+                        Stay
+                    </Button>
+                    <Button
+                        onClick={async () => {
+                            setLeaving(true);
+                            await leaveJourney(journeyId);
+                            setLeaving(false);
+                            setIsLeaveModalOpen(false);
+                            if (onClose) onClose();
+                        }}
+                        disabled={leaving}
+                        variant="contained"
+                        color="error"
+                        sx={{ borderRadius: '0.75rem', fontWeight: 900, textTransform: 'none', px: 3 }}
+                    >
+                        {leaving ? <CircularProgress size={20} color="inherit" /> : "Leave"}
+                    </Button>
+                </Box>
+            </Dialog>
         </Box>
     );
 }
