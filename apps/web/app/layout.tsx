@@ -1,8 +1,14 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Sora } from "next/font/google";
 
 const sora = Sora({ subsets: ["latin"] });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Journey-mate | Modern Travel Companion Platform",
@@ -25,7 +31,6 @@ export const metadata: Metadata = {
     description: "Connect with verified travel companions for your next flight.",
     images: ["/og-image.png"],
   },
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   robots: "index, follow",
 };
 
