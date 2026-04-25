@@ -18,6 +18,7 @@ import {
     Stack,
     CircularProgress
 } from "@mui/material";
+import { FormattedMessage, useIntl } from "react-intl";
 import {
     ArrowBack as BackIcon,
     CameraAlt as PhotoIcon,
@@ -33,6 +34,7 @@ import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 
 export default function JourneyArchivePage() {
+    const intl = useIntl();
     const { id } = useParams();
     const router = useRouter();
     const { user } = useUser();
@@ -88,7 +90,7 @@ export default function JourneyArchivePage() {
         try {
             const url = await uploadChatImage(file);
             if (url) {
-                await addSouvenir(id as string, url, "Journey Memory");
+                await addSouvenir(id as string, url, intl.formatMessage({ id: 'archive.gallery.add' }));
                 const freshSouvs = await getSouvenirs(id as string);
                 setSouvenirs(freshSouvs);
             }
@@ -119,13 +121,13 @@ export default function JourneyArchivePage() {
                     <BackIcon />
                 </IconButton>
                 <Typography variant="overline" sx={{ fontWeight: 900, color: '#10B981', letterSpacing: '2px' }}>
-                    JOURNEY SOUVENIR
+                    <FormattedMessage id="archive.header.badge" />
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 900, mb: 1, letterSpacing: '-0.02em', '.dark &': { color: 'white' } }}>
                     {journey.destination}
                 </Typography>
                 <Typography variant="subtitle1" sx={{ opacity: 0.6, fontWeight: 700, '.dark &': { color: 'slate.400' } }}>
-                    {dayjs(journey.date).format('MMMM D, YYYY')} • Completed Journey
+                    {dayjs(journey.date).format('MMMM D, YYYY')} • <FormattedMessage id="archive.header.completed" />
                 </Typography>
             </Box>
 
@@ -136,7 +138,9 @@ export default function JourneyArchivePage() {
                         <Paper sx={{ p: 4, borderRadius: '2rem', height: '100%', bgcolor: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', '.dark &': { bgcolor: '#1e293b', backgroundImage: 'none' } }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                                 <PhotoIcon sx={{ color: '#10B981' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 900, '.dark &': { color: 'white' } }}>The Squad</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 900, '.dark &': { color: 'white' } }}>
+                                    <FormattedMessage id="archive.squad.title" />
+                                </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                                 <AvatarGroup max={4}>
@@ -158,20 +162,30 @@ export default function JourneyArchivePage() {
                                     }
                                 </AvatarGroup>
                                 <Box sx={{ '.dark &': { color: 'white' } }}>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>{squadCount} Travelers</Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.6, fontWeight: 700 }}>Successfully landed together</Typography>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>
+                                        <FormattedMessage id="archive.squad.travelers" values={{ count: squadCount }} />
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.6, fontWeight: 700 }}>
+                                        <FormattedMessage id="archive.squad.landed" />
+                                    </Typography>
                                 </Box>
                             </Box>
                             <Stack spacing={1.5}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1rem', '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, '.dark &': { color: 'slate.300' } }}>Vibe Score</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, '.dark &': { color: 'slate.300' } }}>
+                                        <FormattedMessage id="archive.squad.vibe" />
+                                    </Typography>
                                     <Stack direction="row" spacing={0.5}>
                                         {[1, 2, 3, 4, 5].map(i => <StarIcon key={i} sx={{ fontSize: 16, color: '#eab308' }} />)}
                                     </Stack>
                                 </Box>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1rem', '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, '.dark &': { color: 'slate.300' } }}>Safety Rating</Typography>
-                                    <Typography variant="caption" sx={{ fontWeight: 900, color: '#10B981' }}>ELITE</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, '.dark &': { color: 'slate.300' } }}>
+                                        <FormattedMessage id="archive.squad.safety" />
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 900, color: '#10B981' }}>
+                                        <FormattedMessage id="archive.squad.safetyValue" />
+                                    </Typography>
                                 </Box>
                             </Stack>
                         </Paper>
@@ -182,21 +196,31 @@ export default function JourneyArchivePage() {
                         <Paper sx={{ p: 4, borderRadius: '2rem', height: '100%', bgcolor: '#0f172a', color: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
                                 <ExpenseIcon sx={{ color: '#FCD34D' }} />
-                                <Typography variant="h6" sx={{ fontWeight: 900 }}>Financial Insight</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                                    <FormattedMessage id="archive.finance.title" />
+                                </Typography>
                             </Box>
                             <Box sx={{ mb: 4 }}>
-                                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, letterSpacing: '1px' }}>TOTAL SQUAD SPEND</Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, letterSpacing: '1px' }}>
+                                    <FormattedMessage id="archive.finance.totalSpent" />
+                                </Typography>
                                 <Typography variant="h3" sx={{ fontWeight: 900 }}>${totalSpent.toFixed(2)}</Typography>
                             </Box>
                             <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)', mb: 3 }} />
                             <Grid container spacing={2}>
                                 <Grid size={{ xs: 6 }}>
-                                    <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, display: 'block' }}>YOUR SHARE</Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, display: 'block' }}>
+                                        <FormattedMessage id="archive.finance.yourShare" />
+                                    </Typography>
                                     <Typography variant="h6" sx={{ fontWeight: 900 }}>${(totalSpent / squadCount).toFixed(2)}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 6 }}>
-                                    <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, display: 'block' }}>EXPENSES</Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 900 }}>{expenses.length} Records</Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.7, fontWeight: 800, display: 'block' }}>
+                                        <FormattedMessage id="archive.finance.expenses" />
+                                    </Typography>
+                                    <Typography variant="h6" sx={{ fontWeight: 900 }}>
+                                        <FormattedMessage id="archive.finance.records" values={{ count: expenses.length }} />
+                                    </Typography>
                                 </Grid>
                             </Grid>
                         </Paper>
@@ -205,7 +229,9 @@ export default function JourneyArchivePage() {
                     {/* Photo Gallery */}
                     <Grid size={{ xs: 12 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 900, '.dark &': { color: 'white' } }}>Shared Moments</Typography>
+                            <Typography variant="h5" sx={{ fontWeight: 900, '.dark &': { color: 'white' } }}>
+                                <FormattedMessage id="archive.gallery.title" />
+                            </Typography>
                             <Button
                                 component="label"
                                 variant="outlined"
@@ -213,14 +239,16 @@ export default function JourneyArchivePage() {
                                 startIcon={uploading ? <CircularProgress size={16} /> : <PhotoIcon />}
                                 sx={{ borderRadius: '1rem', fontWeight: 700, borderColor: 'rgba(0,0,0,0.1)', color: 'text.secondary', '.dark &': { color: 'white', borderColor: 'rgba(255,255,255,0.1)' } }}
                             >
-                                {uploading ? 'Uploading...' : 'Add Memory'}
+                                {uploading ? intl.formatMessage({ id: 'archive.gallery.uploading' }) : intl.formatMessage({ id: 'archive.gallery.add' })}
                                 <input type="file" hidden accept="image/*" onChange={handleUploadPhoto} />
                             </Button>
                         </Box>
                         {photos.length === 0 && souvenirs.length === 0 ? (
                             <Box sx={{ py: 10, textAlign: 'center', border: '2px dashed rgba(0,0,0,0.1)', borderRadius: '2rem', '.dark &': { borderColor: 'rgba(255,255,255,0.1)' } }}>
                                 <PhotoIcon sx={{ fontSize: 48, opacity: 0.2, mb: 2, '.dark &': { color: 'white' } }} />
-                                <Typography variant="body2" sx={{ opacity: 0.5, fontWeight: 700, '.dark &': { color: 'white' } }}>No photos were captured during this journey.</Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.5, fontWeight: 700, '.dark &': { color: 'white' } }}>
+                                    <FormattedMessage id="archive.gallery.empty" />
+                                </Typography>
                             </Box>
                         ) : (
                             <Grid container spacing={2}>
@@ -256,7 +284,7 @@ export default function JourneyArchivePage() {
                                 '&:hover': { bgcolor: '#059669' }
                             }}
                         >
-                            Share Memory
+                            <FormattedMessage id="archive.gallery.share" />
                         </Button>
                     </Grid>
                 </Grid>
