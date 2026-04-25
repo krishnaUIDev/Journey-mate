@@ -37,8 +37,8 @@ export function Header({
     const toggleMobileMenu = () => setMobileOpen(!mobileOpen);
 
     const navLinks = [
-        { id: "nav.howItWorks", href: "#" },
-        { id: "nav.safety", href: "#" }
+        { id: "nav.howItWorks", href: "/how-it-works" },
+        { id: "nav.safety", href: "/safety" }
     ];
 
     const mobileMenu = (
@@ -63,7 +63,7 @@ export function Header({
                 {navLinks.map((link) => (
                     <ListItem key={link.id} disablePadding>
                         <ListItemButton
-                            component="a"
+                            component={Link}
                             href={link.href}
                             onClick={toggleMobileMenu}
                             sx={{ borderRadius: '1rem' }}
@@ -83,7 +83,7 @@ export function Header({
                 {isLoaded && user && (
                     <ListItem disablePadding>
                         <ListItemButton
-                            component="a"
+                            component={Link}
                             href="/dashboard"
                             onClick={toggleMobileMenu}
                             sx={{ borderRadius: '1rem', bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}
@@ -176,12 +176,12 @@ export function Header({
             {/* Desktop Navigation (Center/Right) */}
             <div className="hidden md:flex items-center gap-8">
                 <div className="flex items-center gap-6 font-medium text-navy dark:text-offwhite/80 lg:px-4">
-                    <a href="#" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
+                    <Link href="/how-it-works" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
                         <FormattedMessage id="nav.howItWorks" />
-                    </a>
-                    <a href="#" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
+                    </Link>
+                    <Link href="/safety" className="hover:text-forest dark:hover:text-sand transition-colors text-sm">
                         <FormattedMessage id="nav.safety" />
-                    </a>
+                    </Link>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -204,9 +204,9 @@ export function Header({
                     )}
                     {isLoaded && user && (
                         <>
-                            <a href="/dashboard" className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium mx-2">
+                            <Link href="/dashboard" className="hover:text-forest dark:hover:text-sand transition-colors text-sm font-medium mx-2">
                                 Dashboard
-                            </a>
+                            </Link>
                             <UserButton />
                         </>
                     )}

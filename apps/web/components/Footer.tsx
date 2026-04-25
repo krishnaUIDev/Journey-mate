@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { FormattedMessage } from "react-intl";
+import Link from "next/link";
 
 interface FooterProps {
     theme: "light" | "dark";
@@ -50,30 +51,29 @@ export function Footer({ theme }: FooterProps) {
                     <div>
                         <h2 className="font-bold text-navy dark:text-offwhite mb-6 uppercase tracking-widest text-xs"><FormattedMessage id="footer.platform.title" /></h2>
                         <ul className="flex flex-col gap-4">
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.how" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.safety" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.pricing" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.companions" /></a></li>
+                            <li><Link href="/how-it-works" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.how" /></Link></li>
+                            <li><Link href="/safety" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.safety" /></Link></li>
+                            <li><Link href="/companions" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.platform.companions" /></Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h2 className="font-bold text-navy dark:text-offwhite mb-6 uppercase tracking-widest text-xs"><FormattedMessage id="footer.company.title" /></h2>
                         <ul className="flex flex-col gap-4">
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.about" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.careers" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.blog" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.press" /></a></li>
+                            <li><Link href="/about" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.about" /></Link></li>
+                            <li><Link href="/careers" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.careers" /></Link></li>
+                            <li><Link href="/blog" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.blog" /></Link></li>
+                            <li><Link href="/press" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.press" /></Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h2 className="font-bold text-navy dark:text-offwhite mb-6 uppercase tracking-widest text-xs"><FormattedMessage id="footer.legal.title" /></h2>
                         <ul className="flex flex-col gap-4">
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.privacy" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.terms" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.cookies" /></a></li>
-                            <li><a href="#" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.guidelines" /></a></li>
+                            <li><Link href="/privacy" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.privacy" /></Link></li>
+                            <li><Link href="/terms" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.terms" /></Link></li>
+                            <li><Link href="/cookies" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.cookies" /></Link></li>
+                            <li><Link href="/guidelines" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.legal.guidelines" /></Link></li>
                         </ul>
                     </div>
                 </div>
