@@ -27,7 +27,8 @@ import {
     ExpandMore as ExpandMoreIcon,
     ExpandLess as ExpandLessIcon,
     PlayArrow as PlayIcon,
-    Pause as PauseIcon
+    Pause as PauseIcon,
+    AutoGraph as MatchIcon
 } from "@mui/icons-material";
 import { useMessages, JourneyRequest } from "../../../context/MessagesContext";
 import { useUser } from "@clerk/nextjs";
@@ -131,6 +132,26 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {request.compatibility_score !== undefined && (
+                        <Tooltip title={`AI Insight: ${request.compatibility_reason}`}>
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                bgcolor: request.compatibility_score >= 80 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: '8px',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                            }}>
+                                <MatchIcon sx={{ fontSize: 12, color: request.compatibility_score >= 80 ? '#22c55e' : '#f59e0b' }} />
+                                <Typography sx={{ fontSize: '9px', fontWeight: 900, color: request.compatibility_score >= 80 ? '#166534' : '#92400e', '.dark &': { color: request.compatibility_score >= 80 ? '#4ade80' : '#fbbf24' }, textTransform: 'uppercase' }}>
+                                    {request.compatibility_score}% Match
+                                </Typography>
+                            </Box>
+                        </Tooltip>
+                    )}
+
                     {mutualCompanions.length > 0 && (
                         <Tooltip title={`Shared companions: ${mutualCompanions.join(', ')}`}>
                             <Box sx={{
@@ -216,11 +237,29 @@ function RequestCard({ request, onAction }: RequestCardProps) {
                         borderColor: 'rgba(255,255,255,0.05)'
                     }
                 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                        <MessageIcon sx={{ fontSize: 12, opacity: 0.5 }} />
-                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5, fontSize: '8px' }}>
-                            Join Message
-                        </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <MessageIcon sx={{ fontSize: 12, opacity: 0.5 }} />
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5, fontSize: '8px' }}>
+                                Join Message
+                            </Typography>
+                        </Box>
+                        {request.compatibility_reason && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="caption" sx={{
+                                    fontWeight: 800,
+                                    color: '#0ea5e9',
+                                    fontSize: '9px',
+                                    bgcolor: 'rgba(14, 165, 233, 0.05)',
+                                    px: 1,
+                                    py: 0.2,
+                                    borderRadius: '4px',
+                                    '.dark &': { color: '#7dd3fc', bgcolor: 'rgba(14, 165, 233, 0.15)' }
+                                }}>
+                                    {request.compatibility_reason}
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
                     <Typography variant="body2" sx={{
                         fontSize: '0.8rem',

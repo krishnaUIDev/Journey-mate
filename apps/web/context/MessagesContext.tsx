@@ -40,6 +40,8 @@ export interface JourneyRequest {
     requester_audio_url?: string;
     boarding_pass_url?: string;
     mutual_companions?: string[];
+    compatibility_score?: number;
+    compatibility_reason?: string;
     created_at: string;
 }
 
@@ -503,9 +505,51 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const calculateCompatibility = (journeyDesc: string, requestMsg: string): { score: number; reason: string } => {
+        const desc = (journeyDesc || '').toLowerCase();
+        const msg = (requestMsg || '').toLowerCase();
+
+        const matchRules = [
+            { keywords: ['medical', 'nurse', 'doctor', 'rn', 'healthcare'], reason: 'Both mention medical or healthcare backgrounds' },
+            { keywords: ['quiet', 'silent', 'relax', 'noise'], reason: 'Both prefer a peaceful and quiet travel environment' },
+            { keywords: ['help', 'luggage', 'assistance', 'disabled'], reason: 'Alignment on helpfulness and assistance needs' },
+            { keywords: ['hindi', 'punjabi', 'telugu', 'bilingual'], reason: 'Shared language proficiency for easier communication' },
+            { keywords: ['business', 'professional', 'work', 'laptop'], reason: 'Both are traveling for professional or business purposes' },
+            { keywords: ['family', 'kids', 'children', 'parent'], reason: 'Shared understanding of family travel dynamics' },
+            { keywords: ['music', 'podcast', 'chat', 'social'], reason: 'Both enjoy social interaction and entertainment' }
+        ];
+
+        let matchedReason = 'General travel compatibility based on route';
+        let score = 30 + Math.floor(Math.random() * 20); // Base score
+
+        for (const rule of matchRules) {
+            const hasDescMatch = rule.keywords.some(k => desc.includes(k));
+            const hasMsgMatch = rule.keywords.some(k => msg.includes(k));
+
+            if (hasDescMatch && hasMsgMatch) {
+                score = Math.min(98, score + 40);
+                matchedReason = rule.reason;
+                break;
+            } else if (hasMsgMatch) {
+                score = Math.min(90, score + 15);
+            }
+        }
+
+        return { score, reason: matchedReason };
+    };
+
     const sendRequest = async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '', boardingPassUrl: string = '') => {
         if (!user || !supabase) return;
         try {
+            // Fetch journey description for compatibility check
+            const { data: journeyData } = await (supabase as any)
+                .from('journeys')
+                .select('description')
+                .eq('id', journeyId)
+                .single();
+
+            const { score, reason } = calculateCompatibility(journeyData?.description || '', message);
+
             const { error } = await (supabase as any)
                 .from('journey_requests')
                 .insert([{
@@ -518,7 +562,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     requester_rating: rating || 5.0,
                     requester_verified: isVerified ?? true,
                     requester_audio_url: audioUrl || null,
-                    boarding_pass_url: boardingPassUrl || null
+                    boarding_pass_url: boardingPassUrl || null,
+                    compatibility_score: score,
+                    compatibility_reason: reason
                 }]);
             if (error) throw error;
             showNotification("Your request has been sent! We'll notify you once accepted.", 'success');

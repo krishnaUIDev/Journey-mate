@@ -1240,8 +1240,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     }
                 }}
             >
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1 }}>Leave Group?</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1, color: 'navy.main', '.dark &': { color: 'white' } }}>Leave Group?</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate.400' } }}>
                     You will lose access to the chat history and the other participants will be notified.
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>

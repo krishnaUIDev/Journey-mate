@@ -36,6 +36,7 @@ import {
     PlayArrow as PlayIcon,
     Image as ImageIcon,
     CloudUpload as UploadIcon,
+    AutoFixHigh as MagicIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -130,6 +131,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [requestMessage, setRequestMessage] = useState("");
     const [submittingRequest, setSubmittingRequest] = useState(false);
+    const [isDrafting, setIsDrafting] = useState(false);
 
     // Audio Recording State
     const [isRecording, setIsRecording] = useState(false);
@@ -354,6 +356,40 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         }
         setIsRecording(false);
         if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+
+    const handleAISuggest = async () => {
+        setIsDrafting(true);
+        try {
+            // Simulated AI Generation based on journey description
+            const desc = (journey?.description || '').toLowerCase();
+            const to = journey?.to?.split(' (')[0] || '';
+
+            let draft = `Hi! I'm also traveling to ${to} and would love to pair up. `;
+
+            const matchRules = [
+                { keywords: ['medical', 'nurse', 'doctor', 'rn'], draft: `I noticed you're looking for a companion with a medical background—I have experience in healthcare and would be happy to help out.` },
+                { keywords: ['quiet', 'silent', 'relax'], draft: `I noticed you prefer a quiet flight—I'm an avid reader and usually stay focused on my book, so I think we'd be a great match.` },
+                { keywords: ['help', 'luggage', 'assistance'], draft: `I saw you mentioned needing a hand with luggage—I'm quite fit and more than happy to help with the heavy lifting!` },
+                { keywords: ['hindi', 'punjabi', 'telugu'], draft: `I noticed you mentioned shared languages—I'm bilingual and would love to have someone to chat with in our native tongue.` },
+                { keywords: ['business', 'professional', 'work'], draft: `I noticed you're traveling for business—I'll also be catching up on some work, so I'd appreciate a professional companion.` },
+                { keywords: ['family', 'kids', 'children'], draft: `I saw you're traveling with family—I'm very patient with kids and understand the dynamics of family travel.` }
+            ];
+
+            const matchedRule = matchRules.find(r => r.keywords.some(k => desc.includes(k)));
+            if (matchedRule) {
+                draft += matchedRule.draft;
+            } else {
+                draft += "I'm a frequent traveler and looking for a reliable companion to share this journey with.";
+            }
+
+            // Simulate "thinking" time
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setRequestMessage(draft);
+            showNotification("AI Suggestion applied!", 'success');
+        } finally {
+            setIsDrafting(false);
+        }
     };
 
     const handleSubmitRequest = async () => {
@@ -928,29 +964,48 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     }
                 }}
             >
-                <DialogTitle sx={{ fontWeight: 900, pb: 1 }}>Request to Pair</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 900, pb: 1, '.dark &': { color: 'white' } }}>Request to Pair</DialogTitle>
                 <DialogContent>
-                    <Typography variant="body2" sx={{ mb: 3, opacity: 0.7 }}>
+                    <Typography variant="body2" sx={{ mb: 3, opacity: 0.7, '.dark &': { color: 'slate.300', opacity: 0.9 } }}>
                         Tell the journey owner why you'd like to join their trip and any assistance you can provide or require.
                     </Typography>
-                    <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        placeholder="e.g. I'm also traveling with heavy luggage and could use a hand, or I'm happy to help navigate!"
-                        value={requestMessage}
-                        onChange={(e) => setRequestMessage(e.target.value)}
-                        variant="outlined"
-                        slotProps={{
-                            input: {
-                                sx: {
-                                    borderRadius: '1.25rem',
-                                    bgcolor: 'rgba(0,0,0,0.02)',
-                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' }
+                    <Box sx={{ position: 'relative' }}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            placeholder="e.g. I'm also traveling with heavy luggage and could use a hand, or I'm happy to help navigate!"
+                            value={requestMessage}
+                            onChange={(e) => setRequestMessage(e.target.value)}
+                            variant="outlined"
+                            slotProps={{
+                                input: {
+                                    sx: {
+                                        borderRadius: '1.25rem',
+                                        bgcolor: 'rgba(0,0,0,0.02)',
+                                        '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' },
+                                        pr: 6
+                                    }
                                 }
-                            }
-                        }}
-                    />
+                            }}
+                        />
+                        <Tooltip title="AI Suggest Content">
+                            <IconButton
+                                onClick={handleAISuggest}
+                                disabled={isDrafting}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 8,
+                                    top: 8,
+                                    color: '#0ea5e9',
+                                    bgcolor: 'rgba(14, 165, 233, 0.05)',
+                                    '&:hover': { bgcolor: 'rgba(14, 165, 233, 0.1)' }
+                                }}
+                            >
+                                {isDrafting ? <CircularProgress size={20} color="inherit" /> : <MagicIcon sx={{ fontSize: 20 }} />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
 
                     {/* Boarding Pass Upload UI */}
                     <Box sx={{
@@ -982,10 +1037,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                                 <UploadIcon sx={{ color: '#10B981', opacity: 0.6 }} />
                                 <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'forest.main' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'forest.main', '.dark &': { color: 'sand.main' } }}>
                                         Attach Boarding Pass
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.5, display: 'block' }}>
+                                    <Typography variant="caption" sx={{ opacity: 0.5, display: 'block', '.dark &': { color: 'slate.400', opacity: 0.8 } }}>
                                         Highly recommended for trust (Optional)
                                     </Typography>
                                 </Box>
@@ -1034,10 +1089,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     {isRecording ? <StopIcon sx={{ fontSize: 20 }} /> : <MicIcon sx={{ fontSize: 20 }} />}
                                 </Box>
                                 <Box>
-                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, '.dark &': { color: 'white' } }}>
                                         {isRecording ? "Recording..." : audioBlob ? "Voice Greeting recorded" : "Voice Greeting"}
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                                    <Typography variant="caption" sx={{ opacity: 0.5, '.dark &': { color: 'slate.400', opacity: 0.8 } }}>
                                         {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}` : audioBlob ? "Click to remove and re-record" : "Attach a 10s voice note to stand out"}
                                     </Typography>
                                 </Box>
@@ -1079,7 +1134,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     <Button
                         onClick={() => setIsRequestModalOpen(false)}
                         disabled={submittingRequest}
-                        sx={{ borderRadius: '1rem', fontWeight: 800, textTransform: 'none', color: 'text.secondary' }}
+                        sx={{ borderRadius: '1rem', fontWeight: 800, textTransform: 'none', color: 'text.secondary', '.dark &': { color: 'slate.400' } }}
                     >
                         Cancel
                     </Button>
