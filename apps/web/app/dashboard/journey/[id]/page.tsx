@@ -498,7 +498,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             <div className="space-y-4">
                                 {requestLoading ? (
                                     <Box sx={{ py: 3, textAlign: 'center' }}>
-                                        <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'sand' } }} />
+                                        <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'white' } }} />
                                     </Box>
                                 ) : (isOwner || isPastTrip) ? (
                                     <Button
@@ -507,7 +507,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         onClick={toggleChat}
                                         startIcon={<ChatIcon />}
                                         sx={{
-                                            bgcolor: 'navy',
+                                            bgcolor: '#09090b',
                                             color: 'white',
                                             borderRadius: '1.5rem',
                                             py: 2.5,
@@ -517,7 +517,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             letterSpacing: '-0.02em',
                                             boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
                                             '&:hover': { bgcolor: 'black', scale: 1.01 },
-                                            '.dark &': { bgcolor: 'sand', color: 'navy', boxShadow: '0 20px 40px -10px rgba(253, 230, 138, 0.2)', '&:hover': { bgcolor: '#fde68a' } }
+                                            '.dark &': {
+                                                bgcolor: 'white',
+                                                color: '#09090b',
+                                                boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
+                                                '&:hover': { bgcolor: '#f1f5f9' }
+                                            }
                                         }}
                                     >
                                         {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
@@ -529,7 +534,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         onClick={toggleChat}
                                         startIcon={<ChatIcon />}
                                         sx={{
-                                            bgcolor: 'navy',
+                                            bgcolor: '#09090b',
                                             color: 'white',
                                             borderRadius: '1.5rem',
                                             py: 2.5,
@@ -539,7 +544,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             letterSpacing: '-0.02em',
                                             boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
                                             '&:hover': { bgcolor: 'black', scale: 1.01 },
-                                            '.dark &': { bgcolor: 'sand', color: 'navy', boxShadow: '0 20px 40px -10px rgba(253, 230, 138, 0.2)', '&:hover': { bgcolor: '#fde68a' } }
+                                            '.dark &': {
+                                                bgcolor: 'white',
+                                                color: '#09090b',
+                                                boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
+                                                '&:hover': { bgcolor: '#f1f5f9' }
+                                            }
                                         }}
                                     >
                                         Join Discussion
@@ -557,7 +567,9 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             fontSize: '1.1rem',
                                             opacity: 0.6,
                                             borderWidth: '2px !important',
-                                            borderColor: 'slate.200 !important'
+                                            color: 'slate.400',
+                                            borderColor: 'slate.200 !important',
+                                            '.dark &': { color: 'slate.500', borderColor: 'slate.800 !important' }
                                         }}
                                     >
                                         Request Sent (Pending)
@@ -574,7 +586,8 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             fontWeight: 900,
                                             textTransform: 'none',
                                             fontSize: '1.1rem',
-                                            borderWidth: '2px !important'
+                                            borderWidth: '2px !important',
+                                            '.dark &': { borderColor: 'error.main', color: 'error.main', opacity: 0.5 }
                                         }}
                                     >
                                         Request Declined
@@ -586,7 +599,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         onClick={handleRequestAction}
                                         startIcon={<ChatIcon />}
                                         sx={{
-                                            bgcolor: 'forest',
+                                            bgcolor: '#10B981', // forest
                                             color: 'white',
                                             borderRadius: '1.5rem',
                                             py: 2.5,
@@ -595,8 +608,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             fontSize: '1.1rem',
                                             letterSpacing: '-0.02em',
                                             boxShadow: '0 20px 40px -10px rgba(34, 197, 94, 0.3)',
-                                            '&:hover': { bgcolor: 'navy', scale: 1.01 },
-                                            '.dark &': { bgcolor: 'forest', color: 'white', '&:hover': { bgcolor: '#166534' } }
+                                            '&:hover': { bgcolor: '#059669', scale: 1.01 },
+                                            '.dark &': {
+                                                bgcolor: '#10B981',
+                                                color: 'white',
+                                                boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.2)'
+                                            }
                                         }}
                                     >
                                         Request to Pair
@@ -624,7 +641,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                 onClick={() => window.open(`mailto:${journey.contactInfo}`, '_blank')}
                                                 sx={{
                                                     bgcolor: 'white',
-                                                    color: '#1e293b',
+                                                    color: '#09090b',
                                                     borderRadius: '1rem',
                                                     py: 1.5,
                                                     fontWeight: 900,
@@ -731,9 +748,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     paper: {
                         sx: {
                             width: { xs: '100%', sm: 400 },
-                            bgcolor: 'transparent',
-                            boxShadow: 'none',
-                            border: 'none'
+                            bgcolor: 'white',
+                            '.dark &': {
+                                bgcolor: '#09090b',
+                                boxShadow: '-20px 0 50px rgba(0,0,0,0.4)',
+                                borderLeft: '1px solid rgba(255,255,255,0.05)'
+                            },
+                            border: 'none',
+                            borderRadius: { xs: 0, sm: '3.5rem 0 0 3.5rem' },
+                            boxShadow: '-20px 0 50px rgba(0,0,0,0.1)'
                         }
                     }
                 }}

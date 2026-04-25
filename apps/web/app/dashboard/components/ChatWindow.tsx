@@ -36,8 +36,9 @@ import {
     PhoneCallback as AcceptedIcon,
     CallMade as OutgoingIcon,
     CallReceived as IncomingIcon,
-    SettingsOutlined as SettingsIcon,
-    PhotoCamera as CameraIcon,
+    Settings as SettingsIcon,
+    CameraAlt as CameraIcon,
+    Group as PeopleIcon,
 } from "@mui/icons-material";
 import { useMessages, Message } from "../../../context/MessagesContext";
 import { useCalling } from "../../../context/CallingContext";
@@ -321,9 +322,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 border: "1px solid rgba(0,0,0,0.05)",
                 bgcolor: 'white',
                 '.dark &': {
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    bgcolor: '#0f172a',
-                    color: '#f8fafc'
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    bgcolor: '#09090b', // Neutral dark
+                    color: '#fafafa'
                 },
                 borderRadius: '1.5rem',
                 overflow: 'hidden',
@@ -353,16 +354,30 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         {journey?.groupName?.charAt(0) || <ChatIcon />}
                     </Avatar>
                     <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                        <Typography variant="subtitle2" sx={{
+                            fontWeight: 900,
+                            color: 'navy.main',
+                            fontSize: '0.9rem',
+                            letterSpacing: '-0.02em',
+                            lineHeight: 1,
+                            '.dark &': { color: 'white' }
+                        }}>
                             {journey?.groupName || "Trip Discussion"}
                         </Typography>
-                        {participants.length > 0 && (
-                            <Tooltip title={participants.map(p => p.requester_name).join(", ")}>
-                                <Typography variant="caption" sx={{ color: 'forest.main', fontWeight: 800, fontSize: '9px', cursor: 'pointer' }}>
-                                    {participants.length + 1} MEMBERS IN GROUP
-                                </Typography>
-                            </Tooltip>
-                        )}
+                        <Typography variant="caption" sx={{
+                            color: 'text.secondary',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            fontSize: '0.65rem',
+                            '.dark &': { color: 'slate.400' }
+                        }}>
+                            <PeopleIcon sx={{ fontSize: 12 }} />
+                            {participants.length} {participants.length === 1 ? 'Member' : 'Members'} in Group
+                        </Typography>
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -509,8 +524,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                         bgcolor: isMe ? 'navy' : 'rgba(0,0,0,0.04)',
                                                         color: isMe ? 'white' : 'inherit',
                                                         '.dark &': {
-                                                            bgcolor: isMe ? 'sand' : 'rgba(255,255,255,0.05)',
-                                                            color: isMe ? 'navy' : 'white'
+                                                            bgcolor: isMe ? '#10B981' : '#18181b', // Forest for me, Matte Slate for others
+                                                            color: 'white'
                                                         },
                                                         position: 'relative',
                                                         zIndex: 1,
@@ -601,30 +616,34 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                     pointerEvents: 'auto',
                                                     visibility: editingMessageId === msg.id ? 'hidden' : 'visible'
                                                 }} className="action-btns">
-                                                    <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary' }}>
-                                                        <ReplyIcon sx={{ fontSize: '0.9rem' }} />
-                                                    </IconButton>
+                                                    <Tooltip title="Reply">
+                                                        <IconButton size="small" onClick={() => setReplyingTo(msg)} sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' } }}>
+                                                            <ReplyIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                     {isMe && (
                                                         <>
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => {
-                                                                    setEditingMessageId(msg.id);
-                                                                    setEditContent(msg.content);
-                                                                }}
-                                                                sx={{ color: 'text.secondary' }}
-                                                            >
-                                                                <EditIcon sx={{ fontSize: '0.9rem' }} />
-                                                            </IconButton>
+                                                            <Tooltip title="Edit">
+                                                                <IconButton
+                                                                    size="small"
+                                                                    onClick={() => {
+                                                                        setEditingMessageId(msg.id);
+                                                                        setEditContent(msg.content);
+                                                                    }}
+                                                                    sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' } }}
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
                                                             <IconButton
                                                                 size="small"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     deleteMessage(msg.id);
                                                                 }}
-                                                                sx={{ color: 'text.secondary', '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
+                                                                sx={{ color: 'text.secondary', '.dark &': { color: 'slate.400' }, '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.04)' } }}
                                                             >
-                                                                <DeleteIcon sx={{ fontSize: '0.9rem' }} />
+                                                                <DeleteIcon fontSize="small" />
                                                             </IconButton>
                                                         </>
                                                     )}
@@ -767,38 +786,33 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         p: 0.5,
                         pl: 1
                     }}>
-                        <IconButton
-                            size="small"
-                            onClick={(e) => setEmojiAnchorEl(e.currentTarget as any)}
-                            sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
-                        >
-                            <EmojiIcon fontSize="small" />
-                        </IconButton>
+                        <Tooltip title="Add emoji">
+                            <IconButton
+                                onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
+                                sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
+                            >
+                                <EmojiIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
 
-                        <IconButton
-                            size="small"
-                            onClick={() => fileInputRef.current?.click()}
-                            sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
-                        >
-                            <AttachIcon fontSize="small" />
-                        </IconButton>
+                        <Tooltip title="Attach photo">
+                            <IconButton
+                                component="label"
+                                sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
+                            >
+                                <ImageIcon fontSize="small" />
+                                <input type="file" hidden accept="image/*" onChange={handleFileSelect} />
+                            </IconButton>
+                        </Tooltip>
 
                         <IconButton
                             size="small"
                             onClick={handleStartRecording}
                             disabled={uploading}
-                            sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                            sx={{ color: 'navy', opacity: 0.6, '&:hover': { opacity: 1 }, '.dark &': { color: 'white' } }}
                         >
                             <MicIcon fontSize="small" />
                         </IconButton>
-
-                        <input
-                            type="file"
-                            hidden
-                            ref={fileInputRef}
-                            accept="image/*"
-                            onChange={handleFileSelect}
-                        />
 
                         {/* Group Settings Popover */}
                         <Popover
@@ -1036,11 +1050,22 @@ function CallLogMessage({ msg }: { msg: Message }) {
                     </Avatar>
                 </Badge>
                 <Box sx={{ flex: 1 }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, display: 'block', color: 'navy.main', fontSize: '0.75rem', letterSpacing: '-0.01em' }}>
+                    <Typography variant="caption" sx={{
+                        fontWeight: 900,
+                        display: 'block',
+                        color: 'navy.main',
+                        fontSize: '0.75rem',
+                        letterSpacing: '-0.01em',
+                        '.dark &': { color: 'white' }
+                    }}>
                         {isMissed ? 'Missed Call' : isDeclined ? 'Declined Call' : isVideo ? 'Video Call' : 'Audio Call'}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.6 }}>
-                        <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{
+                            fontSize: '0.65rem',
+                            fontWeight: 600,
+                            '.dark &': { color: 'slate.400' }
+                        }}>
                             {meta.status === "finished" ? `${formatDuration(meta.duration)} • ` : ''}
                             {dayjs(created_at).format('hh:mm A')}
                         </Typography>
