@@ -41,7 +41,8 @@ export function JourneyFeed() {
 
     useEffect(() => {
         if (!loading) {
-            const sorted = [...(journeys || [])].sort((a, b) =>
+            const visible = (journeys || []).filter(j => j.status !== 'completed' && j.status !== 'cancelled');
+            const sorted = [...visible].sort((a, b) =>
                 dayjs(b.date).unix() - dayjs(a.date).unix()
             );
             setFilteredJourneys(sorted);
@@ -51,6 +52,9 @@ export function JourneyFeed() {
     const handleSearch = () => {
         const results = (journeys || []).filter((journey: JourneyPost) => {
             if (!journey) return false;
+            // Filter out completed/cancelled unless explicitly searched (though typically feed is for upcoming)
+            if (journey.status === 'completed' || journey.status === 'cancelled') return false;
+
             const matchFrom = !searchFrom || (journey.from || "").toLowerCase().includes(searchFrom.toLowerCase());
             const matchTo = !searchTo || (journey.to || "").toLowerCase().includes(searchTo.toLowerCase());
             const matchDate = !searchDate || (journey.date || "") === searchDate.format('YYYY-MM-DD');
@@ -241,8 +245,15 @@ export function JourneyFeed() {
                                                     Your Trip
                                                 </span>
                                             )}
-                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-100 dark:bg-white/10 text-slate-600' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'}`}>
-                                                {isPast ? 'Past' : 'NEW'}
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${journey.status === 'ongoing'
+                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+                                                    : journey.status === 'cancelled'
+                                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+                                                        : isPast
+                                                            ? 'bg-slate-100 dark:bg-white/10 text-slate-600'
+                                                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'
+                                                }`}>
+                                                {journey.status === 'ongoing' ? 'Ongoing' : journey.status === 'cancelled' ? 'Cancelled' : isPast ? 'Past' : 'NEW'}
                                             </span>
                                             {myRequests[journey.id] && (
                                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${myRequests[journey.id] === 'accepted'

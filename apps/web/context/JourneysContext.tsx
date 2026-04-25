@@ -22,6 +22,7 @@ export interface JourneyPost {
     tags: string[];
     groupName?: string;
     groupAvatar?: string;
+    status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 }
 
 interface JourneyRow {
@@ -40,6 +41,7 @@ interface JourneyRow {
     tags: string[] | null;
     group_name: string | null;
     group_avatar: string | null;
+    status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
     created_at: string;
 }
 
@@ -89,6 +91,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 tags: item.tags || [],
                 groupName: item.group_name ?? undefined,
                 groupAvatar: item.group_avatar ?? undefined,
+                status: item.status || 'upcoming',
                 user: {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
@@ -133,6 +136,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         tags: newRecord.tags || [],
                         groupName: newRecord.group_name,
                         groupAvatar: newRecord.group_avatar,
+                        status: newRecord.status || 'upcoming',
                         user: {
                             name: newRecord.user_name,
                             avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
@@ -156,6 +160,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         tags: newRecord.tags || [],
                         groupName: newRecord.group_name,
                         groupAvatar: newRecord.group_avatar,
+                        status: newRecord.status || j.status,
                         user: {
                             ...j.user,
                             name: newRecord.user_name,
@@ -197,7 +202,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     user_avatar: newJourney.user.avatar,
                     user_rating: newJourney.user.rating,
                     user_verified: newJourney.user.verified,
-                    tags: newJourney.tags
+                    tags: newJourney.tags,
+                    status: newJourney.status || 'upcoming'
                 }])
                 .select()
                 .single();
@@ -216,6 +222,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     contactInfo: row.contact_info ?? undefined,
                     description: row.description || "",
                     tags: row.tags || [],
+                    status: row.status || 'upcoming',
                     user: {
                         name: row.user_name,
                         avatar: row.user_avatar || "",
@@ -263,6 +270,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (updates.tags) mappedUpdates.tags = updates.tags;
             if (updates.groupName) mappedUpdates.group_name = updates.groupName;
             if (updates.groupAvatar) mappedUpdates.group_avatar = updates.groupAvatar;
+            if (updates.status) mappedUpdates.status = updates.status;
 
             const { error: supabaseError } = await (supabase as any)
                 .from('journeys')

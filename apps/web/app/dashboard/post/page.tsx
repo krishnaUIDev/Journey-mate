@@ -126,7 +126,8 @@ export default function PostJourneyPage() {
                     rating: 0,
                     verified: false
                 },
-                tags: ["New Trip"]
+                tags: ["New Trip"],
+                status: 'upcoming'
             });
             router.push('/dashboard');
         } finally {

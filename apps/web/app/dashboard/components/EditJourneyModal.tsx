@@ -11,7 +11,11 @@ import {
     Box,
     Typography,
     IconButton,
-    CircularProgress
+    CircularProgress,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -35,6 +39,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
     const [flightNumber, setFlightNumber] = useState(journey.flightNumber || "");
     const [description, setDescription] = useState(journey.description);
     const [contactInfo, setContactInfo] = useState(journey.contactInfo || "");
+    const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>(journey.status);
 
     useEffect(() => {
         if (open) {
@@ -44,6 +49,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
             setFlightNumber(journey.flightNumber || "");
             setDescription(journey.description);
             setContactInfo(journey.contactInfo || "");
+            setStatus(journey.status);
         }
     }, [open, journey]);
 
@@ -62,6 +68,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                 flightNumber,
                 description,
                 contactInfo,
+                status,
             });
             onClose();
         } catch (err) {
@@ -145,27 +152,28 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                         </Box>
                         <Box sx={{ flex: 1 }}>
                             <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
-                                Flight Number (Optional)
+                                Trip Status
                             </Typography>
-                            <TextField
+                            <Select
                                 fullWidth
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value as any)}
                                 variant="standard"
-                                placeholder="e.g. EK501"
-                                value={flightNumber}
-                                onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
-                                slotProps={{
-                                    input: {
-                                        disableUnderline: true,
-                                        sx: {
-                                            px: 3, py: 1.5,
-                                            bgcolor: 'rgba(0,0,0,0.03)',
-                                            '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' },
-                                            borderRadius: '1rem',
-                                            fontWeight: 700
-                                        }
-                                    }
+                                disableUnderline
+                                sx={{
+                                    px: 3, py: 0.5,
+                                    bgcolor: 'rgba(0,0,0,0.03)',
+                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' },
+                                    borderRadius: '1rem',
+                                    fontWeight: 700,
+                                    '& .MuiSelect-select': { py: 1.5 }
                                 }}
-                            />
+                            >
+                                <MenuItem value="upcoming">Upcoming</MenuItem>
+                                <MenuItem value="ongoing">In Progress</MenuItem>
+                                <MenuItem value="completed">Completed</MenuItem>
+                                <MenuItem value="cancelled">Cancelled</MenuItem>
+                            </Select>
                         </Box>
                     </Box>
 

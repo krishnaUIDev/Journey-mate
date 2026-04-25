@@ -164,7 +164,9 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     };
 
     const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
-    const isPastTrip = journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day');
+    const isCompleted = journey?.status === 'completed';
+    const isCancelled = journey?.status === 'cancelled';
+    const isPastTrip = isCompleted || isCancelled || (journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day'));
 
     useEffect(() => {
         if (journey) {
@@ -737,7 +739,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                 }
                                             }}
                                         >
-                                            {isPastTrip ? "View Discussion Archive" : "Open Group Chat"}
+                                            {isCompleted ? "View Discussion Archive" : isCancelled ? "Trip Cancelled" : "Open Group Chat"}
                                         </Button>
                                     </Stack>
                                 ) : requestStatus === 'pending' ? (
