@@ -16,7 +16,8 @@ import {
     AvatarGroup,
     Button,
     Dialog,
-    Stack
+    Stack,
+    MenuItem
 } from "@mui/material";
 import {
     Send as SendIcon,
@@ -87,10 +88,14 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         leaveJourney,
         myRequests,
         addExpense,
+        updateExpense,
+        deleteExpense,
         getExpenses,
         getEmergencyContacts,
         saveEmergencyContact,
+        deleteEmergencyContact,
         submitReview,
+        recordSettlement,
         showNotification
     } = useMessages();
     const { supabase } = useMessages() as any;
@@ -115,11 +120,18 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
     const [expenseAmount, setExpenseAmount] = useState("");
     const [expenseDesc, setExpenseDesc] = useState("");
+    const [isExpenseHistoryOpen, setIsExpenseHistoryOpen] = useState(false);
+    const [expenseHistory, setExpenseHistory] = useState<any[]>([]);
+    const [editingExpense, setEditingExpense] = useState<any | null>(null);
     const [isVaultOpen, setIsVaultOpen] = useState(false);
     const [vaultContacts, setVaultContacts] = useState<any[]>([]);
     const [flightStatus, setFlightStatus] = useState<any>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [vaultForm, setVaultForm] = useState({ name: "", phone: "", relation: "" });
+    const [isEditingVault, setIsEditingVault] = useState(false);
+    const [isSettleFormOpen, setIsSettleFormOpen] = useState(false);
+    const [selectedReceiver, setSelectedReceiver] = useState<{ id: string, name: string } | null>(null);
+    const [settleAmount, setSettleAmount] = useState("");
 
     // Recording state
     const [isRecording, setIsRecording] = useState(false);
@@ -167,6 +179,20 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const handleOpenVault = async () => {
         const contacts = await getEmergencyContacts(journeyId);
         setVaultContacts(contacts);
+        setIsEditingVault(false);
+
+        // Find existing contact for current user
+        const myContact = contacts.find((c: any) => c.user_id === user?.id);
+        if (myContact) {
+            setVaultForm({
+                name: myContact.contact_name,
+                phone: myContact.contact_phone,
+                relation: myContact.relation || ""
+            });
+        } else {
+            setVaultForm({ name: "", phone: "", relation: "" });
+        }
+
         setIsVaultOpen(true);
     };
 
@@ -1458,8 +1484,23 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 onClose={() => setIsExpenseModalOpen(false)}
                 slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 2, width: '100%', maxWidth: 360, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
             >
-                <Typography variant="h6" sx={{ fontWeight: 900, mb: 1, color: 'navy.main', '.dark &': { color: 'white' } }}>Add Expense</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate-400' } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: 'navy.main', '.dark &': { color: 'white' } }}>Add Expense</Typography>
+                    <Button
+                        size="small"
+                        startIcon={<UtilityIcon sx={{ fontSize: 14 }} />}
+                        onClick={async () => {
+                            const history = await getExpenses(journeyId);
+                            setExpenseHistory(history);
+                            setIsExpenseHistoryOpen(true);
+                            setIsExpenseModalOpen(false);
+                        }}
+                        sx={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: '#10B981' }}
+                    >
+                        History
+                    </Button>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate.400' } }}>
                     Split a shared cost (taxi, lounge, snacks) with the group.
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1490,6 +1531,238 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 </Box>
             </Dialog>
 
+            {/* Expense History Modal */}
+            <Dialog
+                open={isExpenseHistoryOpen}
+                onClose={() => setIsExpenseHistoryOpen(false)}
+                slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 3, width: '100%', maxWidth: 450, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <ExpenseIcon sx={{ color: '#10B981' }} />
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: 'navy.main', '.dark &': { color: 'white' } }}>Expense History</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3, color: 'text.secondary', '.dark &': { color: 'slate.400' } }}>
+                    Review or manage shared group costs.
+                </Typography>
+
+                {expenseHistory.length > 0 && (() => {
+                    const sharedExps = expenseHistory.filter((e: any) => !e.is_settlement);
+                    const totalShared = sharedExps.reduce((sum: number, exp: any) => sum + parseFloat(exp.amount), 0);
+                    const share = totalShared / (participants.length + 1);
+                    const paidByMe = sharedExps.filter((e: any) => e.payer_id === user?.id).reduce((sum: number, exp: any) => sum + parseFloat(exp.amount), 0);
+                    const settledByMe = expenseHistory.filter((e: any) => e.is_settlement && e.payer_id === user?.id).reduce((sum: number, exp: any) => sum + parseFloat(exp.amount), 0);
+                    const settledToMe = expenseHistory.filter((e: any) => e.is_settlement && e.receiver_id === user?.id).reduce((sum: number, exp: any) => sum + parseFloat(exp.amount), 0);
+                    const bal = (paidByMe + settledByMe) - (share + settledToMe);
+
+                    return (
+                        <Box sx={{ p: 2.5, mb: 3, borderRadius: '1.25rem', bgcolor: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)', '.dark &': { bgcolor: 'rgba(255,255,255,0.03)' } }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                                <Box>
+                                    <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6, display: 'block', letterSpacing: '0.5px' }}>TOTAL SPENT</Typography>
+                                    <Typography variant="h5" sx={{ fontWeight: 900 }}>${totalShared.toFixed(2)}</Typography>
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6, display: 'block', letterSpacing: '0.5px' }}>FAIR SHARE</Typography>
+                                    <Typography variant="h5" sx={{ fontWeight: 900, color: 'text.secondary' }}>
+                                        ${share.toFixed(2)}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Divider sx={{ mb: 2, opacity: 0.5 }} />
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box>
+                                    <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6, display: 'block', letterSpacing: '0.5px' }}>SETTLEMENT STATUS</Typography>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 900, color: bal >= 0 ? '#10B981' : '#ef4444' }}>
+                                        {bal >= 0 ? (bal < 0.01 ? "All Settled!" : `You are owed $${bal.toFixed(2)}`) : `You owe $${Math.abs(bal).toFixed(2)}`}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                    {bal < -0.01 && (
+                                        <Button
+                                            size="small"
+                                            variant="contained"
+                                            onClick={() => {
+                                                setSettleAmount(Math.abs(bal).toFixed(2));
+                                                setIsSettleFormOpen(true);
+                                            }}
+                                            sx={{ borderRadius: '8px', fontWeight: 900, bgcolor: '#ef4444', mb: 0.5, fontSize: '10px' }}
+                                        >
+                                            Record Payment
+                                        </Button>
+                                    )}
+                                    <Box sx={{ bgcolor: 'white', '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' }, px: 2, py: 0.5, borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800, opacity: 0.6, display: 'block', textAlign: 'center', fontSize: '8px' }}>NET PAID</Typography>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 900, textAlign: 'center', fontSize: '10px' }}>
+                                            ${(paidByMe + settledByMe).toFixed(2)}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Box>
+                        </Box>
+                    );
+                })()}
+
+                <Stack spacing={2} sx={{ maxHeight: 400, overflowY: 'auto', p: 1 }}>
+                    {expenseHistory.length === 0 ? (
+                        <Box sx={{ py: 6, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1rem', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700, color: 'slate.400' }}>No expenses recorded yet.</Typography>
+                        </Box>
+                    ) : (
+                        expenseHistory.map((exp: any) => (
+                            <Paper key={exp.id} elevation={0} sx={{
+                                p: 2,
+                                borderRadius: '12px',
+                                border: '1px solid rgba(0,0,0,0.05)',
+                                bgcolor: exp.is_settlement ? 'rgba(14, 165, 233, 0.03)' : 'rgba(16, 185, 129, 0.03)'
+                            }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Box>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                                            {exp.is_settlement ? `💸 Settlement: ${exp.description}` : exp.description}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ opacity: 0.6, display: 'block', fontWeight: 700 }}>
+                                            {exp.is_settlement ? `From ${exp.payer_name} • ${dayjs(exp.created_at).format('MMM D, h:mm A')}` : `Paid by ${exp.payer_name} • ${dayjs(exp.created_at).format('MMM D, h:mm A')}`}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ textAlign: 'right' }}>
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 900, color: exp.is_settlement ? '#0ea5e9' : '#10B981', '.dark &': { color: exp.is_settlement ? '#38bdf8' : '#34d399' } }}>
+                                            ${parseFloat(exp.amount).toFixed(2)}
+                                        </Typography>
+                                        {exp.payer_id === user?.id && (
+                                            <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5, justifyContent: 'flex-end' }}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => setEditingExpense(exp)}
+                                                    sx={{ p: 0.5, color: '#10B981' }}
+                                                >
+                                                    <EditIcon sx={{ fontSize: 14 }} />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={async () => {
+                                                        await deleteExpense(journeyId, exp.id, exp.description);
+                                                        const updated = await getExpenses(journeyId);
+                                                        setExpenseHistory(updated);
+                                                    }}
+                                                    sx={{ p: 0.5, color: '#ef4444' }}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 14 }} />
+                                                </IconButton>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Box>
+
+                                {editingExpense?.id === exp.id && (
+                                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        <TextField
+                                            size="small"
+                                            label="Amount ($)"
+                                            type="number"
+                                            value={editingExpense.amount}
+                                            onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
+                                        />
+                                        <TextField
+                                            size="small"
+                                            label="Description"
+                                            value={editingExpense.description}
+                                            onChange={(e) => setEditingExpense({ ...editingExpense, description: e.target.value })}
+                                        />
+                                        <Box sx={{ display: 'flex', gap: 1 }}>
+                                            <Button
+                                                fullWidth
+                                                size="small"
+                                                variant="contained"
+                                                sx={{ bgcolor: '#10B981', borderRadius: '8px', fontWeight: 900 }}
+                                                onClick={async () => {
+                                                    await updateExpense(journeyId, exp.id, parseFloat(editingExpense.amount), editingExpense.description);
+                                                    setEditingExpense(null);
+                                                    const updated = await getExpenses(journeyId);
+                                                    setExpenseHistory(updated);
+                                                }}
+                                            >
+                                                Update
+                                            </Button>
+                                            <Button size="small" variant="outlined" onClick={() => setEditingExpense(null)}>Cancel</Button>
+                                        </Box>
+                                    </Box>
+                                )}
+                            </Paper>
+                        ))
+                    )}
+                </Stack>
+            </Dialog>
+
+            {/* Record Settlement Modal */}
+            <Dialog
+                open={isSettleFormOpen}
+                onClose={() => setIsSettleFormOpen(false)}
+                slotProps={{ paper: { sx: { borderRadius: '1.5rem', p: 3, width: '100%', maxWidth: 350, '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' } } } }}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                    <Box sx={{ p: 1, bgcolor: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                        <Typography sx={{ fontSize: '1.2rem' }}>💸</Typography>
+                    </Box>
+                    <Typography variant="h6" sx={{ fontWeight: 900 }}>Record Payment</Typography>
+                </Box>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 3 }}>
+                    Log a peer-to-peer payment to settle your group balance.
+                </Typography>
+
+                <Stack spacing={2.5}>
+                    <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        label="Who did you pay?"
+                        value={selectedReceiver?.id || ""}
+                        onChange={(e) => {
+                            const p = participants.find((p: any) => p.requester_id === e.target.value);
+                            if (p) setSelectedReceiver({ id: p.requester_id, name: p.requester_name });
+                        }}
+                    >
+                        <MenuItem value="">Select participant...</MenuItem>
+                        {participants.map((p: any) => (
+                            <MenuItem key={p.requester_id} value={p.requester_id}>{p.requester_name}</MenuItem>
+                        ))}
+                    </TextField>
+
+                    <TextField
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        label="Amount Paid ($)"
+                        type="number"
+                        value={settleAmount}
+                        onChange={(e) => setSettleAmount(e.target.value)}
+                    />
+
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            disabled={!selectedReceiver || !settleAmount}
+                            onClick={async () => {
+                                if (!selectedReceiver) return;
+                                await recordSettlement(journeyId, parseFloat(settleAmount), selectedReceiver.id, selectedReceiver.name);
+                                setIsSettleFormOpen(false);
+                                setSettleAmount("");
+                                setSelectedReceiver(null);
+                                const updated = await getExpenses(journeyId);
+                                setExpenseHistory(updated);
+                            }}
+                            sx={{ borderRadius: '12px', fontWeight: 900, bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
+                        >
+                            Confirm Payment
+                        </Button>
+                        <Button fullWidth variant="outlined" onClick={() => setIsSettleFormOpen(false)} sx={{ borderRadius: '12px', fontWeight: 900 }}>
+                            Cancel
+                        </Button>
+                    </Box>
+                </Stack>
+            </Dialog>
+
             {/* Security Vault Modal */}
             <Dialog
                 open={isVaultOpen}
@@ -1512,7 +1785,12 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     ) : (
                         vaultContacts.map((contact, i) => (
                             <Paper key={i} elevation={0} sx={{ p: 1.5, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', bgcolor: 'rgba(14, 165, 233, 0.03)' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>{contact.contact_name}</Typography>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>{contact.contact_name}</Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 900, color: '#0ea5e9', fontSize: '8px', textTransform: 'uppercase' }}>
+                                        Shared by {contact.uploader_name || 'A Participant'}
+                                    </Typography>
+                                </Box>
                                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, opacity: 0.6 }}>{contact.relation} • {contact.contact_phone}</Typography>
                             </Paper>
                         ))
@@ -1520,43 +1798,93 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 </Box>
 
                 <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: '1.25rem', border: '1px solid rgba(0,0,0,0.05)', '.dark &': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                    <Typography variant="caption" sx={{ fontWeight: 900, mb: 1.5, display: 'block', color: 'slate-500' }}>ADD YOUR CONTACT</Typography>
-                    <Stack spacing={1.5}>
-                        <TextField
-                            size="small"
-                            placeholder="Full Name"
-                            value={vaultForm.name}
-                            onChange={(e) => setVaultForm({ ...vaultForm, name: e.target.value })}
-                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
-                        />
-                        <TextField
-                            size="small"
-                            placeholder="Phone Number"
-                            value={vaultForm.phone}
-                            onChange={(e) => setVaultForm({ ...vaultForm, phone: e.target.value })}
-                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
-                        />
-                        <TextField
-                            size="small"
-                            placeholder="Relation (e.g. Spouse)"
-                            value={vaultForm.relation}
-                            onChange={(e) => setVaultForm({ ...vaultForm, relation: e.target.value })}
-                            sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
-                        />
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            disabled={!vaultForm.name || !vaultForm.phone}
-                            onClick={async () => {
-                                await saveEmergencyContact(journeyId, vaultForm.name, vaultForm.phone, vaultForm.relation);
-                                setVaultForm({ name: "", phone: "", relation: "" });
-                                handleOpenVault();
-                            }}
-                            sx={{ borderRadius: '0.75rem', fontWeight: 900, mt: 1, bgcolor: '#0ea5e9', '&:hover': { bgcolor: '#0284c7' } }}
-                        >
-                            Save to Vault
-                        </Button>
-                    </Stack>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, color: 'slate-500', textTransform: 'uppercase' }}>
+                            {vaultContacts.some((c: any) => c.user_id === user?.id) ? 'Your Emergency Contact' : 'Add Your Contact'}
+                        </Typography>
+                        {vaultContacts.some((c: any) => c.user_id === user?.id) && (
+                            <Stack direction="row" spacing={1}>
+                                {!isEditingVault && (
+                                    <Button
+                                        size="small"
+                                        onClick={() => setIsEditingVault(true)}
+                                        sx={{ fontSize: '9px', fontWeight: 900, borderRadius: '8px', color: 'forest.main' }}
+                                    >
+                                        Edit
+                                    </Button>
+                                )}
+                                <Button
+                                    size="small"
+                                    color="error"
+                                    startIcon={<DeleteIcon sx={{ fontSize: 14 }} />}
+                                    onClick={async () => {
+                                        if (confirm("Remove your emergency contact from the vault?")) {
+                                            await deleteEmergencyContact(journeyId);
+                                            handleOpenVault();
+                                        }
+                                    }}
+                                    sx={{ fontSize: '9px', fontWeight: 900, borderRadius: '8px' }}
+                                >
+                                    Delete
+                                </Button>
+                            </Stack>
+                        )}
+                    </Box>
+
+                    {vaultContacts.some((c: any) => c.user_id === user?.id) && !isEditingVault ? (
+                        <Box sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.5)', dark: { bgcolor: 'rgba(255,255,255,0.05)' }, borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>{vaultForm.name}</Typography>
+                            <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, opacity: 0.6 }}>{vaultForm.relation} • {vaultForm.phone}</Typography>
+                        </Box>
+                    ) : (
+                        <Stack spacing={1.5}>
+                            <TextField
+                                size="small"
+                                placeholder="Full Name"
+                                value={vaultForm.name}
+                                onChange={(e) => setVaultForm({ ...vaultForm, name: e.target.value })}
+                                sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                            />
+                            <TextField
+                                size="small"
+                                placeholder="Phone Number"
+                                value={vaultForm.phone}
+                                onChange={(e) => setVaultForm({ ...vaultForm, phone: e.target.value })}
+                                sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                            />
+                            <TextField
+                                size="small"
+                                placeholder="Relation (e.g. Spouse)"
+                                value={vaultForm.relation}
+                                onChange={(e) => setVaultForm({ ...vaultForm, relation: e.target.value })}
+                                sx={{ '.MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                            />
+                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    disabled={!vaultForm.name || !vaultForm.phone}
+                                    onClick={async () => {
+                                        await saveEmergencyContact(journeyId, vaultForm.name, vaultForm.phone, vaultForm.relation);
+                                        setIsEditingVault(false);
+                                        handleOpenVault();
+                                    }}
+                                    sx={{ borderRadius: '0.75rem', fontWeight: 900, bgcolor: '#0ea5e9', '&:hover': { bgcolor: '#0284c7' } }}
+                                >
+                                    {vaultContacts.some((c: any) => c.user_id === user?.id) ? 'Update Vault' : 'Save to Vault'}
+                                </Button>
+                                {isEditingVault && (
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => setIsEditingVault(false)}
+                                        sx={{ borderRadius: '0.75rem', fontWeight: 900, color: 'text.secondary', borderColor: 'rgba(0,0,0,0.1)' }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
+                            </Box>
+                        </Stack>
+                    )}
                 </Box>
             </Dialog>
 

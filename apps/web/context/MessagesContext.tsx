@@ -83,10 +83,14 @@ interface MessagesContextType {
     typingUsers: Record<string, { id: string; name: string; avatar: string }[]>;
     setTypingStatus: (journeyId: string, isTyping: boolean) => void;
     addExpense: (journeyId: string, amount: number, description: string) => Promise<void>;
+    updateExpense: (journeyId: string, expenseId: string, amount: number, description: string) => Promise<void>;
+    deleteExpense: (journeyId: string, expenseId: string, description: string) => Promise<void>;
+    recordSettlement: (journeyId: string, amount: number, receiverId: string, receiverName: string) => Promise<void>;
     getExpenses: (journeyId: string) => Promise<any[]>;
     submitReview: (journeyId: string, revieweeId: string, rating: number, comment: string) => Promise<void>;
     getEmergencyContacts: (journeyId: string) => Promise<any[]>;
     saveEmergencyContact: (journeyId: string, name: string, phone: string, relation: string) => Promise<void>;
+    deleteEmergencyContact: (journeyId: string) => Promise<void>;
 }
 
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
@@ -850,6 +854,69 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         return data || [];
     };
 
+    const updateExpense = async (journeyId: string, expenseId: string, amount: number, description: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_expenses')
+                .update({ amount, description })
+                .eq('id', expenseId)
+                .eq('payer_id', user.id);
+            if (error) throw error;
+
+            // Post a notification in chat
+            await sendMessage(journeyId, `[EXPENSE UPDATED] ${description}: $${amount.toFixed(2)}`);
+            showNotification("Expense updated.", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error updating expense:", err);
+            showNotification("Failed to update expense.", "error");
+        }
+    };
+
+    const deleteExpense = async (journeyId: string, expenseId: string, description: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_expenses')
+                .delete()
+                .eq('id', expenseId)
+                .eq('payer_id', user.id);
+            if (error) throw error;
+
+            // Post a notification in chat
+            await sendMessage(journeyId, `[EXPENSE REMOVED] ${description}`);
+            showNotification("Expense removed.", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error deleting expense:", err);
+            showNotification("Failed to delete expense.", "error");
+        }
+    };
+
+    const recordSettlement = async (journeyId: string, amount: number, receiverId: string, receiverName: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_expenses')
+                .insert([{
+                    journey_id: journeyId,
+                    payer_id: user.id,
+                    payer_name: user.firstName || "Traveler",
+                    amount: amount,
+                    description: `Settled balance with ${receiverName}`,
+                    is_settlement: true,
+                    receiver_id: receiverId
+                }]);
+            if (error) throw error;
+
+            // Post notification in chat
+            await sendMessage(journeyId, `[SETTLED] ${user.firstName} paid ${receiverName}: $${amount.toFixed(2)}`);
+            showNotification(`Settlement recorded with ${receiverName}`, "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error recording settlement:", err);
+            showNotification("Failed to record settlement.", "error");
+        }
+    };
+
     const submitReview = async (journeyId: string, revieweeId: string, rating: number, comment: string) => {
         if (!supabase || !user) return;
         try {
@@ -884,24 +951,45 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const saveEmergencyContact = async (journeyId: string, name: string, phone: string, relation: string) => {
         if (!supabase || !user) return;
         try {
-            // Set expiry to 7 days from now as a placeholder
             const expiresAt = dayjs().add(7, 'day').toISOString();
 
+            // Use upsert to enforce single-contact limit per participant
             const { error } = await (supabase as any)
                 .from('journey_emergency_contacts')
-                .insert([{
-                    journey_id: journeyId,
-                    user_id: user.id,
-                    contact_name: name,
-                    contact_phone: phone,
-                    relation,
-                    expires_at: expiresAt
-                }]);
+                .upsert([
+                    {
+                        journey_id: journeyId,
+                        user_id: user.id,
+                        uploader_name: user.fullName || user.username || "A Participant",
+                        contact_name: name,
+                        contact_phone: phone,
+                        relation,
+                        expires_at: expiresAt
+                    }
+                ], { onConflict: 'journey_id,user_id' }); // Note: Requires UNIQUE constraint on (journey_id, user_id)
+
             if (error) throw error;
-            showNotification("Emergency contact saved in the Security Vault.", "success");
+            showNotification("Emergency contact updated in the Security Vault.", "success");
         } catch (err: any) {
             console.error("[MessagesContext] Error saving contact:", err);
             showNotification("Failed to save contact.", "error");
+        }
+    };
+
+    const deleteEmergencyContact = async (journeyId: string) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await (supabase as any)
+                .from('journey_emergency_contacts')
+                .delete()
+                .eq('journey_id', journeyId)
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+            showNotification("Your emergency contact has been removed.", "success");
+        } catch (err: any) {
+            console.error("[MessagesContext] Error deleting contact:", err);
+            showNotification("Failed to delete contact.", "error");
         }
     };
 
@@ -935,10 +1023,14 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             setTypingStatus,
             uploadChatAudio,
             addExpense,
+            updateExpense,
+            deleteExpense,
+            recordSettlement,
             getExpenses,
             submitReview,
             getEmergencyContacts,
-            saveEmergencyContact
+            saveEmergencyContact,
+            deleteEmergencyContact
         }}>
             {children}
 
