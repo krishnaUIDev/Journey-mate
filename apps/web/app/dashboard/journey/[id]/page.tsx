@@ -736,38 +736,26 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                 </aside>
             </div>
 
-            {/* Chat Drawer */}
-            <Drawer
-                anchor="right"
-                open={chatOpen}
-                onClose={() => {
+            {/* Floating Chat Box */}
+            <Box sx={{
+                position: 'fixed',
+                bottom: { xs: 0, sm: 24 },
+                right: { xs: 0, sm: 24 },
+                zIndex: 1300,
+                width: { xs: '100%', sm: 400 },
+                height: { xs: '100%', sm: 600 },
+                maxHeight: { xs: '100%', sm: 'calc(100vh - 100px)' },
+                pointerEvents: chatOpen ? 'auto' : 'none',
+                opacity: chatOpen ? 1 : 0,
+                transform: chatOpen ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: chatOpen ? 'block' : 'none'
+            }}>
+                <ChatWindow journeyId={id} onClose={() => {
                     setChatOpen(false);
                     setIsChatOpen(false);
-                }}
-                slotProps={{
-                    paper: {
-                        sx: {
-                            width: { xs: '100%', sm: 400 },
-                            bgcolor: 'white',
-                            '.dark &': {
-                                bgcolor: '#09090b',
-                                boxShadow: '-20px 0 50px rgba(0,0,0,0.4)',
-                                borderLeft: '1px solid rgba(255,255,255,0.05)'
-                            },
-                            border: 'none',
-                            borderRadius: { xs: 0, sm: '3.5rem 0 0 3.5rem' },
-                            boxShadow: '-20px 0 50px rgba(0,0,0,0.1)'
-                        }
-                    }
-                }}
-            >
-                <Box sx={{ height: '100%', p: { xs: 0, sm: 2 } }}>
-                    <ChatWindow journeyId={id} onClose={() => {
-                        setChatOpen(false);
-                        setIsChatOpen(false);
-                    }} />
-                </Box>
-            </Drawer>
+                }} />
+            </Box>
         </div>
     );
 }

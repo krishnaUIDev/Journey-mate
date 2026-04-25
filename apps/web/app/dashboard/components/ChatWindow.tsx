@@ -313,9 +313,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     };
 
     return (
-        <Paper
-            elevation={0}
+        <Box
             sx={{
+                width: '100%',
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
@@ -323,10 +323,11 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                 bgcolor: 'white',
                 '.dark &': {
                     border: '1px solid rgba(255,255,255,0.05)',
-                    bgcolor: '#09090b', // Neutral dark
+                    bgcolor: '#09090b',
                     color: '#fafafa'
                 },
                 borderRadius: '1.5rem',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
                 overflow: 'hidden',
                 position: 'relative'
             }}
@@ -1041,7 +1042,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     </Box>
                 )}
             </Box>
-        </Paper >
+        </Box>
     );
 }
 
