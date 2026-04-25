@@ -124,7 +124,7 @@ export function Header({
     );
 
     return (
-        <nav className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
+        <nav className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5" aria-label="Main navigation">
             {/* Mobile Brand Link (Left) */}
             <div className="flex md:hidden items-center gap-3">
                 <IconButton
@@ -148,7 +148,7 @@ export function Header({
             </div>
 
             {/* Desktop Brand Link (Left) */}
-            <Link href="/" className="hidden md:flex items-center gap-2 group cursor-pointer">
+            <Link href="/" aria-label="Journey-mate Home" className="hidden md:flex items-center gap-2 group cursor-pointer">
                 <div className="relative w-10 h-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
                     <Image
                         src="/logo.png"

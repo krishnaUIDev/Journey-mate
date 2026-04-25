@@ -9,21 +9,21 @@ export function Features() {
             title: <FormattedMessage id="features.safe.title" />,
             description: <FormattedMessage id="features.safe.desc" />,
             icon: (
-                <span className="text-3xl">🛡️</span>
+                <span className="text-3xl" aria-hidden="true">🛡️</span>
             ),
         },
         {
             title: <FormattedMessage id="features.independent.title" />,
             description: <FormattedMessage id="features.independent.desc" />,
             icon: (
-                <span className="text-3xl">✈️</span>
+                <span className="text-3xl" aria-hidden="true">✈️</span>
             ),
         },
         {
             title: <FormattedMessage id="features.community.title" />,
             description: <FormattedMessage id="features.community.desc" />,
             icon: (
-                <span className="text-3xl">📱</span>
+                <span className="text-3xl" aria-hidden="true">📱</span>
             ),
         },
     ];
@@ -35,7 +35,7 @@ export function Features() {
                     <h2 className="text-4xl md:text-5xl font-black text-navy dark:text-offwhite mb-4 tracking-tight">
                         <FormattedMessage id="features.title" />
                     </h2>
-                    <p className="text-xl text-gray-500 dark:text-offwhite/50 max-w-2xl font-medium">
+                    <p className="text-xl text-gray-700 dark:text-offwhite/70 max-w-2xl font-medium">
                         <FormattedMessage id="features.subtitle" />
                     </p>
                 </div>

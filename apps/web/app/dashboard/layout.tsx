@@ -15,7 +15,9 @@ import { JourneysProvider } from "../../context/JourneysContext";
 import { RoleProvider } from "../../context/RoleContext";
 import { MessagesProvider, useMessages } from "../../context/MessagesContext";
 import { CallingProvider } from "../../context/CallingContext";
-import { CallOverlay } from "./components/CallOverlay";
+import dynamic from "next/dynamic";
+
+const CallOverlay = dynamic(() => import("./components/CallOverlay").then(mod => mod.CallOverlay), { ssr: false });
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import {
     Badge,

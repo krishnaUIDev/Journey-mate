@@ -108,12 +108,12 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Header */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 1 }}>
-                <GroupIcon sx={{ color: '#10B981', fontSize: 20 }} />
-                <Typography variant="subtitle2" sx={{
+                <GroupIcon sx={{ color: '#059669', fontSize: 20 }} />
+                <Typography variant="subtitle2" component="h2" sx={{
                     fontWeight: 900,
                     textTransform: 'uppercase',
                     letterSpacing: '0.15em',
-                    color: 'slate.500',
+                    color: 'slate.600',
                     fontSize: '11px',
                     '.dark &': { color: 'slate.400' }
                 }}>
@@ -140,6 +140,7 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Avatar
                                 src={request.requester_avatar}
+                                alt={request.requester_name}
                                 sx={{ width: 44, height: 44, borderRadius: '14px', border: '1px solid rgba(0,0,0,0.1)' }}
                             />
                             <Box>
@@ -152,12 +153,12 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                     {request.requester_name}
                                 </Typography>
                                 <Typography variant="caption" sx={{
-                                    color: request.status === 'accepted' ? '#10B981' : request.status === 'rejected' ? 'error.main' : 'slate.400',
+                                    color: request.status === 'accepted' ? '#065f46' : request.status === 'rejected' ? '#991b1b' : '#475569',
                                     fontWeight: 800,
                                     textTransform: 'uppercase',
                                     fontSize: '9px',
                                     letterSpacing: '0.05em',
-                                    '.dark &': { color: request.status === 'accepted' ? '#10B981' : request.status === 'rejected' ? '#ef4444' : 'slate.500' }
+                                    '.dark &': { color: request.status === 'accepted' ? '#34d399' : request.status === 'rejected' ? '#f87171' : 'slate.500' }
                                 }}>
                                     {request.status}
                                 </Typography>
@@ -205,12 +206,12 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
                                     bgcolor: request.status === 'accepted' ? '#22c55e' : '#ef4444'
                                 }} />
                                 <Typography variant="caption" sx={{
-                                    opacity: 0.6,
+                                    opacity: 1,
                                     fontWeight: 800,
                                     textTransform: 'uppercase',
                                     fontSize: '9px',
-                                    color: 'inherit',
-                                    '.dark &': { color: 'slate.400' }
+                                    color: request.status === 'accepted' ? '#064e3b' : '#991b1b',
+                                    '.dark &': { color: request.status === 'accepted' ? '#10b981' : '#ef4444' }
                                 }}>
                                     {request.status === 'accepted' ? 'Added' : 'Declined'}
                                 </Typography>

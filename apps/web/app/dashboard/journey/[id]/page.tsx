@@ -4,11 +4,11 @@ import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJourneys } from "../../../../context/JourneysContext";
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import {
     Button,
     IconButton,
     Typography,
-    Divider,
     Box,
     CircularProgress,
     AvatarGroup,
@@ -27,9 +27,8 @@ import {
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
-import { ChatWindow } from '../../components/ChatWindow';
-import { RequestManager } from '../../components/RequestManager';
-import { Drawer } from '@mui/material';
+const ChatWindow = dynamic(() => import('../../components/ChatWindow').then(mod => mod.ChatWindow), { ssr: false });
+const RequestManager = dynamic(() => import('../../components/RequestManager').then(mod => mod.RequestManager), { ssr: false });
 import { useMessages } from '../../../../context/MessagesContext';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
@@ -307,6 +306,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                 <IconButton
                     onClick={() => router.back()}
                     className="pointer-events-auto"
+                    aria-label="Go back"
                     sx={{
                         bgcolor: 'rgba(255,255,255,0.9)',
                         backdropFilter: 'blur(10px)',
@@ -360,12 +360,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mb-1">FLIGHT</span>
                                 <div className="flex items-center gap-3">
                                     {journey.flightNumber && (
-                                        <img
-                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
-                                            alt={journey.flightNumber}
-                                            className="w-8 h-8 object-contain"
-                                            onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                                        />
+                                        <div className="relative w-8 h-8">
+                                            <Image
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
+                                                alt={`${journey.flightNumber} logo`}
+                                                fill
+                                                className="object-contain"
+                                                sizes="32px"
+                                                priority
+                                            />
+                                        </div>
                                     )}
                                     <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
                                 </div>
@@ -394,12 +398,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">FLIGHT</span>
                                 <div className="flex items-center gap-3">
                                     {journey.flightNumber && (
-                                        <img
-                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
-                                            alt={journey.flightNumber}
-                                            className="w-6 h-6 object-contain"
-                                            onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                                        />
+                                        <div className="relative w-6 h-6">
+                                            <Image
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
+                                                alt={`${journey.flightNumber} logo`}
+                                                fill
+                                                className="object-contain"
+                                                sizes="24px"
+                                                priority
+                                            />
+                                        </div>
                                     )}
                                     <span className="text-xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
                                 </div>
@@ -425,6 +433,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                     <IconButton
                                                         size="small"
                                                         onClick={toggleChat}
+                                                        aria-label="Edit Group Identity"
                                                         sx={{
                                                             bgcolor: 'rgba(34, 197, 94, 0.1)',
                                                             color: 'forest.main',
@@ -449,17 +458,24 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             {/* User Profile Section - Cleaner and More Integrated */}
                             <div className="flex items-center gap-6 group">
                                 <div className="relative">
-                                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-slate-800 transition-all group-hover:scale-105">
-                                        <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
+                                    <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-slate-800 transition-all group-hover:scale-105 relative">
+                                        <Image
+                                            src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=128&width=128&fit=crop` : journey.user.avatar}
+                                            alt={journey.user.name}
+                                            fill
+                                            className="object-cover"
+                                            priority
+                                            sizes="64px"
+                                        />
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 bg-sky-500 p-1 rounded-lg border-2 border-white dark:border-slate-800 shadow-sm">
                                         <VerifiedIcon sx={{ color: 'white', fontSize: 10 }} />
                                     </div>
                                 </div>
                                 <div>
-                                    <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{journey.user.name}</h4>
+                                    <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{journey.user.name}</h2>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                             {journey.user.verified ? 'Verified Member' : 'Exploring Member'}
                                         </span>
                                         <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[9px] font-black">
@@ -630,7 +646,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             {/* Secondary Actions / Connect Section - More Compact */}
                             {journey.contactInfo && (
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-700">
-                                    <h5 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">CONNECT WITH OWNER</h5>
+                                    <h2 className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">CONNECT WITH OWNER</h2>
                                     <div className="flex flex-col gap-3">
                                         {/* Detect if contact info is email, Instagram or phone */}
                                         {journey.contactInfo.includes('@') && (
@@ -714,7 +730,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             {/* Details Section */}
                             <div className="space-y-6">
                                 <div className="p-6 bg-sky-50/50 dark:bg-sky-900/10 rounded-[2.5rem] border border-sky-100/50 dark:border-sky-800/30">
-                                    <h5 className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-[0.2em] mb-4">MATCH NOTES</h5>
+                                    <h2 className="text-[10px] font-black text-sky-700 dark:text-sky-400 uppercase tracking-[0.2em] mb-4">MATCH NOTES</h2>
                                     <p className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
                                         "{journey.description}"
                                     </p>
@@ -724,7 +740,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     {journey.tags.map((tag: string, idx: number) => (
                                         <span
                                             key={idx}
-                                            className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest border border-slate-200 dark:border-slate-700"
+                                            className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest border border-slate-200 dark:border-slate-700"
                                         >
                                             #{tag}
                                         </span>

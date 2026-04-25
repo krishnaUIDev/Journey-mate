@@ -12,6 +12,7 @@ export function LocaleSelector({ locale, handleLocaleChange }: LocaleSelectorPro
         <select
             value={locale}
             onChange={handleLocaleChange}
+            aria-label="Select Language"
             className="bg-transparent text-sm font-medium focus:outline-none cursor-pointer border-none dark:text-offwhite/80 p-0 m-0 w-auto"
         >
             <option value="en">English</option>

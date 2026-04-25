@@ -144,7 +144,7 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                         slotProps={{
                             ...params.slotProps,
                             input: {
-                                ...(params.slotProps?.input || {}),
+                                ...params.slotProps?.input,
                                 disableUnderline: true,
                                 endAdornment: (
                                     <React.Fragment>
@@ -158,25 +158,29 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                                     minHeight: '3.5rem',
                                     display: 'flex',
                                     alignItems: 'center',
+                                    borderRadius: '14px',
                                     bgcolor: 'rgba(0,0,0,0.03)',
-                                    '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                                    borderRadius: '1.25rem',
-                                    fontSize: '0.875rem',
-                                    fontWeight: 700,
-                                    border: '1px solid transparent',
-                                    transition: 'all 0.3s ease',
-                                    '& .MuiInput-input': {
-                                        padding: '0 !important',
-                                    },
-                                    '&:hover': {
-                                        bgcolor: 'rgba(0,0,0,0.05)',
-                                        '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' },
-                                    },
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    border: '1px solid rgba(0,0,0,0.05)',
                                     '&.Mui-focused': {
-                                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                                        bgcolor: 'transparent',
+                                        borderColor: 'forest.main',
                                         boxShadow: '0 0 0 4px rgba(16, 185, 129, 0.1)',
+                                    },
+                                    '.dark &': {
+                                        bgcolor: 'rgba(255,255,255,0.05)',
+                                        borderColor: 'rgba(255,255,255,0.08)',
+                                        color: 'white',
+                                        '&.Mui-focused': {
+                                            borderColor: 'sand.main',
+                                            boxShadow: '0 0 0 4px rgba(245, 158, 11, 0.08)',
+                                        }
                                     }
                                 }
+                            },
+                            htmlInput: {
+                                ...params.slotProps?.htmlInput,
+                                "aria-label": label,
                             }
                         }}
                     />

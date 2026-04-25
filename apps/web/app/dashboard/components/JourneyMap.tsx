@@ -311,7 +311,13 @@ export default function JourneyMap({
           const icon = marker.type === 'origin' ? createOriginIcon() : createDestinationIcon();
 
           return (
-            <Marker key={index} position={marker.position} icon={icon}>
+            <Marker
+              key={index}
+              position={marker.position}
+              icon={icon}
+              title={marker.label}
+              alt={`Location marker for ${marker.label}`}
+            >
               <Tooltip
                 permanent
                 direction="top"

@@ -47,7 +47,10 @@ import { useJourneys } from "../../../context/JourneysContext";
 import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import EmojiPicker, { Theme as EmojiTheme } from "emoji-picker-react";
+import dynamic from "next/dynamic";
+
+const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
+import { Theme as EmojiTheme } from "emoji-picker-react";
 
 dayjs.extend(relativeTime);
 
@@ -392,6 +395,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 size="small"
                                 className="bg-green-500/10 text-green-600 dark:bg-white/10 dark:text-white"
                                 sx={{ ml: 1 }}
+                                aria-label="Update Group Settings"
                             >
                                 <SettingsIcon sx={{ fontSize: 18 }} className="dark:text-white" />
                             </IconButton>
@@ -488,8 +492,10 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                         maxWidth: '92%'
                                     }}>
                                         <Avatar
-                                            src={msg.sender_avatar}
+                                            src={msg.sender_avatar?.includes('clerk.com') ? `${msg.sender_avatar}?height=60&width=60&fit=crop` : msg.sender_avatar}
+                                            alt={msg.sender_name}
                                             sx={{ width: 28, height: 28, border: '1px solid rgba(0,0,0,0.1)' }}
+                                            slotProps={{ img: { loading: 'lazy' } }}
                                         />
                                         <Box sx={{
                                             display: 'flex',
@@ -1110,6 +1116,7 @@ function CallLogMessage({ msg }: { msg: Message }) {
                 >
                     <Avatar
                         src={sender_avatar}
+                        alt={sender_name}
                         sx={{
                             width: 40,
                             height: 40,

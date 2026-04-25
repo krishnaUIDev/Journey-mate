@@ -5,31 +5,10 @@ import type { IAgoraRTCClient, ILocalVideoTrack, ILocalAudioTrack, IAgoraRTCRemo
 import { createClient } from "@supabase/supabase-js";
 import { useUser } from "@clerk/nextjs";
 
-// Lazy load AgoraRTC
+// Lazy load AgoraRTC helpers
 let AgoraRTC: any = null;
-if (typeof window !== "undefined") {
-    import("agora-rtc-sdk-ng").then(async mod => {
-        AgoraRTC = mod.default;
-
-        try {
-            // Lazy load extensions with proper casting
-            const vbMod = await import("agora-extension-virtual-background") as any;
-            const VirtualBackgroundExtension = vbMod.default;
-            const beautyMod = await import("agora-extension-beauty-effect") as any;
-            const BeautyExtension = beautyMod.BeautyExtension || beautyMod.default;
-
-            if (VirtualBackgroundExtension && BeautyExtension) {
-                const vbExtension = new VirtualBackgroundExtension();
-                const beautyExtension = new BeautyExtension();
-                AgoraRTC.registerExtensions([vbExtension, beautyExtension]);
-                (window as any).vbExtension = vbExtension;
-                (window as any).beautyExtension = beautyExtension;
-            }
-        } catch (error) {
-            console.error("[CallingContext] Error loading Agora extensions:", error);
-        }
-    });
-}
+let vbExtension: any = null;
+let beautyExtension: any = null;
 
 // Initialize Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -241,7 +220,32 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
     };
 
     const initializeMedia = async (channelName: string, type: "audio" | "video") => {
-        if (!user || !AgoraRTC) return;
+        if (!user) return;
+
+        // On-demand Agora Loading
+        if (!AgoraRTC) {
+            console.log("[CallingContext] Dynamically importing Agora SDK...");
+            const mod = await import("agora-rtc-sdk-ng");
+            AgoraRTC = mod.default;
+
+            try {
+                const [vbMod, beautyMod] = await Promise.all([
+                    import("agora-extension-virtual-background"),
+                    import("agora-extension-beauty-effect")
+                ]) as any;
+
+                const VirtualBackgroundExtension = vbMod.default;
+                const BeautyExtension = beautyMod.BeautyExtension || beautyMod.default;
+
+                if (VirtualBackgroundExtension && BeautyExtension) {
+                    vbExtension = new VirtualBackgroundExtension();
+                    beautyExtension = new BeautyExtension();
+                    AgoraRTC.registerExtensions([vbExtension, beautyExtension]);
+                }
+            } catch (err) {
+                console.warn("[CallingContext] Extensions failed, continuing with base Agora:", err);
+            }
+        }
 
         try {
             const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });

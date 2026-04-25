@@ -15,7 +15,21 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.dicebear.com",
       },
+      {
+        protocol: "https",
+        hostname: "www.gstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+      },
     ],
+  },
+  experimental: {
+    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
   },
 };
 

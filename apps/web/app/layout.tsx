@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     type: "website",
   },
+  alternates: {
+    canonical: "https://journey-mate.com",
+  },
   twitter: {
     card: "summary_large_image",
     title: "Journey-mate | Travel Together, Safely",
@@ -40,6 +43,11 @@ export default function RootLayout({
   return (
     <ClerkProvider publishableKey={publishableKey}>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          <link rel="dns-prefetch" href="https://img.clerk.com" />
+          <link rel="preconnect" href="https://img.clerk.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossOrigin="anonymous" />
+        </head>
         <body className={`${sora.className} overflow-x-hidden`} suppressHydrationWarning>{children}</body>
       </html>
     </ClerkProvider>

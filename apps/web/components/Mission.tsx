@@ -5,48 +5,49 @@ import { FormattedMessage } from "react-intl";
 
 export function Mission() {
     return (
-        <section className="py-20 bg-white dark:bg-black transition-colors overflow-hidden">
+        <section className="py-20 bg-white dark:bg-black transition-colors overflow-hidden" id="mission" aria-labelledby="mission-title">
             <div className="max-w-7xl mx-auto px-8">
+                <h2 id="mission-title" className="sr-only">Our Mission and Values</h2>
                 <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
                     <div className="flex-1 order-2 lg:order-1">
                         <div className="flex flex-col gap-10">
                             <div className="flex items-start gap-4 group">
-                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform">
+                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform" aria-hidden="true">
                                     🛡️
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3 tracking-tight">
                                         <FormattedMessage id="mission.safety.title" />
                                     </h3>
-                                    <p className="text-gray-500 dark:text-offwhite/60 leading-relaxed max-w-md">
+                                    <p className="text-gray-600 dark:text-offwhite/60 leading-relaxed max-w-md">
                                         <FormattedMessage id="mission.safety.desc" />
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex items-start gap-4 group">
-                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform">
+                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform" aria-hidden="true">
                                     📍
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3 tracking-tight">
                                         <FormattedMessage id="mission.tracking.title" />
                                     </h3>
-                                    <p className="text-gray-500 dark:text-offwhite/60 leading-relaxed max-w-md">
+                                    <p className="text-gray-600 dark:text-offwhite/60 leading-relaxed max-w-md">
                                         <FormattedMessage id="mission.tracking.desc" />
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex items-start gap-4 group">
-                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform">
+                                <div className="mt-1 text-3xl group-hover:scale-110 transition-transform" aria-hidden="true">
                                     ❤️
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-bold text-navy dark:text-offwhite mb-3 tracking-tight">
                                         <FormattedMessage id="mission.community.title" />
                                     </h3>
-                                    <p className="text-gray-500 dark:text-offwhite/60 leading-relaxed max-w-md">
+                                    <p className="text-gray-700 dark:text-offwhite/70 leading-relaxed max-w-md">
                                         <FormattedMessage id="mission.community.desc" />
                                     </p>
                                 </div>

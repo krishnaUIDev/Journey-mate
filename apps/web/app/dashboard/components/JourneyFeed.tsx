@@ -92,7 +92,7 @@ export function JourneyFeed() {
                 <h1 className="text-3xl sm:text-5xl font-black text-navy dark:text-offwhite mb-4">
                     Travel Together, <span className="text-forest dark:text-sand">Safely</span>
                 </h1>
-                <p className="text-gray-500 dark:text-offwhite/50 text-lg font-medium max-w-2xl mx-auto">
+                <p className="text-gray-600 dark:text-offwhite/60 text-lg font-medium max-w-2xl mx-auto">
                     The world's largest community for travel companions. Pair up with verified members on your flight.
                 </p>
             </div>
@@ -188,6 +188,7 @@ export function JourneyFeed() {
             </div>
 
             {/* Journeys List */}
+            <h2 className="sr-only">Available Journeys</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {loading ? (
                     [1, 2, 3, 4, 5, 6].map((i) => (
@@ -218,15 +219,15 @@ export function JourneyFeed() {
                             <div
                                 key={journey.id}
                                 onClick={() => router.push(`/dashboard/journey/${journey.id}`)}
-                                className={`bg-white dark:bg-white/5 rounded-[1.25rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-xl transition-all group cursor-pointer active:scale-[0.98] relative flex items-center p-3 gap-3 ${isPast ? 'opacity-60 grayscale-[0.3]' : ''}`}
+                                className={`bg-white dark:bg-white/5 rounded-[1.25rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-xl transition-all group cursor-pointer active:scale-[0.98] relative flex items-center p-3 gap-3 ${isPast ? 'opacity-80 grayscale-[0.2]' : ''}`}
                             >
                                 {/* Header / Route Icon - More Compact */}
                                 <div className="flex-shrink-0 w-12 h-12 bg-gray-50 dark:bg-white/5 rounded-xl flex flex-col items-center justify-center border border-gray-100 dark:border-white/10">
-                                    <span className="text-[9px] font-black text-forest dark:text-sand leading-none">{journey.from.slice(0, 3)}</span>
+                                    <span className="text-[9px] font-black text-emerald-800 dark:text-sand leading-none">{journey.from.slice(0, 3)}</span>
                                     <div className="h-px w-4 bg-gray-300 dark:bg-gray-700 my-1 relative">
                                         <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t border-r border-gray-300 dark:border-gray-700 w-1 h-1" />
                                     </div>
-                                    <span className="text-[9px] font-black text-navy dark:text-offwhite leading-none">{journey.to.slice(0, 3)}</span>
+                                    <span className="text-[9px] font-black text-emerald-900 dark:text-offwhite leading-none">{journey.to.slice(0, 3)}</span>
                                 </div>
 
                                 <div className="flex-1 min-w-0">
@@ -240,7 +241,7 @@ export function JourneyFeed() {
                                                     Your Trip
                                                 </span>
                                             )}
-                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-100 dark:bg-white/10 text-slate-500' : 'bg-forest/10 text-forest'}`}>
+                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isPast ? 'bg-slate-100 dark:bg-white/10 text-slate-600' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'}`}>
                                                 {isPast ? 'Past' : 'NEW'}
                                             </span>
                                             {myRequests[journey.id] && (
@@ -256,9 +257,9 @@ export function JourneyFeed() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 mb-2">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2">
                                         <span>{dayjs(journey.date).format('MMM DD, YYYY')}</span>
-                                        <span className="opacity-30">•</span>
+                                        <span className="opacity-50">•</span>
                                         <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/5">
                                             {journey.flightNumber && (
                                                 <div className="relative w-3.5 h-3.5">
@@ -267,6 +268,7 @@ export function JourneyFeed() {
                                                         alt={`${journey.flightNumber} Airline Logo`}
                                                         fill
                                                         className="object-contain"
+                                                        sizes="14px"
                                                     />
                                                 </div>
                                             )}
@@ -276,10 +278,16 @@ export function JourneyFeed() {
 
                                     <div className="flex items-center gap-2">
                                         <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
-                                            <Image src={journey.user.avatar} alt={`${journey.user.name}'s profile picture`} fill className="object-cover" />
+                                            <Image
+                                                src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=64&width=64&fit=crop` : journey.user.avatar}
+                                                alt={`${journey.user.name}'s profile picture`}
+                                                fill
+                                                className="object-cover"
+                                                sizes="24px"
+                                            />
                                         </div>
-                                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400 truncate">{journey.user.name}</span>
-                                        <span className="text-[10px] font-black text-forest dark:text-sand opacity-60">
+                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">{journey.user.name}</span>
+                                        <span className="text-[10px] font-black text-emerald-800 dark:text-sand">
                                             {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
                                         </span>
                                     </div>
