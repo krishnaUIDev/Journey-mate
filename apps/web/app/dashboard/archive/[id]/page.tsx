@@ -140,10 +140,22 @@ export default function JourneyArchivePage() {
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
                                 <AvatarGroup max={4}>
-                                    <Avatar src={user?.imageUrl} sx={{ width: 56, height: 56, border: '4px solid white !important', '.dark &': { borderColor: '#1e293b !important' } }} />
-                                    {participants.map((p, i) => (
-                                        <Avatar key={i} src={p.requester_avatar} sx={{ width: 56, height: 56, border: '4px solid white !important', '.dark &': { borderColor: '#1e293b !important' } }} />
-                                    ))}
+                                    <Avatar
+                                        src={journey.user.avatar}
+                                        alt={journey.user.name}
+                                        sx={{ width: 56, height: 56, border: '4px solid white !important', '.dark &': { borderColor: '#1e293b !important' } }}
+                                    />
+                                    {participants
+                                        .filter(p => p.requester_id !== journey.userId)
+                                        .map((p, i) => (
+                                            <Avatar
+                                                key={i}
+                                                src={p.requester_avatar}
+                                                alt={p.requester_name}
+                                                sx={{ width: 56, height: 56, border: '4px solid white !important', '.dark &': { borderColor: '#1e293b !important' } }}
+                                            />
+                                        ))
+                                    }
                                 </AvatarGroup>
                                 <Box sx={{ '.dark &': { color: 'white' } }}>
                                     <Typography variant="subtitle1" sx={{ fontWeight: 900 }}>{squadCount} Travelers</Typography>

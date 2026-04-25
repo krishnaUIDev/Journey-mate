@@ -20,6 +20,8 @@ import {
     VideocamOff as VideoOffIcon,
     BlurOn as BlurIcon,
     AutoFixHigh as BeautyIcon,
+    ScreenShare as ScreenShareIcon,
+    StopScreenShare as StopScreenShareIcon
 } from "@mui/icons-material";
 import { IAgoraRTCRemoteUser } from "agora-rtc-sdk-ng";
 import { useCalling } from "../../../context/CallingContext";
@@ -38,22 +40,32 @@ export function CallOverlay() {
         endCall,
         toggleMute,
         toggleVideo,
+        toggleScreenShare,
         toggleBlur,
         toggleBeauty,
         isMuted,
         isVideoOff,
+        isScreenSharing,
         isBlurEnabled,
         isBeautyEnabled,
-        participantsMetadata
+        participantsMetadata,
+        localScreenTrack
     } = useCalling();
 
     const localVideoRef = useRef<HTMLDivElement>(null);
+    const localScreenVideoRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (localVideoTrack && localVideoRef.current) {
             localVideoTrack.play(localVideoRef.current);
         }
     }, [localVideoTrack]);
+
+    useEffect(() => {
+        if (localScreenTrack && localScreenVideoRef.current) {
+            localScreenTrack.play(localScreenVideoRef.current);
+        }
+    }, [localScreenTrack]);
 
     if (callState === "idle") return null;
 
@@ -185,21 +197,32 @@ export function CallOverlay() {
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}>
-                                    <div ref={localVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    {isVideoOff && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="relative w-[120px] h-[120px] rounded-full overflow-hidden border-4 border-white/10">
-                                                <Image
-                                                    src={user?.imageUrl || ""}
-                                                    alt={`${user?.fullName}'s avatar`}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                            </div>
-                                        </div>
+                                    {localScreenTrack ? (
+                                        <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                                            <div ref={localScreenVideoRef} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} />
+                                            <Box sx={{ position: 'absolute', top: 10, right: 10, bgcolor: '#ef4444', color: 'white', px: 1.5, py: 0.5, borderRadius: '0.5rem', fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                                Live Screen
+                                            </Box>
+                                        </Box>
+                                    ) : (
+                                        <>
+                                            <div ref={localVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            {isVideoOff && (
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="relative w-[120px] h-[120px] rounded-full overflow-hidden border-4 border-white/10">
+                                                        <Image
+                                                            src={user?.imageUrl || ""}
+                                                            alt={`${user?.fullName}'s avatar`}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                    <Box sx={{ position: 'absolute', bottom: 20, left: 20, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', px: 2, py: 0.5, borderRadius: '1rem', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                        <Typography variant="caption" sx={{ fontWeight: 800 }}>{user?.fullName || "You"}</Typography>
+                                    <Box sx={{ position: 'absolute', bottom: 20, left: 20, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', px: 2, py: 0.5, borderRadius: '1rem', color: 'white', border: '1px solid rgba(255,255,255,0.1)', zIndex: 10 }}>
+                                        <Typography variant="caption" sx={{ fontWeight: 800 }}>{user?.fullName || "You"}{isScreenSharing ? " (Sharing Screen)" : ""}</Typography>
                                     </Box>
                                 </Box>
 
@@ -234,6 +257,9 @@ export function CallOverlay() {
                                 </IconButton>
                                 <IconButton onClick={toggleVideo} aria-label={isVideoOff ? "Turn on video" : "Turn off video"} sx={{ color: 'white', bgcolor: isVideoOff ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
                                     {isVideoOff ? <VideoOffIcon /> : <VideoIcon />}
+                                </IconButton>
+                                <IconButton onClick={toggleScreenShare} aria-label={isScreenSharing ? "Stop screen share" : "Share screen"} sx={{ color: 'white', bgcolor: isScreenSharing ? '#3b82f6' : 'rgba(255,255,255,0.1)' }}>
+                                    {isScreenSharing ? <StopScreenShareIcon /> : <ScreenShareIcon />}
                                 </IconButton>
 
                                 {!isVideoOff && (

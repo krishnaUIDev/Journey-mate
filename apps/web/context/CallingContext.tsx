@@ -37,6 +37,7 @@ interface CallingContextType {
     callInfo: CallInfo | null;
     localVideoTrack: ILocalVideoTrack | null;
     localAudioTrack: ILocalAudioTrack | null;
+    localScreenTrack: ILocalVideoTrack | null;
     remoteUsers: IAgoraRTCRemoteUser[];
     startCall: (journeyId: string, type: "audio" | "video") => Promise<void>;
     acceptCall: () => Promise<void>;
@@ -44,10 +45,12 @@ interface CallingContextType {
     endCall: () => void;
     toggleMute: () => void;
     toggleVideo: () => Promise<void>;
+    toggleScreenShare: () => Promise<void>;
     toggleBlur: () => Promise<void>;
     toggleBeauty: () => Promise<void>;
     isMuted: boolean;
     isVideoOff: boolean;
+    isScreenSharing: boolean;
     isBlurEnabled: boolean;
     isBeautyEnabled: boolean;
     participantsMetadata: ParticipantMetadata;
@@ -64,9 +67,11 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
     const [callInfo, setCallInfo] = useState<CallInfo | null>(null);
     const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
     const [localAudioTrack, setLocalAudioTrack] = useState<ILocalAudioTrack | null>(null);
+    const [localScreenTrack, setLocalScreenTrack] = useState<ILocalVideoTrack | null>(null);
     const [remoteUsers, setRemoteUsers] = useState<IAgoraRTCRemoteUser[]>([]);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [isBlurEnabled, setIsBlurEnabled] = useState(false);
     const [isBeautyEnabled, setIsBeautyEnabled] = useState(false);
     const [participantsMetadata, setParticipantsMetadata] = useState<ParticipantMetadata>({});
@@ -77,6 +82,7 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
     const missedCallTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const localVideoTrackRef = useRef<ILocalVideoTrack | null>(null);
     const localAudioTrackRef = useRef<ILocalAudioTrack | null>(null);
+    const localScreenTrackRef = useRef<ILocalVideoTrack | null>(null);
     const vbProcessorRef = useRef<any>(null);
     const beautyProcessorRef = useRef<any>(null);
     const callStateRef = useRef<CallState>("idle");
@@ -196,6 +202,11 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
             localAudioTrackRef.current.close();
             localAudioTrackRef.current = null;
         }
+        if (localScreenTrackRef.current) {
+            localScreenTrackRef.current.stop();
+            localScreenTrackRef.current.close();
+            localScreenTrackRef.current = null;
+        }
         if (clientRef.current) {
             await clientRef.current.leave();
             clientRef.current = null;
@@ -207,10 +218,12 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
         setCallInfo(null);
         setLocalVideoTrack(null);
         setLocalAudioTrack(null);
+        setLocalScreenTrack(null);
         setRemoteUsers([]);
         setCallStartTime(null);
         setIsMuted(false);
         setIsVideoOff(false);
+        setIsScreenSharing(false);
 
         // Remove session channel
         if (sessionChannelRef.current) {
@@ -559,6 +572,66 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const toggleScreenShare = async () => {
+        if (!clientRef.current || !AgoraRTC) return;
+
+        try {
+            if (isScreenSharing) {
+                // Stop screen share
+                if (localScreenTrackRef.current) {
+                    await clientRef.current.unpublish(localScreenTrackRef.current);
+                    localScreenTrackRef.current.stop();
+                    localScreenTrackRef.current.close();
+                    localScreenTrackRef.current = null;
+                    setLocalScreenTrack(null);
+                }
+                setIsScreenSharing(false);
+
+                // Resume camera if it was on
+                if (!isVideoOff && localVideoTrackRef.current) {
+                    await clientRef.current.publish(localVideoTrackRef.current);
+                }
+            } else {
+                // Start screen share
+                const screenTrack = await AgoraRTC.createScreenVideoTrack({
+                    encoderConfig: "1080p_1",
+                    optimizationMode: "detail",
+                    screenSourceType: "window"
+                }, "auto");
+
+                // Handle user clicking "Stop Sharing" in browser
+                screenTrack.on("track-ended", () => {
+                    toggleScreenShare();
+                });
+
+                localScreenTrackRef.current = screenTrack;
+                setLocalScreenTrack(screenTrack);
+                setIsScreenSharing(true);
+
+                // Unpublish camera if active
+                if (localVideoTrackRef.current) {
+                    await clientRef.current.unpublish(localVideoTrackRef.current);
+                }
+
+                await clientRef.current.publish(screenTrack);
+            }
+        } catch (error: any) {
+            console.error("[CallingContext] Screen share failed:", error);
+            setIsScreenSharing(false);
+
+            if (error.code === 'PERMISSION_DENIED' || error.name === 'NotAllowedError') {
+                console.warn("[CallingContext] User denied screen share permission or browser blocked it.");
+                // Provide high-visibility feedback if possible, or just log clearly
+                if (typeof window !== 'undefined') {
+                    // We don't have a direct toast here, but we can log a guide
+                    console.info("%cPRO TIP: Screen sharing requires HTTPS and OS-level Screen Recording permissions (System Settings > Privacy & Security).", "color: #3b82f6; font-weight: bold;");
+                }
+            } else {
+                console.error("[CallingContext] Unexpected screen sharing error:", error);
+            }
+        }
+    };
+
     const setupVideoPipeline = async (track: ILocalVideoTrack) => {
         const vbExtension = (window as any).vbExtension;
         const beautyExtension = (window as any).beautyExtension;
@@ -640,6 +713,7 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
             callInfo,
             localVideoTrack,
             localAudioTrack,
+            localScreenTrack,
             remoteUsers,
             startCall,
             acceptCall,
@@ -647,10 +721,12 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
             endCall,
             toggleMute,
             toggleVideo,
+            toggleScreenShare,
             toggleBlur,
             toggleBeauty,
             isMuted,
             isVideoOff,
+            isScreenSharing,
             isBlurEnabled,
             isBeautyEnabled,
             participantsMetadata
