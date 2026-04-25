@@ -40,6 +40,7 @@ import {
     CameraAlt as CameraIcon,
     Group as PeopleIcon,
 } from "@mui/icons-material";
+import Image from "next/image";
 import { useMessages, Message } from "../../../context/MessagesContext";
 import { useCalling } from "../../../context/CallingContext";
 import { useJourneys } from "../../../context/JourneysContext";
@@ -401,6 +402,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             onClick={() => startCall(journeyId, 'audio')}
                             size="small"
                             className="text-green-600 dark:text-white"
+                            aria-label="Start Audio Call"
                         >
                             <PhoneIcon fontSize="small" className="dark:text-white" />
                         </IconButton>
@@ -410,6 +412,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             onClick={() => startCall(journeyId, 'video')}
                             size="small"
                             className="text-green-600 dark:text-white"
+                            aria-label="Start Video Call"
                         >
                             <VideoCallIcon fontSize="small" className="dark:text-white" />
                         </IconButton>
@@ -419,6 +422,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                             onClick={onClose}
                             size="small"
                             className="text-navy/60 dark:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                            aria-label="Close Chat"
                             sx={{
                                 padding: { xs: 1.5, sm: 1 } // Larger tap target on mobile
                             }}
@@ -760,7 +764,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 )}
                             </Box>
                         </Box>
-                        <IconButton size="small" onClick={() => { setReplyingTo(null); setSelectedFile(null); setPreviewUrl(null); setAudioBlob(null); }}>
+                        <IconButton size="small" onClick={() => { setReplyingTo(null); setSelectedFile(null); setPreviewUrl(null); setAudioBlob(null); }} aria-label="Cancel preview">
                             <CancelIcon sx={{ fontSize: '1rem' }} />
                         </IconButton>
                     </Box>
@@ -800,7 +804,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 RECORDING {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
                             </Typography>
                         </Box>
-                        <IconButton onClick={handleStopRecording} sx={{ color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' } }}>
+                        <IconButton onClick={handleStopRecording} sx={{ color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.1)', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' } }} aria-label="Stop recording">
                             <StopIcon />
                         </IconButton>
                     </Box>
@@ -815,30 +819,28 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         p: 0.5,
                         pl: 0.5
                     }}>
-                        <Tooltip title="Add emoji">
-                            <IconButton
-                                onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
-                                className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
-                            >
-                                <EmojiIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-
-                        <Tooltip title="Attach photo">
-                            <IconButton
-                                component="label"
-                                className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
-                            >
-                                <ImageIcon fontSize="small" />
-                                <input type="file" hidden accept="image/*" onChange={handleFileSelect} />
-                            </IconButton>
-                        </Tooltip>
+                        <IconButton
+                            onClick={(e) => setEmojiAnchorEl(e.currentTarget)}
+                            className="text-navy/60 dark:text-offwhite/40 hover:text-navy dark:hover:text-offwhite transition-colors"
+                            aria-label="Add emoji"
+                        >
+                            <EmojiIcon sx={{ fontSize: 22 }} />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-navy/60 dark:text-offwhite/40 hover:text-navy dark:hover:text-offwhite transition-colors"
+                            aria-label="Attach file"
+                        >
+                            <ImageIcon sx={{ fontSize: 22 }} />
+                            <input type="file" hidden accept="image/*" onChange={handleFileSelect} />
+                        </IconButton>
 
                         <Tooltip title="Record voice message">
                             <IconButton
                                 onClick={handleStartRecording}
                                 disabled={uploading}
                                 className="text-navy/60 dark:text-white/60 hover:text-navy dark:hover:text-white"
+                                aria-label="Record voice message"
                             >
                                 <MicIcon fontSize="small" />
                             </IconButton>

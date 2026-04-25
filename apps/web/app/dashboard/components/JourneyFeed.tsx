@@ -4,11 +4,13 @@ import { AirportAutocomplete } from "./AirportAutocomplete";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import Image from "next/image";
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
     Refresh as ResetIcon
 } from "@mui/icons-material";
+import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import { useJourneys, JourneyPost } from "../../../context/JourneysContext";
 import { useMessages } from "../../../context/MessagesContext";
 import { useRouter } from "next/navigation";
@@ -168,6 +170,7 @@ export function JourneyFeed() {
                 <div className="flex flex-col lg:flex-row gap-3 w-full lg:w-auto">
                     <button
                         onClick={handleSearch}
+                        aria-label="Find Companions"
                         className="w-full lg:w-auto bg-navy dark:bg-sand text-white dark:text-navy px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-forest transition-all shadow-lg active:scale-95"
                     >
                         Find Companions
@@ -175,6 +178,7 @@ export function JourneyFeed() {
                     {(searchFrom || searchTo || (searchDate && !searchDate.isSame(dayjs(), 'day'))) && (
                         <button
                             onClick={handleReset}
+                            aria-label="Reset Search"
                             className="w-full lg:w-auto bg-gray-100 dark:bg-white/10 text-navy dark:text-offwhite px-8 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                         >
                             <ResetIcon sx={{ fontSize: 20 }} /> Reset
@@ -257,20 +261,22 @@ export function JourneyFeed() {
                                         <span className="opacity-30">•</span>
                                         <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/5">
                                             {journey.flightNumber && (
-                                                <img
-                                                    src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
-                                                    alt={journey.flightNumber}
-                                                    className="w-3.5 h-3.5 object-contain"
-                                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                                                />
+                                                <div className="relative w-3.5 h-3.5">
+                                                    <Image
+                                                        src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                        alt={`${journey.flightNumber} Airline Logo`}
+                                                        fill
+                                                        className="object-contain"
+                                                    />
+                                                </div>
                                             )}
                                             <span className="text-[10px] uppercase tracking-wider">{journey.flightNumber}</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
-                                            <img src={journey.user.avatar} alt={journey.user.name} className="w-full h-full object-cover" />
+                                        <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                            <Image src={journey.user.avatar} alt={`${journey.user.name}'s profile picture`} fill className="object-cover" />
                                         </div>
                                         <span className="text-xs font-bold text-gray-600 dark:text-gray-400 truncate">{journey.user.name}</span>
                                         <span className="text-[10px] font-black text-forest dark:text-sand opacity-60">
@@ -289,6 +295,7 @@ export function JourneyFeed() {
                                                 setEditingJourney(journey);
                                                 setIsEditModalOpen(true);
                                             }}
+                                            aria-label={`Edit journey from ${journey.from} to ${journey.to}`}
                                             sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } }}
                                         >
                                             <EditIcon sx={{ fontSize: 14, color: 'gray' }} />
@@ -300,6 +307,7 @@ export function JourneyFeed() {
                                                 setDeletingJourney(journey);
                                                 setIsDeleteModalOpen(true);
                                             }}
+                                            aria-label={`Delete journey from ${journey.from} to ${journey.to}`}
                                             sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' } }}
                                         >
                                             <DeleteIcon sx={{ fontSize: 14, color: '#ef4444' }} />

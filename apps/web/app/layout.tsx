@@ -5,8 +5,25 @@ import { Sora } from "next/font/google";
 const sora = Sora({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Journey-mate | Find Your Travel Companion",
-  description: "Connect with verified travel companions for a safer and more enjoyable journey.",
+  title: "Journey-mate | Modern Travel Companion Platform",
+  description: "Connect with verified travel companions, coordinate flights, and travel safer together. The world's largest community for assisted travel.",
+  openGraph: {
+    title: "Journey-mate | Travel Together, Safely",
+    description: "Find your perfect travel companion and never travel alone again.",
+    url: "https://journey-mate.com",
+    siteName: "Journey-mate",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Journey-mate | Travel Together, Safely",
+    description: "Connect with verified travel companions for your next flight.",
+    images: ["/og-image.png"],
+  },
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  robots: "index, follow",
 };
 
 import {

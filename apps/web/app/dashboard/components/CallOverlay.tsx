@@ -24,6 +24,7 @@ import {
 import { IAgoraRTCRemoteUser } from "agora-rtc-sdk-ng";
 import { useCalling } from "../../../context/CallingContext";
 import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
 
 export function CallOverlay() {
     const { user } = useUser();
@@ -113,6 +114,7 @@ export function CallOverlay() {
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <IconButton
                                     onClick={acceptCall}
+                                    aria-label="Accept call"
                                     sx={{
                                         bgcolor: '#22c55e',
                                         color: 'white',
@@ -125,6 +127,7 @@ export function CallOverlay() {
                                 </IconButton>
                                 <IconButton
                                     onClick={rejectCall}
+                                    aria-label="Reject call"
                                     sx={{
                                         bgcolor: '#ef4444',
                                         color: 'white',
@@ -152,6 +155,7 @@ export function CallOverlay() {
                             <Typography sx={{ opacity: 0.7, mb: 4 }}>Waiting for partner to join</Typography>
                             <IconButton
                                 onClick={endCall}
+                                aria-label="Cancel outgoing call"
                                 sx={{ bgcolor: '#ef4444', color: 'white', width: 64, height: 64, '&:hover': { bgcolor: '#dc2626' } }}
                             >
                                 <EndCallIcon />
@@ -183,12 +187,16 @@ export function CallOverlay() {
                                 }}>
                                     <div ref={localVideoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     {isVideoOff && (
-                                        <Avatar
-                                            src={user?.imageUrl}
-                                            sx={{ width: 120, height: 120, position: 'absolute', border: '4px solid rgba(255,255,255,0.1)' }}
-                                        >
-                                            {user?.fullName?.charAt(0)}
-                                        </Avatar>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="relative w-[120px] h-[120px] rounded-full overflow-hidden border-4 border-white/10">
+                                                <Image
+                                                    src={user?.imageUrl || ""}
+                                                    alt={`${user?.fullName}'s avatar`}
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            </div>
+                                        </div>
                                     )}
                                     <Box sx={{ position: 'absolute', bottom: 20, left: 20, bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)', px: 2, py: 0.5, borderRadius: '1rem', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
                                         <Typography variant="caption" sx={{ fontWeight: 800 }}>{user?.fullName || "You"}</Typography>
@@ -221,10 +229,10 @@ export function CallOverlay() {
                                 border: '1px solid rgba(255,255,255,0.1)',
                                 maxWidth: '100%'
                             }}>
-                                <IconButton onClick={toggleMute} sx={{ color: 'white', bgcolor: isMuted ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
+                                <IconButton onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"} sx={{ color: 'white', bgcolor: isMuted ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
                                     {isMuted ? <MicOffIcon /> : <MicIcon />}
                                 </IconButton>
-                                <IconButton onClick={toggleVideo} sx={{ color: 'white', bgcolor: isVideoOff ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
+                                <IconButton onClick={toggleVideo} aria-label={isVideoOff ? "Turn on video" : "Turn off video"} sx={{ color: 'white', bgcolor: isVideoOff ? '#ef4444' : 'rgba(255,255,255,0.1)' }}>
                                     {isVideoOff ? <VideoOffIcon /> : <VideoIcon />}
                                 </IconButton>
 
@@ -232,15 +240,15 @@ export function CallOverlay() {
                                     <>
                                         <IconButton
                                             onClick={toggleBlur}
+                                            aria-label={isBlurEnabled ? "Disable Background Blur" : "Enable Background Blur"}
                                             sx={{ color: 'white', bgcolor: isBlurEnabled ? '#3b82f6' : 'rgba(255,255,255,0.1)' }}
-                                            title="Toggle Background Blur"
                                         >
                                             <BlurIcon />
                                         </IconButton>
                                         <IconButton
                                             onClick={toggleBeauty}
+                                            aria-label={isBeautyEnabled ? "Disable Beauty Filter" : "Enable Beauty Filter"}
                                             sx={{ color: 'white', bgcolor: isBeautyEnabled ? '#d946ef' : 'rgba(255,255,255,0.1)' }}
-                                            title="Toggle Beauty Filter"
                                         >
                                             <BeautyIcon />
                                         </IconButton>

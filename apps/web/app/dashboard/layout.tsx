@@ -160,6 +160,7 @@ function NotificationBell() {
         <>
             <IconButton
                 onClick={handleClick}
+                aria-label={`${unreadCount} notifications`}
                 sx={{
                     color: 'navy.main',
                     bgcolor: 'gray.50',

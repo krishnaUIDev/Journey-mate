@@ -53,7 +53,7 @@ export function Header({
                     <Image src="/logo.png" alt="Logo" width={32} height={32} className="dark:brightness-200" />
                     <Typography variant="h6" sx={{ fontWeight: 900 }}>Journey-mate</Typography>
                 </div>
-                <IconButton onClick={toggleMobileMenu} color="inherit">
+                <IconButton onClick={toggleMobileMenu} color="inherit" aria-label="Close menu">
                     <CloseIcon />
                 </IconButton>
             </Box>
@@ -127,7 +127,12 @@ export function Header({
         <nav className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-8 py-4 bg-white/80 dark:bg-deep-navy/80 backdrop-blur-md shadow-sm border-b border-gray-100 dark:border-white/5">
             {/* Mobile Brand Link (Left) */}
             <div className="flex md:hidden items-center gap-3">
-                <IconButton onClick={toggleMobileMenu} color="inherit" sx={{ bgcolor: 'rgba(0,0,0,0.03)', '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
+                <IconButton
+                    onClick={toggleMobileMenu}
+                    color="inherit"
+                    aria-label="Open menu"
+                    sx={{ bgcolor: 'rgba(0,0,0,0.03)', '.dark &': { bgcolor: 'rgba(255,255,255,0.05)' } }}
+                >
                     <MenuIcon />
                 </IconButton>
                 <Link href="/" className="flex items-center gap-2">
