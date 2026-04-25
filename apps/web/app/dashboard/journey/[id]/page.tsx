@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useJourneys } from "../../../../context/JourneysContext";
 import dynamic from 'next/dynamic';
@@ -13,7 +13,12 @@ import {
     CircularProgress,
     AvatarGroup,
     Avatar,
-    Tooltip
+    Tooltip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
@@ -24,6 +29,10 @@ import {
     ChatBubbleOutlined as ChatIcon,
     Instagram as InstagramIcon,
     Edit as EditPenIcon,
+    Mic as MicIcon,
+    Stop as StopIcon,
+    Delete as TrashIcon,
+    PlayArrow as PlayIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -109,11 +118,22 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [mapLoaded, setMapLoaded] = useState(false);
     const [chatOpen, setChatOpen] = useState(false);
     const { user } = useUser();
-    const { checkRequestStatus, sendRequest, showNotification, setActiveJourneyId, setIsChatOpen } = useMessages();
+    const { checkRequestStatus, sendRequest, showNotification, setActiveJourneyId, setIsChatOpen, uploadChatAudio } = useMessages();
     const { supabase } = useMessages() as any; // Access supabase for extra subscription if needed, or better, use subscribeToRequests
     const [requestStatus, setRequestStatus] = useState<'pending' | 'accepted' | 'rejected' | 'none'>('none');
     const [requestLoading, setRequestLoading] = useState(true);
     const [acceptedParticipants, setAcceptedParticipants] = useState<any[]>([]);
+
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [requestMessage, setRequestMessage] = useState("");
+    const [submittingRequest, setSubmittingRequest] = useState(false);
+
+    // Audio Recording State
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+    const recorderRef = useRef<MediaRecorder | null>(null);
+    const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const fetchAcceptedParticipants = useCallback(async () => {
         if (!supabase) return;
@@ -143,6 +163,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             });
         }
     }, [user?.id, journey, isOwner]);
+
+    useEffect(() => {
+        return () => {
+            if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+            if (recorderRef.current && recorderRef.current.state === "recording") {
+                recorderRef.current.stop();
+            }
+        };
+    }, []);
 
     // Notification suppression logic
     useEffect(() => {
@@ -260,10 +289,72 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         }
     };
 
-    const handleRequestAction = async () => {
-        await sendRequest(id);
-        const newStatus = await checkRequestStatus(id);
-        setRequestStatus(newStatus);
+    const handleRequestAction = () => {
+        setIsRequestModalOpen(true);
+    };
+
+    const handleStartRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            const chunks: Blob[] = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                setAudioBlob(blob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorderRef.current = recorder;
+            recorder.start();
+            setIsRecording(true);
+            setRecordingDuration(0);
+
+            recordingIntervalRef.current = setInterval(() => {
+                setRecordingDuration(prev => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            showNotification("Could not access microphone.", 'error');
+        }
+    };
+
+    const handleStopRecording = () => {
+        if (recorderRef.current && recorderRef.current.state === "recording") {
+            recorderRef.current.stop();
+        }
+        setIsRecording(false);
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+
+    const handleSubmitRequest = async () => {
+        setSubmittingRequest(true);
+        try {
+            let audioUrl = "";
+            if (audioBlob) {
+                const uploadedUrl = await uploadChatAudio(audioBlob);
+                if (uploadedUrl) audioUrl = uploadedUrl;
+            }
+
+            const rating = (user?.unsafeMetadata?.rating as number) || 5.0;
+            const verified = (user?.unsafeMetadata?.verified as boolean) ?? true;
+
+            await sendRequest(id, requestMessage, rating, verified, audioUrl);
+            const newStatus = await checkRequestStatus(id);
+            setRequestStatus(newStatus);
+            setIsRequestModalOpen(false);
+            setRequestMessage("");
+            setAudioBlob(null);
+            setRecordingDuration(0);
+        } catch (err) {
+            console.error("Error submitting request:", err);
+        } finally {
+            setSubmittingRequest(false);
+        }
     };
 
     if (!journey) {
@@ -772,6 +863,155 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     setIsChatOpen(false);
                 }} />
             </Box>
+
+            {/* Request Join Modal */}
+            <Dialog
+                open={isRequestModalOpen}
+                onClose={() => !submittingRequest && setIsRequestModalOpen(false)}
+                slotProps={{
+                    paper: {
+                        sx: {
+                            borderRadius: '2rem',
+                            p: 1,
+                            width: '100%',
+                            maxWidth: 400,
+                            bgcolor: 'white',
+                            '.dark &': { bgcolor: '#18181b', backgroundImage: 'none' }
+                        }
+                    }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 900, pb: 1 }}>Request to Pair</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 3, opacity: 0.7 }}>
+                        Tell the journey owner why you'd like to join their trip and any assistance you can provide or require.
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        placeholder="e.g. I'm also traveling with heavy luggage and could use a hand, or I'm happy to help navigate!"
+                        value={requestMessage}
+                        onChange={(e) => setRequestMessage(e.target.value)}
+                        variant="outlined"
+                        slotProps={{
+                            input: {
+                                sx: {
+                                    borderRadius: '1.25rem',
+                                    bgcolor: 'rgba(0,0,0,0.02)',
+                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' }
+                                }
+                            }
+                        }}
+                    />
+
+                    {/* Audio Recorder UI */}
+                    <Box sx={{
+                        mt: 3,
+                        p: 2,
+                        borderRadius: '1.25rem',
+                        border: '1px solid rgba(0,0,0,0.05)',
+                        bgcolor: 'rgba(0,0,0,0.01)',
+                        '.dark &': {
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            bgcolor: 'rgba(255,255,255,0.01)'
+                        }
+                    }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box sx={{
+                                    width: 40,
+                                    height: 40,
+                                    borderRadius: '50%',
+                                    bgcolor: isRecording ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: isRecording ? '#ef4444' : '#10B981',
+                                    position: 'relative'
+                                }}>
+                                    {isRecording && (
+                                        <Box sx={{
+                                            position: 'absolute',
+                                            inset: -4,
+                                            borderRadius: '50%',
+                                            border: '2px solid #ef4444',
+                                            animation: 'pulse 1.5s infinite ease-in-out',
+                                            '@keyframes pulse': {
+                                                '0%': { transform: 'scale(0.8)', opacity: 0.8 },
+                                                '100%': { transform: 'scale(1.2)', opacity: 0 }
+                                            }
+                                        }} />
+                                    )}
+                                    {isRecording ? <StopIcon sx={{ fontSize: 20 }} /> : <MicIcon sx={{ fontSize: 20 }} />}
+                                </Box>
+                                <Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                                        {isRecording ? "Recording..." : audioBlob ? "Voice Greeting recorded" : "Voice Greeting"}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                                        {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}` : audioBlob ? "Click to remove and re-record" : "Attach a 10s voice note to stand out"}
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                {audioBlob && !isRecording && (
+                                    <Tooltip title="Remove Recording">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setAudioBlob(null)}
+                                            sx={{ color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.05)', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
+                                        >
+                                            <TrashIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+                                <Button
+                                    size="small"
+                                    variant={isRecording ? "contained" : "outlined"}
+                                    color={isRecording ? "error" : "primary"}
+                                    onClick={isRecording ? handleStopRecording : handleStartRecording}
+                                    disabled={submittingRequest || (!isRecording && audioBlob !== null)}
+                                    sx={{
+                                        borderRadius: '0.75rem',
+                                        textTransform: 'none',
+                                        fontWeight: 800,
+                                        px: 2,
+                                        ...(isRecording ? { bgcolor: '#ef4444' } : { borderColor: '#10B981', color: '#10B981', '&:hover': { borderColor: '#059669', bgcolor: 'rgba(16, 185, 129, 0.05)' } })
+                                    }}
+                                >
+                                    {isRecording ? "Stop" : audioBlob ? "Recorded" : "Record"}
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 1 }}>
+                    <Button
+                        onClick={() => setIsRequestModalOpen(false)}
+                        disabled={submittingRequest}
+                        sx={{ borderRadius: '1rem', fontWeight: 800, textTransform: 'none', color: 'text.secondary' }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleSubmitRequest}
+                        disabled={submittingRequest}
+                        variant="contained"
+                        sx={{
+                            borderRadius: '1rem',
+                            fontWeight: 900,
+                            textTransform: 'none',
+                            px: 4,
+                            bgcolor: '#10B981',
+                            '&:hover': { bgcolor: '#059669' }
+                        }}
+                    >
+                        {submittingRequest ? <CircularProgress size={20} color="inherit" /> : "Send Request"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </div>
     );
 }

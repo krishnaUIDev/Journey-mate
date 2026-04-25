@@ -12,6 +12,15 @@ You can start editing the page by modifying `src/app/page.tsx`. The page auto-up
 
 To create [API routes](https://nextjs.org/docs/app/building-your-application/routing/router-handlers) add an `api/` directory to the `app/` directory with a `route.ts` file. For individual endpoints, create a subfolder in the `api` directory, like `api/hello/route.ts` would map to [http://localhost:3001/api/hello](http://localhost:3001/api/hello).
 
+## Development Tips
+
+### Bypassing Authentication
+To bypass Clerk authentication during local development:
+1. Add `NEXT_PUBLIC_ALLOW_AUTH_BYPASS=true` to your `apps/web/.env.local`.
+2. Restart the dev server.
+3. Protected routes like `/dashboard` will now be accessible even without logging in.
+   *Note: Server-side `auth()` will still return null, but redirection is disabled.*
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

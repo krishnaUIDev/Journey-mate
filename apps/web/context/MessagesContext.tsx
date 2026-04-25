@@ -33,6 +33,10 @@ export interface JourneyRequest {
     requester_name: string;
     requester_avatar: string;
     status: 'pending' | 'accepted' | 'rejected' | 'none';
+    message?: string;
+    requester_rating?: number;
+    requester_verified?: boolean;
+    requester_audio_url?: string;
     created_at: string;
 }
 
@@ -54,7 +58,7 @@ interface MessagesContextType {
     uploadChatAudio: (file: File | Blob) => Promise<string | null>;
     subscribeToJourney: (journeyId: string) => () => void;
     // New Request Flow
-    sendRequest: (journeyId: string) => Promise<void>;
+    sendRequest: (journeyId: string, message?: string, rating?: number, isVerified?: boolean, audioUrl?: string) => Promise<void>;
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
     updateRequestStatus: (requestId: string, status: 'accepted' | 'rejected') => Promise<void>;
     checkRequestStatus: (journeyId: string) => Promise<'pending' | 'accepted' | 'rejected' | 'none'>;
@@ -494,7 +498,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const sendRequest = async (journeyId: string) => {
+    const sendRequest = async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '') => {
         if (!user || !supabase) return;
         try {
             const { error } = await (supabase as any)
@@ -504,7 +508,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     requester_id: user.id,
                     requester_name: user.fullName || user.username || "Anonymous",
                     requester_avatar: user.imageUrl,
-                    status: 'pending'
+                    status: 'pending',
+                    message: message || '',
+                    requester_rating: rating || 5.0,
+                    requester_verified: isVerified ?? true,
+                    requester_audio_url: audioUrl || null
                 }]);
             if (error) throw error;
             showNotification("Your request has been sent! We'll notify you once accepted.", 'success');

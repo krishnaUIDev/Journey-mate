@@ -73,7 +73,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         deleteMessage,
         typingUsers,
         setTypingStatus,
-        getRequests
+        getRequests,
+        updateRequestStatus,
+        myRequests
     } = useMessages();
     const { supabase } = useMessages() as any;
     const { user } = useUser();
@@ -109,6 +111,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const currentTypingUsers = typingUsers[journeyId] || [];
     const journey = journeys.find(j => j.id === journeyId);
     const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
+    const myStatus = myRequests[journeyId] || 'none';
+    const isAccepted = isOwner || myStatus === 'accepted';
 
     useEffect(() => {
         if (journey) {
@@ -316,6 +320,48 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         }
     };
 
+    if (!isAccepted && !loading) {
+        return (
+            <Box sx={{
+                width: '100%',
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 4,
+                textAlign: 'center',
+                bgcolor: 'white',
+                '.dark &': { bgcolor: '#09090b', color: 'white' },
+                borderRadius: '1.5rem',
+                gap: 2
+            }}>
+                <Box sx={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    bgcolor: 'rgba(239, 68, 68, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ef4444',
+                    mb: 1
+                }}>
+                    <CloseIcon sx={{ fontSize: 32 }} />
+                </Box>
+                <Typography variant="h6" sx={{ fontWeight: 900 }}>Access Restricted</Typography>
+                <Typography variant="body2" sx={{ opacity: 0.7, maxWidth: 280 }}>
+                    You must be an accepted participant or the owner to view this discussion.
+                </Typography>
+                {onClose && (
+                    <Button onClick={onClose} variant="outlined" sx={{ mt: 2, borderRadius: '1rem', borderColor: 'rgba(0,0,0,0.1)', color: 'inherit' }}>
+                        Close Discussion
+                    </Button>
+                )}
+            </Box>
+        );
+    }
+
     return (
         <Box
             sx={{
@@ -352,7 +398,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                         sx={{
                             width: { xs: 36, sm: 32 },
                             height: { xs: 36, sm: 32 },
-                            bgcolor: 'forest.main',
+                            bgcolor: '#10B981',
                             fontSize: '14px',
                             fontWeight: 900
                         }}
@@ -362,7 +408,7 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                     <Box>
                         <Typography variant="subtitle2" sx={{
                             fontWeight: 900,
-                            color: 'navy.main',
+                            color: '#1e293b',
                             fontSize: '0.9rem',
                             letterSpacing: '-0.02em',
                             lineHeight: 1,
@@ -886,8 +932,8 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 Group Settings
                             </Typography>
 
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Box sx={{ position: 'relative', width: 80, height: 80, mx: 'auto', mb: 1 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                <Box sx={{ position: 'relative', width: 80, height: 80, mx: 'auto', mb: 0.5 }}>
                                     <Avatar
                                         src={stagedGroupAvatar || journey?.groupAvatar}
                                         sx={{
@@ -903,12 +949,13 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                             position: 'absolute',
                                             bottom: -4,
                                             right: -4,
-                                            bgcolor: 'forest.main',
+                                            bgcolor: '#10B981',
                                             color: 'white',
-                                            '&:hover': { bgcolor: 'navy.main' },
+                                            '&:hover': { bgcolor: '#059669' },
                                             width: 32,
                                             height: 32,
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                            zIndex: 10
                                         }}
                                     >
                                         <CameraIcon sx={{ fontSize: 16 }} />
@@ -971,12 +1018,54 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                         borderRadius: '1rem',
                                         py: 1,
                                         fontWeight: 900,
-                                        bgcolor: 'navy',
+                                        bgcolor: '#1e293b',
                                         '&:hover': { bgcolor: 'black' }
                                     }}
                                 >
                                     {updatingGroup ? <CircularProgress size={20} color="inherit" /> : "Save Changes"}
                                 </Button>
+
+                                <Divider sx={{ my: 0.5, opacity: 0.1 }} />
+
+                                <Typography variant="caption" sx={{
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    color: 'text.secondary',
+                                    letterSpacing: '0.1em',
+                                    mb: 0.5
+                                }}>
+                                    Participants ({participants.length})
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: 200, overflowY: 'auto' }}>
+                                    {participants.length === 0 ? (
+                                        <Typography variant="caption" sx={{ opacity: 0.5, fontStyle: 'italic' }}>
+                                            No other participants yet.
+                                        </Typography>
+                                    ) : (
+                                        participants.map((p) => (
+                                            <Box key={p.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Avatar src={p.requester_avatar} sx={{ width: 24, height: 24 }} />
+                                                    <Typography variant="caption" sx={{ fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {p.requester_name}
+                                                    </Typography>
+                                                </Box>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={async () => {
+                                                        await updateRequestStatus(p.id, 'rejected');
+                                                    }}
+                                                    sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                                                    aria-label={`Remove ${p.requester_name}`}
+                                                >
+                                                    <DeleteIcon sx={{ fontSize: 16 }} />
+                                                </IconButton>
+                                            </Box>
+                                        ))
+                                    )}
+                                </Box>
                             </Box>
                         </Popover>
 

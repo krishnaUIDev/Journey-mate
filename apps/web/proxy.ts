@@ -5,7 +5,15 @@ const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)"
 
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.CLERK_PUBLISHABLE_KEY;
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+const allowBypass = process.env.NEXT_PUBLIC_ALLOW_AUTH_BYPASS === 'true';
+
 export default clerkMiddleware(async (auth, req) => {
+    if (isDevelopment && allowBypass) {
+        console.log("⚠️ Auth bypass enabled in development");
+        return;
+    }
+
     if (isProtectedRoute(req)) {
         const { userId } = await auth();
         if (!userId) {
