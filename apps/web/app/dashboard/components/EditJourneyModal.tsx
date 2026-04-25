@@ -17,10 +17,11 @@ import {
     FormControl,
     InputLabel
 } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import { Close as CloseIcon, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { AirportAutocomplete } from "./AirportAutocomplete";
+import { AirlineSearchBox } from "./AirlineSearchBox";
 import { JourneyPost, useJourneys } from "../../../context/JourneysContext";
 
 interface EditJourneyModalProps {
@@ -37,9 +38,13 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
     const [to, setTo] = useState(journey.to);
     const [date, setDate] = useState<Dayjs | null>(dayjs(journey.date));
     const [flightNumber, setFlightNumber] = useState(journey.flightNumber || "");
+    const [airlineName, setAirlineName] = useState(journey.airlineName || "");
+    const [airlineIata, setAirlineIata] = useState(journey.airlineIata || "");
+    const [layovers, setLayovers] = useState<string[]>(journey.layovers || []);
     const [description, setDescription] = useState(journey.description);
     const [contactInfo, setContactInfo] = useState(journey.contactInfo || "");
     const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>(journey.status);
+    const [routeCoords, setRouteCoords] = useState<Record<string, [number, number]>>(journey.routeData || {});
 
     useEffect(() => {
         if (open) {
@@ -47,9 +52,13 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
             setTo(journey.to);
             setDate(dayjs(journey.date));
             setFlightNumber(journey.flightNumber || "");
+            setAirlineName(journey.airlineName || "");
+            setAirlineIata(journey.airlineIata || "");
+            setLayovers(journey.layovers || []);
             setDescription(journey.description);
             setContactInfo(journey.contactInfo || "");
             setStatus(journey.status);
+            setRouteCoords(journey.routeData || {});
         }
     }, [open, journey]);
 
@@ -66,9 +75,13 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                 to,
                 date: date.format('YYYY-MM-DD'),
                 flightNumber,
+                airlineName,
+                airlineIata,
+                layovers: layovers.map(l => l.split(' (')[1]?.replace(')', '') || l),
                 description,
                 contactInfo,
                 status,
+                routeData: routeCoords,
             });
             onClose();
         } catch (err) {
@@ -112,13 +125,25 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                             label="From"
                             placeholder="Origin"
                             value={from}
-                            onChange={setFrom}
+                            onChange={(val, coords) => {
+                                setFrom(val);
+                                if (coords) {
+                                    const code = val.split(' (')[1]?.replace(')', '') || val;
+                                    setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                }
+                            }}
                         />
                         <AirportAutocomplete
                             label="To"
                             placeholder="Destination"
                             value={to}
-                            onChange={setTo}
+                            onChange={(val, coords) => {
+                                setTo(val);
+                                if (coords) {
+                                    const code = val.split(' (')[1]?.replace(')', '') || val;
+                                    setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                }
+                            }}
                         />
                     </Box>
 
@@ -174,6 +199,99 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                                 <MenuItem value="completed">Completed</MenuItem>
                                 <MenuItem value="cancelled">Cancelled</MenuItem>
                             </Select>
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ flex: 1 }}>
+                            <AirlineSearchBox
+                                label="Airline Name"
+                                placeholder="e.g. Emirates"
+                                value={airlineName}
+                                onChange={(name, iata) => {
+                                    setAirlineName(name);
+                                    if (iata) setAirlineIata(iata);
+                                }}
+                            />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                                Flight Number
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                variant="standard"
+                                placeholder="e.g. EK501"
+                                value={flightNumber}
+                                onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
+                                slotProps={{
+                                    input: {
+                                        disableUnderline: true,
+                                        sx: {
+                                            px: 3, py: 1.5,
+                                            bgcolor: 'rgba(0,0,0,0.03)',
+                                            '.dark &': { bgcolor: 'rgba(255,255,255,0.03)', color: 'white' },
+                                            borderRadius: '1rem',
+                                            fontWeight: 700
+                                        }
+                                    }
+                                }}
+                            />
+                        </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                            Layovers (Optional)
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {layovers.map((l, idx) => (
+                                <Box key={idx} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                    <Box sx={{ flex: 1 }}>
+                                        <AirportAutocomplete
+                                            label=""
+                                            placeholder={`Layover ${idx + 1}`}
+                                            value={l}
+                                            onChange={(val, coords) => {
+                                                const newL = [...layovers];
+                                                newL[idx] = val;
+                                                setLayovers(newL);
+                                                if (coords) {
+                                                    const code = val.split(' (')[1]?.replace(')', '') || val;
+                                                    setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setLayovers(layovers.filter((_, i) => i !== idx))}
+                                        sx={{ mt: 2, color: 'error.main' }}
+                                    >
+                                        <DeleteIcon sx={{ fontSize: 18 }} />
+                                    </IconButton>
+                                </Box>
+                            ))}
+                            <Button
+                                startIcon={<AddIcon />}
+                                disabled={layovers.length > 0 && !layovers[layovers.length - 1]}
+                                onClick={() => setLayovers([...layovers, ""])}
+                                size="small"
+                                sx={{
+                                    alignSelf: 'flex-start',
+                                    textTransform: 'none',
+                                    fontWeight: 800,
+                                    fontSize: '11px',
+                                    color: 'forest.main',
+                                    bgcolor: 'rgba(34, 197, 94, 0.05)',
+                                    borderRadius: '1rem',
+                                    px: 2,
+                                    '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' },
+                                    '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.03)', color: 'text.disabled' }
+                                }}
+                            >
+                                Add Layover
+                            </Button>
                         </Box>
                     </Box>
 

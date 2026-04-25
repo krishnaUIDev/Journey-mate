@@ -246,12 +246,12 @@ export function JourneyFeed() {
                                                 </span>
                                             )}
                                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${journey.status === 'ongoing'
-                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
-                                                    : journey.status === 'cancelled'
-                                                        ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
-                                                        : isPast
-                                                            ? 'bg-slate-100 dark:bg-white/10 text-slate-600'
-                                                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'
+                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+                                                : journey.status === 'cancelled'
+                                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+                                                    : isPast
+                                                        ? 'bg-slate-100 dark:bg-white/10 text-slate-600'
+                                                        : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'
                                                 }`}>
                                                 {journey.status === 'ongoing' ? 'Ongoing' : journey.status === 'cancelled' ? 'Cancelled' : isPast ? 'Past' : 'NEW'}
                                             </span>
@@ -269,21 +269,33 @@ export function JourneyFeed() {
                                     </div>
 
                                     <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2">
-                                        <span>{dayjs(journey.date).format('MMM DD, YYYY')}</span>
+                                        <span>{dayjs(journey.date).format('MMM DD')}</span>
                                         <span className="opacity-50">•</span>
+                                        {journey.layovers && journey.layovers.length > 0 && (
+                                            <>
+                                                <span className="text-sand-dark dark:text-sand font-black text-[9px] uppercase">
+                                                    {journey.layovers.length === 1
+                                                        ? `via ${journey.layovers[0]}`
+                                                        : `${journey.layovers.length} stops`}
+                                                </span>
+                                                <span className="opacity-50">•</span>
+                                            </>
+                                        )}
                                         <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/5">
-                                            {journey.flightNumber && (
+                                            {(journey.airlineIata || journey.flightNumber) && (
                                                 <div className="relative w-3.5 h-3.5">
                                                     <Image
-                                                        src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
-                                                        alt={`${journey.flightNumber} Airline Logo`}
+                                                        src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                        alt={`${journey.airlineName || 'Airline'} Logo`}
                                                         fill
                                                         className="object-contain"
                                                         sizes="14px"
                                                     />
                                                 </div>
                                             )}
-                                            <span className="text-[10px] uppercase tracking-wider">{journey.flightNumber}</span>
+                                            <span className="text-[10px] uppercase tracking-wider truncate max-w-[80px]">
+                                                {journey.airlineName || journey.flightNumber}
+                                            </span>
                                         </div>
                                     </div>
 

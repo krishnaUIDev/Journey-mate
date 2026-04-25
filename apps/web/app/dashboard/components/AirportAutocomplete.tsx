@@ -19,11 +19,15 @@ interface AirportApiResponse {
     city_name: string;
     country_name: string;
     type: string;
+    coordinates?: {
+        lat: number;
+        lon: number;
+    };
 }
 
 interface AirportAutocompleteProps {
     value: string;
-    onChange: (value: string) => void;
+    onChange: (value: string, coords?: [number, number]) => void;
     placeholder: string;
     label: string;
     className?: string;
@@ -118,7 +122,11 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                 onChange={(_, newValue) => {
                     if (newValue && typeof newValue !== 'string') {
                         setSelectedOption(newValue);
-                        onChange(`${newValue.city_name || newValue.name} (${newValue.code})`);
+                        const displayVal = `${newValue.city_name || newValue.name} (${newValue.code})`;
+                        const coords: [number, number] | undefined = newValue.coordinates
+                            ? [newValue.coordinates.lat, newValue.coordinates.lon]
+                            : undefined;
+                        onChange(displayVal, coords);
                     } else if (!newValue) {
                         setSelectedOption(null);
                         onChange("");

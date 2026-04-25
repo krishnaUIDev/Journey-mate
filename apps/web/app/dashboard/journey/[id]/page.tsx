@@ -52,66 +52,47 @@ const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
 
 // Simple coordinate lookup for demo
 const airportCoords: Record<string, [number, number]> = {
-    // Global Hubs
+    'DEL': [28.5562, 77.1000],
+    'DXB': [25.2532, 55.3657],
     'LHR': [51.4700, -0.4543],
     'JFK': [40.6413, -73.7781],
-    'DXB': [25.2532, 55.3657],
     'SIN': [1.3644, 103.9915],
     'SFO': [37.6213, -122.3790],
     'SYD': [-33.9399, 151.1753],
-    'CDG': [49.0097, 2.5479],
-    'HND': [35.5494, 139.7798],
-    'FRA': [50.0379, 8.5622],
-    'AMS': [52.3105, 4.7683],
-    'YYZ': [43.6777, -79.6248],
-    'LAX': [33.9416, -118.4085],
-    'EWR': [40.6895, -74.1745],
-    'LGA': [40.7769, -73.8740],
-    'JAX': [30.4941, -81.6879],
-    'DOH': [25.2731, 51.6081],
-
-    // India Hubs
-    'DEL': [28.5562, 77.1000],
-    'BOM': [19.0896, 72.8656],
-    'MAA': [12.9941, 80.1709],
-    'BLR': [13.1986, 77.7066],
-    'HYD': [17.2403, 78.4294],
-    'CCU': [22.6547, 88.4467],
-    'PNQ': [18.5826, 73.9197],
-    'AMD': [23.0734, 72.6347],
-    'COK': [10.1520, 76.3920],
-    'TRV': [8.4821, 76.9200],
+    'HYD': [17.2403, 78.4294]
 };
 
-const getCoords = (name: string): [number, number] => {
+const getCoords = (name: string, routeData?: Record<string, [number, number]>): [number, number] => {
     const DEFAULT_CENTER: [number, number] = [39.8283, -98.5795]; // Center of US
     if (!name) return DEFAULT_CENTER;
 
-    // 1. Try to extract IATA code from parentheses like "Jacksonville (JAX)"
     const codeMatch = name.match(/\(([A-Z]{3})\)/);
-    const code = codeMatch ? codeMatch[1] : null;
-    if (code && airportCoords[code]) {
-        return airportCoords[code] as [number, number];
+    const code = (codeMatch ? codeMatch[1] : name.toUpperCase().trim()) || "";
+
+    // 1. Try routeData from DB first (Dynamic)
+    if (routeData && code && routeData[code]) return routeData[code];
+
+    // 2. Try minimal fallbacks
+    if (code && airportCoords[code]) return airportCoords[code];
+
+    // 3. Common city matches
+    const cityMatches: Record<string, string> = {
+        'SAN FRANCISCO': 'SFO',
+        'LONDON': 'LHR',
+        'DUBAI': 'DXB',
+        'SINGAPORE': 'SIN',
+        'HYDERABAD': 'HYD',
+        'DELHI': 'DEL',
+        'NEW YORK': 'JFK'
+    };
+
+    const upperName = name.toUpperCase();
+    for (const [city, cityCode] of Object.entries(cityMatches)) {
+        if (upperName.includes(city) && airportCoords[cityCode]) {
+            return airportCoords[cityCode];
+        }
     }
 
-    // 2. Try direct lookup (case insensitive)
-    const upperName = name.toUpperCase().trim();
-    if (airportCoords[upperName]) return airportCoords[upperName] as [number, number];
-
-    // 3. Fallback common names
-    if (upperName.includes('NEW YORK')) return airportCoords['JFK'] as [number, number];
-    if (upperName.includes('JACKSONVILLE')) return airportCoords['JAX'] as [number, number];
-    if (upperName.includes('CHENNAI')) return airportCoords['MAA'] as [number, number];
-    if (upperName.includes('DELHI')) return airportCoords['DEL'] as [number, number];
-    if (upperName.includes('MUMBAI')) return airportCoords['BOM'] as [number, number];
-    if (upperName.includes('BANGALORE')) return airportCoords['BLR'] as [number, number];
-    if (upperName.includes('HYDERABAD')) return airportCoords['HYD'] as [number, number];
-
-    // 4. Final attempt with cleaned name
-    const cleaned = upperName.replace(/[^A-Z]/g, '');
-    if (airportCoords[cleaned]) return airportCoords[cleaned] as [number, number];
-
-    // 5. Default to center of US
     return DEFAULT_CENTER;
 }
 
@@ -444,8 +425,27 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const originCoords = getCoords(journey.from);
-    const destCoords = getCoords(journey.to);
+    const originCoords = getCoords(journey.from, journey.routeData);
+    const destCoords = getCoords(journey.to, journey.routeData);
+
+    const mapMarkers: any[] = [
+        { position: originCoords, label: journey.from, type: 'origin' },
+        { position: destCoords, label: journey.to, type: 'destination' }
+    ];
+
+    const mapRoute: [number, number][] = [originCoords];
+
+    // Add all layovers
+    if (journey.layovers && Array.isArray(journey.layovers)) {
+        journey.layovers.forEach((l: string, idx: number) => {
+            if (!l) return;
+            const coords = getCoords(l, journey.routeData);
+            mapMarkers.push({ position: coords, label: l, type: 'layover' });
+            mapRoute.push(coords);
+        });
+    }
+
+    mapRoute.push(destCoords);
 
     return (
         <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden font-inter">
@@ -455,11 +455,8 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     <JourneyMap
                         center={[(originCoords[0] + destCoords[0]) / 2, (originCoords[1] + destCoords[1]) / 2]}
                         zoom={3}
-                        markers={[
-                            { position: originCoords, label: journey.from, type: 'origin' },
-                            { position: destCoords, label: journey.to, type: 'destination' }
-                        ]}
-                        route={[originCoords, destCoords]}
+                        markers={mapMarkers}
+                        route={mapRoute}
                         isAnimated={true}
                     />
                 </div>
@@ -524,12 +521,14 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     <div className={`transition-all duration-1000 ${mapLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
                         <div className="flex items-center gap-4 mb-4">
                             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl px-8 py-5 rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl flex flex-col items-center">
-                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mb-1">FLIGHT</span>
+                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mb-1">
+                                    {journey.airlineName || 'FLIGHT'}
+                                </span>
                                 <div className="flex items-center gap-3">
                                     {journey.flightNumber && (
                                         <div className="relative w-8 h-8">
                                             <Image
-                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || 'AA'}.png`}
                                                 alt={`${journey.flightNumber} logo`}
                                                 fill
                                                 className="object-contain"
@@ -540,6 +539,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     )}
                                     <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
                                 </div>
+                                {journey.layovers && journey.layovers.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                                        {journey.layovers.map((l: string, i: number) => (
+                                            <div key={i} className="text-[9px] font-bold text-sand-dark dark:text-sand/80 px-2.5 py-1 bg-sand/10 dark:bg-sand/5 rounded-lg border border-sand/10">
+                                                LAYOVER: {l}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -562,13 +570,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         {/* Hero Info - Desktop Version (Visible only on lg) */}
                         <div className="hidden lg:flex items-center gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-3 rounded-2xl border border-slate-100 dark:border-slate-700 inline-flex flex-col items-center">
-                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">FLIGHT</span>
+                                <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">
+                                    {journey.airlineName || 'FLIGHT'}
+                                </span>
                                 <div className="flex items-center gap-3">
-                                    {journey.flightNumber && (
+                                    {(journey.airlineIata || journey.flightNumber) && (
                                         <div className="relative w-6 h-6">
                                             <Image
-                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || ''}.png`}
-                                                alt={`${journey.flightNumber} logo`}
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                alt={`${journey.airlineName || 'Airline'} logo`}
                                                 fill
                                                 className="object-contain"
                                                 sizes="24px"
@@ -579,6 +589,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     <span className="text-xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
                                 </div>
                             </div>
+                            {journey.layovers && journey.layovers.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {journey.layovers.map((l: string, i: number) => (
+                                        <div key={i} className="bg-amber-50/50 dark:bg-amber-900/10 px-4 py-2 rounded-2xl border border-amber-100/50 dark:border-amber-900/20">
+                                            <span className="text-[9px] font-black text-amber-600/80 dark:text-amber-500/80 uppercase block">LAYOVER</span>
+                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">{l}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Header Info in Sheet */}

@@ -23,6 +23,10 @@ export interface JourneyPost {
     groupName?: string;
     groupAvatar?: string;
     status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+    airlineName?: string;
+    airlineIata?: string;
+    layovers: string[];
+    routeData?: Record<string, [number, number]>;
 }
 
 interface JourneyRow {
@@ -42,6 +46,10 @@ interface JourneyRow {
     group_name: string | null;
     group_avatar: string | null;
     status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+    airline_name: string | null;
+    airline_iata: string | null;
+    layovers: string[] | null;
+    route_data: Record<string, [number, number]> | null;
     created_at: string;
 }
 
@@ -92,6 +100,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 groupName: item.group_name ?? undefined,
                 groupAvatar: item.group_avatar ?? undefined,
                 status: item.status || 'upcoming',
+                airlineName: item.airline_name ?? undefined,
+                airlineIata: item.airline_iata ?? undefined,
+                layovers: item.layovers || [],
+                routeData: item.route_data ?? undefined,
                 user: {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
@@ -137,6 +149,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         groupName: newRecord.group_name,
                         groupAvatar: newRecord.group_avatar,
                         status: newRecord.status || 'upcoming',
+                        airlineName: newRecord.airline_name,
+                        airlineIata: newRecord.airline_iata,
+                        layovers: newRecord.layovers || [],
+                        routeData: newRecord.route_data,
                         user: {
                             name: newRecord.user_name,
                             avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
@@ -161,6 +177,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         groupName: newRecord.group_name,
                         groupAvatar: newRecord.group_avatar,
                         status: newRecord.status || j.status,
+                        airlineName: newRecord.airline_name,
+                        airlineIata: newRecord.airline_iata,
+                        layovers: newRecord.layovers || [],
+                        routeData: newRecord.route_data,
                         user: {
                             ...j.user,
                             name: newRecord.user_name,
@@ -203,7 +223,11 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     user_rating: newJourney.user.rating,
                     user_verified: newJourney.user.verified,
                     tags: newJourney.tags,
-                    status: newJourney.status || 'upcoming'
+                    status: newJourney.status || 'upcoming',
+                    airline_name: newJourney.airlineName,
+                    airline_iata: newJourney.airlineIata,
+                    layovers: newJourney.layovers,
+                    route_data: newJourney.routeData
                 }])
                 .select()
                 .single();
@@ -223,6 +247,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     description: row.description || "",
                     tags: row.tags || [],
                     status: row.status || 'upcoming',
+                    airlineName: row.airline_name ?? undefined,
+                    airlineIata: row.airline_iata ?? undefined,
+                    layovers: row.layovers || [],
+                    routeData: row.route_data ?? undefined,
                     user: {
                         name: row.user_name,
                         avatar: row.user_avatar || "",
@@ -271,6 +299,10 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (updates.groupName) mappedUpdates.group_name = updates.groupName;
             if (updates.groupAvatar) mappedUpdates.group_avatar = updates.groupAvatar;
             if (updates.status) mappedUpdates.status = updates.status;
+            if (updates.airlineName) mappedUpdates.airline_name = updates.airlineName;
+            if (updates.airlineIata) mappedUpdates.airline_iata = updates.airlineIata;
+            if (updates.layovers) mappedUpdates.layovers = updates.layovers;
+            if (updates.routeData) mappedUpdates.route_data = updates.routeData;
 
             const { error: supabaseError } = await (supabase as any)
                 .from('journeys')

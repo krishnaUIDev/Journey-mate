@@ -29,18 +29,25 @@ interface JourneyMapProps {
   markers?: Array<{
     position: [number, number];
     label: string;
-    type?: 'origin' | 'destination';
+    type?: 'origin' | 'destination' | 'layover';
   }>;
   route?: [number, number][];
   isAnimated?: boolean;
 }
 
-// Custom icons for Origin and Destination
+// Custom icons for Origin, Destination, and Layover
 const createOriginIcon = () => L.divIcon({
   className: 'custom-origin-icon',
   html: `<div class="origin-dot-outer"><div class="origin-dot-inner"></div></div>`,
   iconSize: [20, 20],
   iconAnchor: [10, 10],
+});
+
+const createLayoverIcon = () => L.divIcon({
+  className: 'custom-layover-icon',
+  html: `<div class="layover-dot-outer"><div class="layover-dot-inner"></div></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 });
 
 const createDestinationIcon = () => L.divIcon({
@@ -149,10 +156,20 @@ export default function JourneyMap({
 }: JourneyMapProps) {
   const curvePoints = useMemo(() => {
     if (!route || route.length < 2) return [];
-    const start = route[0];
-    const end = route[1];
-    if (!start || !end) return [];
-    return getGeodesicPoints(start, end);
+
+    // Support multiple segments (e.g. Origin -> Layover -> Destination)
+    const allSegments: [number, number][] = [];
+    for (let i = 0; i < route.length - 1; i++) {
+      const start = route[i];
+      const end = route[i + 1];
+      if (start && end) {
+        const segmentPoints = getGeodesicPoints(start, end);
+        // Avoid duplicating the point between segments
+        if (i > 0) segmentPoints.shift();
+        allSegments.push(...segmentPoints);
+      }
+    }
+    return allSegments;
   }, [route]);
 
   const bounds = useMemo(() => {
@@ -246,6 +263,24 @@ export default function JourneyMap({
           box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
         }
 
+        .layover-dot-outer {
+          width: 16px;
+          height: 16px;
+          background: rgba(245, 158, 11, 0.15);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .layover-dot-inner {
+          width: 6px;
+          height: 6px;
+          background: #f59e0b;
+          border-radius: 50%;
+          box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+        }
+
         .destination-pin {
           display: flex;
           flex-direction: column;
@@ -274,6 +309,11 @@ export default function JourneyMap({
         .custom-tooltip.origin {
           color: #0369a1;
           border-left: 3px solid #0ea5e9;
+        }
+        .custom-tooltip.layover {
+          color: #b45309;
+          border-left: 3px solid #f59e0b;
+          font-weight: 700;
         }
         .custom-tooltip.destination {
           color: #0c4a6e;
@@ -308,26 +348,24 @@ export default function JourneyMap({
         {markers.map((marker, index) => {
           // Extract city name (shorter version of the label)
           const cityName = marker.label.split(' (')[0] || marker.label;
-          const icon = marker.type === 'origin' ? createOriginIcon() : createDestinationIcon();
-
           return (
             <Marker
               key={index}
               position={marker.position}
-              icon={icon}
+              icon={marker.type === 'origin' ? createOriginIcon() : marker.type === 'layover' ? createLayoverIcon() : createDestinationIcon()}
               title={marker.label}
               alt={`Location marker for ${marker.label}`}
             >
               <Tooltip
                 permanent
                 direction="top"
-                offset={marker.type === 'origin' ? [0, -10] : [0, -40]}
+                offset={marker.type === 'origin' ? [0, -10] : marker.type === 'layover' ? [0, -8] : [0, -40]}
                 opacity={1}
                 className={`custom-tooltip ${marker.type || 'destination'}`}
               >
                 <span className="flex flex-col items-center">
                   <span className="text-[7px] opacity-50 font-black tracking-widest leading-none mb-0.5">
-                    {marker.type === 'origin' ? 'FROM' : 'TO'}
+                    {marker.type === 'origin' ? 'FROM' : marker.type === 'layover' ? 'LAYOVER' : 'TO'}
                   </span>
                   {cityName}
                 </span>
