@@ -17,12 +17,17 @@ import {
     FormControl,
     InputLabel
 } from "@mui/material";
-import { Close as CloseIcon, Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Close as CloseIcon, Add as AddIcon, Delete as DeleteIcon, Verified as VerifiedIcon } from "@mui/icons-material";
+import { scanBoardingPass } from "../../actions/aiScanner";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { AirportAutocomplete } from "./AirportAutocomplete";
-import { AirlineSearchBox } from "./AirlineSearchBox";
 import { JourneyPost, useJourneys } from "../../../context/JourneysContext";
+import { supabase } from "../../../lib/supabase";
+import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const AirlineSearchBox = dynamic(() => import("./AirlineSearchBox").then(mod => mod.AirlineSearchBox), { ssr: false });
 
 interface EditJourneyModalProps {
     open: boolean;
@@ -44,6 +49,9 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
     const [description, setDescription] = useState(journey.description);
     const [contactInfo, setContactInfo] = useState(journey.contactInfo || "");
     const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>(journey.status);
+    const [boardingPassUrl, setBoardingPassUrl] = useState(journey.boardingPassUrl || "");
+    const [uploadingPass, setUploadingPass] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
     const [routeCoords, setRouteCoords] = useState<Record<string, [number, number]>>(journey.routeData || {});
 
     useEffect(() => {
@@ -58,9 +66,70 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
             setDescription(journey.description);
             setContactInfo(journey.contactInfo || "");
             setStatus(journey.status);
+            setBoardingPassUrl(journey.boardingPassUrl || "");
             setRouteCoords(journey.routeData || {});
         }
     }, [open, journey]);
+
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleBoardingPassUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert("Please upload an image file.");
+            return;
+        }
+
+        setUploadingPass(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+            const filePath = `passes/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('boarding_passes')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('boarding_passes')
+                .getPublicUrl(filePath);
+
+            setBoardingPassUrl(publicUrl);
+
+            /* AI SCANNER DISABLED FOR NOW
+            setIsScanning(true);
+            try {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64 = reader.result as string;
+                    const result = await scanBoardingPass(base64, file.type);
+
+                    if (result) {
+                        if (result.origin) setFrom(result.origin);
+                        if (result.destination) setTo(result.destination);
+                        if (result.flight_number) setFlightNumber(result.flight_number);
+                        if (result.airline) setAirlineName(result.airline);
+                        if (result.date) setDate(dayjs(result.date));
+                    }
+                    setIsScanning(false);
+                };
+            } catch (scanErr) {
+                console.error("Scanning failed:", scanErr);
+                setIsScanning(false);
+            }
+            */
+        } catch (err: any) {
+            console.error("Error uploading boarding pass:", err);
+            alert("Error uploading boarding pass: " + err.message);
+        } finally {
+            setUploadingPass(false);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!from || !to || !date || !description) {
@@ -82,6 +151,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                 contactInfo,
                 status,
                 routeData: routeCoords,
+                boardingPassUrl
             });
             onClose();
         } catch (err) {
@@ -204,6 +274,9 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
 
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <Box sx={{ flex: 1 }}>
+                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2 mb-2">
+                                <span className="w-1 h-1 bg-forest/40 rounded-full" /> Airline Name (Optional)
+                            </label>
                             <AirlineSearchBox
                                 label="Airline Name"
                                 placeholder="e.g. Emirates"
@@ -237,6 +310,62 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                                     }
                                 }}
                             />
+                        </Box>
+                    </Box>
+                    <Box sx={{ mb: 2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 1, display: 'block', fontSize: '10px', color: 'text.secondary' }}>
+                            Boarding Pass Verification (Optional)
+                        </Typography>
+                        <Box sx={{
+                            p: 2,
+                            border: '1px dashed',
+                            borderColor: 'divider',
+                            borderRadius: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            bgcolor: 'rgba(0,0,0,0.01)',
+                            '.dark &': { bgcolor: 'rgba(255,255,255,0.01)' }
+                        }}>
+                            {boardingPassUrl ? (
+                                <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                                    <Image
+                                        src={boardingPassUrl}
+                                        alt="Boarding Pass"
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
+                                    <Box sx={{
+                                        position: 'absolute', inset: 0, bgcolor: 'black/40',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        opacity: 0, '&:hover': { opacity: 1 }, transition: '0.2s'
+                                    }}>
+                                        <Button variant="contained" color="error" size="small" onClick={() => setBoardingPassUrl("")} sx={{ borderRadius: '1rem', fontWeight: 900 }}>
+                                            Remove
+                                        </Button>
+                                    </Box>
+                                </Box>
+                            ) : (
+                                <Button
+                                    fullWidth
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploadingPass || isScanning}
+                                    sx={{
+                                        py: 3,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        borderRadius: '0.75rem',
+                                        textTransform: 'none',
+                                        fontWeight: 800,
+                                        color: 'text.secondary',
+                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
+                                    }}
+                                >
+                                    {uploadingPass ? <CircularProgress size={20} /> : isScanning ? "Scanning..." : "Upload Boarding Pass"}
+                                </Button>
+                            )}
+                            <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleBoardingPassUpload} />
                         </Box>
                     </Box>
 

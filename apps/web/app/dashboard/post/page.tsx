@@ -13,11 +13,16 @@ import {
     Add as AddIcon,
     Delete as DeleteIcon
 } from "@mui/icons-material";
+import { scanBoardingPass } from "../../actions/aiScanner";
 import { AirportAutocomplete } from "../components/AirportAutocomplete";
-import { AirlineSearchBox } from "../components/AirlineSearchBox";
 import { useJourneys } from "../../../context/JourneysContext";
 import { useUser } from "@clerk/nextjs";
 import { verifyFlight, getFlightsOnRoute, FlightDetails } from "../../../lib/flightApi";
+import { supabase } from "../../../lib/supabase";
+import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const AirlineSearchBox = dynamic(() => import("../components/AirlineSearchBox").then(mod => mod.AirlineSearchBox), { ssr: false });
 
 export default function PostJourneyPage() {
     const router = useRouter();
@@ -34,14 +39,95 @@ export default function PostJourneyPage() {
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
 
     const [airlineName, setAirlineName] = useState("");
     const [airlineIata, setAirlineIata] = useState("");
+    const [boardingPassUrl, setBoardingPassUrl] = useState("");
+    const [uploadingPass, setUploadingPass] = useState(false);
     const [layovers, setLayovers] = useState<string[]>([]);
     const [routeCoords, setRouteCoords] = useState<Record<string, [number, number]>>({});
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleBoardingPassUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert("Please upload an image file.");
+            return;
+        }
+
+        setUploadingPass(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+            const filePath = `passes/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('boarding_passes')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('boarding_passes')
+                .getPublicUrl(filePath);
+
+            setBoardingPassUrl(publicUrl);
+
+            /* AI SCANNER DISABLED FOR NOW
+            setIsScanning(true);
+            try {
+                // Convert file to base64 for Gemini
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64 = reader.result as string;
+                    const result = await scanBoardingPass(base64, file.type);
+
+                    if (result) {
+                        if (result.origin) setFrom(result.origin);
+                        if (result.destination) setTo(result.destination);
+                        if (result.flight_number) setFlightNumber(result.flight_number);
+                        if (result.airline) setAirlineName(result.airline);
+                        if (result.date) setDate(dayjs(result.date));
+                    }
+                    setIsScanning(false);
+                };
+            } catch (scanErr) {
+                console.error("Scanning failed:", scanErr);
+                setIsScanning(false);
+            }
+            */
+        } catch (err: any) {
+            console.error("Error uploading boarding pass:", err);
+            alert("Error uploading boarding pass: " + err.message);
+        } finally {
+            setUploadingPass(false);
+        }
+    };
 
     const handleAISuggestNotes = async () => {
-        // ... (preserving content)
+        if (!from || !to) return;
+        setIsGenerating(true);
+        try {
+            const originCity = from.split(' (')[0];
+            const destCity = to.split(' (')[0];
+
+            const moods = [
+                `Traveling from ${originCity} to ${destCity}. Looking for a friendly companion to share stories and a coffee at the airport!`,
+                `Trip from ${originCity} to ${destCity} for work. Prefer a quiet, professional companion to focus on work during the flight.`,
+                `Flying solo from ${originCity} and happy to help anyone needing a hand with luggage or navigating the terminal.`
+            ];
+
+            const suggestion = moods[Math.floor(Math.random() * moods.length)];
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+            setDescription(suggestion || "");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +173,8 @@ export default function PostJourneyPage() {
                 },
                 tags: ["New Trip"],
                 status: 'upcoming',
-                routeData: routeCoords
+                routeData: routeCoords,
+                boardingPassUrl
             });
             router.push('/dashboard');
         } finally {
@@ -122,7 +209,7 @@ export default function PostJourneyPage() {
                         {/* Route Section */}
                         <div className="space-y-4">
                             <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
-                                <span className="w-1 h-1 bg-forest rounded-full" /> Route Information
+                                <span className="w-1 h-1 bg-forest/40 rounded-full" /> Boarding Pass (Optional)
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <AirportAutocomplete
@@ -188,6 +275,67 @@ export default function PostJourneyPage() {
                                             }
                                         }}
                                     />
+                                </div>
+
+                                {/* Boarding Pass Section */}
+                                <div className="space-y-4">
+                                    <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
+                                        <span className="w-1 h-1 bg-amber-500 rounded-full" /> Trust & Verification
+                                    </label>
+                                    <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center gap-4">
+                                        <div className="text-center">
+                                            <h4 className="font-bold text-sm text-navy dark:text-offwhite mb-1">Boarding Pass (Optional)</h4>
+                                            <p className="text-[10px] text-gray-500 font-medium">Adds a verification badge to your trip for more trust.</p>
+                                        </div>
+
+                                        {boardingPassUrl ? (
+                                            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 group">
+                                                <Image
+                                                    src={boardingPassUrl}
+                                                    alt="Boarding Pass Preview"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <Button
+                                                        size="small"
+                                                        variant="contained"
+                                                        color="error"
+                                                        onClick={() => setBoardingPassUrl("")}
+                                                        sx={{ borderRadius: '1rem', fontWeight: 900 }}
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={() => inputRef.current?.click()}
+                                                className="w-full h-32 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all border border-gray-100 dark:border-white/10"
+                                            >
+                                                {uploadingPass ? (
+                                                    <CircularProgress size={24} color="inherit" />
+                                                ) : isScanning ? (
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <CircularProgress size={24} color="inherit" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Scanning Pass...</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-2xl">📸</span>
+                                                        <span className="text-[10px] font-black text-forest uppercase">Upload Pass</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        <input
+                                            type="file"
+                                            ref={inputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleBoardingPassUpload}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>

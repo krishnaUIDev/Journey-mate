@@ -25,6 +25,7 @@ export interface JourneyPost {
     status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
     airlineName?: string;
     airlineIata?: string;
+    boardingPassUrl?: string;
     layovers: string[];
     routeData?: Record<string, [number, number]>;
 }
@@ -48,6 +49,7 @@ interface JourneyRow {
     status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
     airline_name: string | null;
     airline_iata: string | null;
+    boarding_pass_url: string | null;
     layovers: string[] | null;
     route_data: Record<string, [number, number]> | null;
     created_at: string;
@@ -102,6 +104,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 status: item.status || 'upcoming',
                 airlineName: item.airline_name ?? undefined,
                 airlineIata: item.airline_iata ?? undefined,
+                boardingPassUrl: item.boarding_pass_url ?? undefined,
                 layovers: item.layovers || [],
                 routeData: item.route_data ?? undefined,
                 user: {
@@ -151,6 +154,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         status: newRecord.status || 'upcoming',
                         airlineName: newRecord.airline_name,
                         airlineIata: newRecord.airline_iata,
+                        boardingPassUrl: newRecord.boarding_pass_url,
                         layovers: newRecord.layovers || [],
                         routeData: newRecord.route_data,
                         user: {
@@ -179,6 +183,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         status: newRecord.status || j.status,
                         airlineName: newRecord.airline_name,
                         airlineIata: newRecord.airline_iata,
+                        boardingPassUrl: newRecord.boarding_pass_url,
                         layovers: newRecord.layovers || [],
                         routeData: newRecord.route_data,
                         user: {
@@ -226,6 +231,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     status: newJourney.status || 'upcoming',
                     airline_name: newJourney.airlineName,
                     airline_iata: newJourney.airlineIata,
+                    boarding_pass_url: newJourney.boardingPassUrl,
                     layovers: newJourney.layovers,
                     route_data: newJourney.routeData
                 }])
@@ -249,6 +255,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     status: row.status || 'upcoming',
                     airlineName: row.airline_name ?? undefined,
                     airlineIata: row.airline_iata ?? undefined,
+                    boardingPassUrl: row.boarding_pass_url ?? undefined,
                     layovers: row.layovers || [],
                     routeData: row.route_data ?? undefined,
                     user: {
@@ -301,6 +308,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
             if (updates.status) mappedUpdates.status = updates.status;
             if (updates.airlineName) mappedUpdates.airline_name = updates.airlineName;
             if (updates.airlineIata) mappedUpdates.airline_iata = updates.airlineIata;
+            if (updates.boardingPassUrl) mappedUpdates.boarding_pass_url = updates.boardingPassUrl;
             if (updates.layovers) mappedUpdates.layovers = updates.layovers;
             if (updates.routeData) mappedUpdates.route_data = updates.routeData;
 

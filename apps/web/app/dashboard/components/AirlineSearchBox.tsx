@@ -26,6 +26,11 @@ export function AirlineSearchBox({ value, onChange, label, placeholder }: Airlin
     const [open, setOpen] = useState(false);
     const [options, setOptions] = useState<Airline[]>([]);
     const [loading, setLoading] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (!open) return;

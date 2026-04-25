@@ -636,9 +636,19 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 </Box>
                             </div>
-                            <p className="text-slate-500 dark:text-slate-400 font-bold tracking-tight mt-2">
+                            <p className="text-slate-500 dark:text-slate-400 font-bold tracking-tight mt-1 px-1">
                                 Scheduled for {dayjs(journey.date).format('dddd, MMMM DD')}
                             </p>
+
+                            {journey.boardingPassUrl && (
+                                <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-forest/10 dark:bg-forest/20 border border-forest/20 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700">
+                                    <VerifiedIcon sx={{ fontSize: 16, color: '#10B981' }} />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-forest uppercase tracking-widest leading-none mb-0.5">Verified Journey</span>
+                                        <span className="text-[9px] font-bold text-forest/70 dark:text-forest/60">Boarding Pass Uploaded</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-col gap-8">
@@ -831,6 +841,21 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 {isOwner && !isPastTrip && (
                                     <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
                                         <RequestManager journeyId={id} />
+                                    </div>
+                                )}
+
+                                {journey.boardingPassUrl && isOwner && (
+                                    <div className="mt-8 bg-slate-50 dark:bg-white/5 p-5 rounded-[2rem] border border-slate-100 dark:border-white/10 overflow-hidden">
+                                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">YOUR BOARDING PASS</h3>
+                                        <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-inner">
+                                            <Image
+                                                src={journey.boardingPassUrl}
+                                                alt="Boarding Pass"
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                        <p className="text-[9px] text-gray-500 mt-3 italic text-center">Only you can see the full ticket image. Others see a verification badge.</p>
                                     </div>
                                 )}
                             </div>
