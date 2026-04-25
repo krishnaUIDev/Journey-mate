@@ -18,9 +18,15 @@ Journey-mate is a mission-driven, technical masterpiece designed to connect trav
 - **On-Demand Communication**: Agora RTC SDK is deferred and dynamically loaded only when a call starts, preserving a lightning-fast initial load.
 - **Nuclear Accessibility ♿**: 100% WCAG AA compliant color contrast, semantic heading hierarchy, and mandatory `aria-label` coverage.
 
-### 🤝 Strategic Pairing
-- **Gated Pairing Flow**: Journey owners manage access via a real-time request system—ensuring you only travel with those you approve.
-- **Rich Media Messaging**: Professional-grade chat with high-performance image attachments, voice notes, and real-time deletion.
+### 🤝 Strategic Pairing & Smart Tools
+- **Gated Pairing Flow**: Journey owners manage access via a real-time request system with AI-powered compatibility matching.
+- **AI Smart Drafts 🪄**: Instantly generate compelling journey descriptions using deep-learning magic.
+- **Smart Utilities Hub**:
+    - **Collaborative Expenses**: Real-time group cost sharing with frictionless editing and automated chat notifications.
+    - **Settlement Reconciliation**: Record peer-to-peer payments to zero out balances and settle group debts.
+    - **Flight Sync ✈️**: Integrated real-time flight tracking and synchronization across participant dashboards.
+    - **Security Vault 🔒**: Secure, time-gated emergency contact sharing that self-destructs 24h after landing.
+- **Rich Media Messaging**: Professional-grade chat with high-performance image attachments and voice notes.
 - **Custom Squads**: Dynamic group branding with personalized names and custom travel identities.
 
 ### 🎥 Immersive Communication
