@@ -14,7 +14,7 @@ import { AuthorCard } from '../../dashboard/components/AuthorCard';
 
 const JourneyMap = dynamic(() => import("../../dashboard/components/JourneyMap"), {
     ssr: false,
-    loading: () => <Box sx={{ width: '100%', height: '100%', bgcolor: 'rgba(0,0,0,0.05)', animate: 'pulse' }} />
+    loading: () => <Box sx={{ width: '100%', height: '100%', bgcolor: 'rgba(0,0,0,0.05)' }} className="animate-pulse" />
 });
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
