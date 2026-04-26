@@ -42,6 +42,7 @@ export const metadata: Metadata = {
 import {
   ClerkProvider
 } from '@clerk/nextjs';
+import { BuyMeACoffeeFloating } from "../components/BuyMeACoffeeFloating";
 
 export default function RootLayout({
   children,
@@ -58,7 +59,10 @@ export default function RootLayout({
           <link rel="preconnect" href="https://img.clerk.com" crossOrigin="anonymous" />
           <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossOrigin="anonymous" />
         </head>
-        <body className={`${sora.className} overflow-x-hidden`} suppressHydrationWarning>{children}</body>
+        <body className={`${sora.className} overflow-x-hidden`} suppressHydrationWarning>
+          {children}
+          <BuyMeACoffeeFloating />
+        </body>
       </html>
     </ClerkProvider>
   );
