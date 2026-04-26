@@ -17,6 +17,7 @@ export interface JourneyPost {
         avatar: string;
         rating: number;
         verified: boolean;
+        verificationTier: 'bronze' | 'silver' | 'gold';
     };
     description: string;
     tags: string[];
@@ -43,6 +44,7 @@ interface JourneyRow {
     user_avatar: string | null;
     user_rating: number | null;
     user_verified: boolean | null;
+    user_verification_tier: 'bronze' | 'silver' | 'gold' | null;
     tags: string[] | null;
     group_name: string | null;
     group_avatar: string | null;
@@ -111,7 +113,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
                     rating: item.user_rating || 0,
-                    verified: item.user_verified ?? false
+                    verified: item.user_verified ?? false,
+                    verificationTier: item.user_verification_tier || 'bronze'
                 }
             }));
 
@@ -161,7 +164,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                             name: newRecord.user_name,
                             avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
                             rating: newRecord.user_rating || 0,
-                            verified: newRecord.user_verified ?? false
+                            verified: newRecord.user_verified ?? false,
+                            verificationTier: newRecord.user_verification_tier || 'bronze'
                         }
                     };
                     setJourneys(prev => {
@@ -227,6 +231,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     user_avatar: newJourney.user.avatar,
                     user_rating: newJourney.user.rating,
                     user_verified: newJourney.user.verified,
+                    user_verification_tier: newJourney.user.verificationTier || 'bronze',
                     tags: newJourney.tags,
                     status: newJourney.status || 'upcoming',
                     airline_name: newJourney.airlineName,
@@ -262,7 +267,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                         name: row.user_name,
                         avatar: row.user_avatar || "",
                         rating: row.user_rating || 5.0,
-                        verified: row.user_verified ?? true
+                        verified: row.user_verified ?? true,
+                        verificationTier: row.user_verification_tier || 'bronze'
                     }
                 };
                 setJourneys(prev => [addedJourney, ...prev]);

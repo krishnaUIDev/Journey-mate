@@ -61,6 +61,8 @@ import { useUser } from "@clerk/nextjs";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import dynamic from "next/dynamic";
+import { translateText } from "../../actions/translate";
+import { Translate as TranslateIcon, Language as LocalizeIcon } from "@mui/icons-material";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const MeetupMap = dynamic(() => import("./MeetupMap"), { ssr: false });
@@ -140,6 +142,9 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
     const [settleAmount, setSettleAmount] = useState("");
     const [isMeetupMapOpen, setIsMeetupMapOpen] = useState(false);
     const [isSharingLocation, setIsSharingLocation] = useState(false);
+    const [translatingId, setTranslatingId] = useState<string | null>(null);
+    const [translations, setTranslations] = useState<Record<string, string>>({});
+    const [phrasesAnchorEl, setPhrasesAnchorEl] = useState<HTMLButtonElement | null>(null);
 
     // Recording state
     const [isRecording, setIsRecording] = useState(false);
@@ -451,6 +456,27 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
             handleSend();
         }
     };
+
+    const handleTranslate = async (msgId: string, text: string) => {
+        setTranslatingId(msgId);
+        try {
+            const translated = await translateText(text, "English"); // Default to English for now or use user preference
+            setTranslations(prev => ({ ...prev, [msgId]: translated }));
+        } catch (error) {
+            showNotification("Translation failed", "error");
+        } finally {
+            setTranslatingId(null);
+        }
+    };
+
+    const commonPhrases = [
+        "Where are you?",
+        "I've just landed!",
+        "Let's meet at the main entrance.",
+        "Do you have a coffee spot in mind?",
+        "I'm at the baggage carousel.",
+        "Heading to the lounge now."
+    ];
 
     if (!isAccepted && !loading) {
         return (
@@ -970,6 +996,49 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                                                         {msg.content}
                                                                     </Typography>
                                                                 )}
+
+                                                                {/* Translation Button */}
+                                                                {!isMe && msg.content && !msg.content.startsWith('[') && !translations[msg.id] && (
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => handleTranslate(msg.id, msg.content!)}
+                                                                        disabled={translatingId === msg.id}
+                                                                        sx={{
+                                                                            alignSelf: 'flex-start',
+                                                                            mt: 0.5,
+                                                                            opacity: 0.3,
+                                                                            '&:hover': { opacity: 1 },
+                                                                            color: 'inherit'
+                                                                        }}
+                                                                    >
+                                                                        {translatingId === msg.id ? <CircularProgress size={12} color="inherit" /> : <TranslateIcon sx={{ fontSize: 14 }} />}
+                                                                    </IconButton>
+                                                                )}
+
+                                                                {translations[msg.id] && (
+                                                                    <Box sx={{
+                                                                        mt: 1,
+                                                                        pt: 1,
+                                                                        borderTop: '1px solid rgba(0,0,0,0.1)',
+                                                                        '.dark &': { borderTop: '1px solid rgba(255,255,255,0.1)' },
+                                                                        display: 'flex',
+                                                                        flexDirection: 'column',
+                                                                        gap: 0.5
+                                                                    }}>
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.5 }}>
+                                                                            <LocalizeIcon sx={{ fontSize: 10 }} />
+                                                                            <Typography variant="caption" sx={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }}>Translated</Typography>
+                                                                        </Box>
+                                                                        <Typography variant="body2" sx={{
+                                                                            fontSize: '0.85rem',
+                                                                            fontStyle: 'italic',
+                                                                            fontWeight: 500,
+                                                                            lineHeight: 1.4
+                                                                        }}>
+                                                                            {translations[msg.id]}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                )}
                                                             </Box>
                                                         )}
                                                     </Box>
@@ -1419,6 +1488,70 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
                                 previewConfig={{ showPreview: false }}
                                 skinTonesDisabled
                             />
+                        </Popover>
+
+                        <Tooltip title="Travel Phrases">
+                            <IconButton
+                                size="small"
+                                onClick={(e) => setPhrasesAnchorEl(e.currentTarget)}
+                                sx={{
+                                    bgcolor: 'rgba(56, 189, 248, 0.1)',
+                                    color: '#0ea5e9',
+                                    '&:hover': { bgcolor: '#0ea5e9', color: 'white' }
+                                }}
+                            >
+                                <LocalizeIcon sx={{ fontSize: 20 }} />
+                            </IconButton>
+                        </Tooltip>
+
+                        {/* Phrases Popover */}
+                        <Popover
+                            open={Boolean(phrasesAnchorEl)}
+                            anchorEl={phrasesAnchorEl}
+                            onClose={() => setPhrasesAnchorEl(null)}
+                            anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                            transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                            slotProps={{
+                                paper: {
+                                    sx: {
+                                        mb: 1,
+                                        borderRadius: '1.25rem',
+                                        width: 240,
+                                        p: 1,
+                                        bgcolor: 'rgba(255,255,255,0.95)',
+                                        backdropFilter: 'blur(10px)',
+                                        border: '1px solid rgba(0,0,0,0.05)',
+                                        '.dark &': { bgcolor: 'rgba(24,24,27,0.95)' }
+                                    }
+                                }
+                            }}
+                        >
+                            <Box sx={{ p: 1 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: 'slate.400', px: 1, mb: 1, display: 'block' }}>
+                                    Quick Phrases
+                                </Typography>
+                                <Stack spacing={0.5}>
+                                    {commonPhrases.map((phrase, idx) => (
+                                        <Button
+                                            key={idx}
+                                            fullWidth
+                                            onClick={() => { setInput(phrase); setPhrasesAnchorEl(null); }}
+                                            sx={{
+                                                justifyContent: 'flex-start',
+                                                textAlign: 'left',
+                                                color: 'slate.700',
+                                                '.dark &': { color: 'white' },
+                                                borderRadius: '10px',
+                                                fontWeight: 600,
+                                                fontSize: '0.75rem',
+                                                py: 1
+                                            }}
+                                        >
+                                            {phrase}
+                                        </Button>
+                                    ))}
+                                </Stack>
+                            </Box>
                         </Popover>
 
                         <TextField

@@ -151,7 +151,11 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                 contactInfo,
                 status,
                 routeData: routeCoords,
-                boardingPassUrl
+                boardingPassUrl,
+                user: {
+                    ...journey.user,
+                    verificationTier: journey.user.verificationTier
+                }
             });
             onClose();
         } catch (err) {

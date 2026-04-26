@@ -37,13 +37,16 @@ import {
     Image as ImageIcon,
     CloudUpload as UploadIcon,
     AutoFixHigh as MagicIcon,
-    CameraAlt as PhotoIcon
+    CameraAlt as PhotoIcon,
+    Star as KudosIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
 const ChatWindow = dynamic(() => import('../../components/ChatWindow').then(mod => mod.ChatWindow), { ssr: false });
 const RequestManager = dynamic(() => import('../../components/RequestManager').then(mod => mod.RequestManager), { ssr: false });
 import { useMessages } from '../../../../context/MessagesContext';
+import { ProfileBadge } from '../../components/ProfileBadge';
+import { KudosModal } from '../../components/KudosModal';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
     ssr: false,
@@ -111,6 +114,8 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [acceptedParticipants, setAcceptedParticipants] = useState<any[]>([]);
 
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [isKudosModalOpen, setIsKudosModalOpen] = useState(false);
+    const [selectedReviewee, setSelectedReviewee] = useState<{ id: string, name: string, avatar: string } | null>(null);
     const [requestMessage, setRequestMessage] = useState("");
     const [submittingRequest, setSubmittingRequest] = useState(false);
     const [isDrafting, setIsDrafting] = useState(false);
@@ -651,10 +656,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             )}
                         </div>
 
-                        <div className="flex flex-col gap-8">
+                        <div className="flex flex-col gap-10">
                             {/* User Profile Section - Cleaner and More Integrated */}
-                            <div className="flex items-center gap-6 group">
-                                <div className="relative">
+                            <div className="flex items-center gap-6 group relative">
+                                <div className="relative flex-shrink-0">
                                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-slate-800 transition-all group-hover:scale-105 relative">
                                         <Image
                                             src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=128&width=128&fit=crop` : journey.user.avatar}
@@ -665,17 +670,20 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             sizes="64px"
                                         />
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 bg-sky-500 p-1 rounded-lg border-2 border-white dark:border-slate-800 shadow-sm">
+                                    <div className="absolute -bottom-1 -right-1 bg-sky-500 p-1 rounded-lg border-2 border-white dark:border-slate-800 shadow-sm z-10">
                                         <VerifiedIcon sx={{ color: 'white', fontSize: 10 }} />
                                     </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{journey.user.name}</h2>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                            {journey.user.verified ? 'Verified Member' : 'Exploring Member'}
+                                <div className="flex flex-col min-w-0">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">{journey.user.name}</h2>
+                                        <ProfileBadge tier={journey.user.verificationTier} />
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                                            TRAVELER PROFILE
                                         </span>
-                                        <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[9px] font-black">
+                                        <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[9px] font-black whitespace-nowrap">
                                             {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
                                         </span>
                                     </div>
@@ -718,7 +726,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             </div>
 
                             {/* Main Actions Area - Prominent and Clean */}
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {requestLoading ? (
                                     <Box sx={{ py: 3, textAlign: 'center' }}>
                                         <CircularProgress size={24} sx={{ color: 'navy', '.dark &': { color: 'white' } }} />
@@ -728,18 +736,45 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         <Button
                                             fullWidth
                                             variant="contained"
+                                            onClick={() => {
+                                                setSelectedReviewee({
+                                                    id: journey.userId!,
+                                                    name: journey.user.name,
+                                                    avatar: journey.user.avatar
+                                                });
+                                                setIsKudosModalOpen(true);
+                                            }}
+                                            startIcon={<KudosIcon />}
+                                            sx={{
+                                                bgcolor: '#fbbf24',
+                                                color: 'black',
+                                                borderRadius: '1rem',
+                                                py: 1.5,
+                                                fontWeight: 900,
+                                                textTransform: 'none',
+                                                fontSize: '0.95rem',
+                                                letterSpacing: '-0.02em',
+                                                boxShadow: '0 10px 20px -5px rgba(251, 191, 36, 0.3)',
+                                                '&:hover': { bgcolor: '#f59e0b' }
+                                            }}
+                                        >
+                                            Leave Kudos for {journey.user.name.split(' ')[0]}
+                                        </Button>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
                                             onClick={() => router.push(`/dashboard/archive/${id}`)}
                                             startIcon={<PhotoIcon />}
                                             sx={{
                                                 bgcolor: 'forest.main',
                                                 color: 'white',
-                                                borderRadius: '1.5rem',
-                                                py: 2.5,
+                                                borderRadius: '1rem',
+                                                py: 1.5,
                                                 fontWeight: 900,
                                                 textTransform: 'none',
-                                                fontSize: '1.1rem',
+                                                fontSize: '0.95rem',
                                                 letterSpacing: '-0.02em',
-                                                boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.3)',
+                                                boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.3)',
                                                 '&:hover': { bgcolor: 'forest.dark' }
                                             }}
                                         >
@@ -753,18 +788,18 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             sx={{
                                                 bgcolor: '#09090b',
                                                 color: 'white',
-                                                borderRadius: '1.5rem',
-                                                py: 2.5,
+                                                borderRadius: '1rem',
+                                                py: 1.5,
                                                 fontWeight: 900,
                                                 textTransform: 'none',
-                                                fontSize: '1.1rem',
+                                                fontSize: '0.95rem',
                                                 letterSpacing: '-0.02em',
-                                                boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.3)',
+                                                boxShadow: '0 10px 20px -5px rgba(15, 23, 42, 0.3)',
                                                 '&:hover': { bgcolor: 'black', scale: 1.01 },
                                                 '.dark &': {
                                                     bgcolor: 'white',
                                                     color: '#09090b',
-                                                    boxShadow: '0 20px 40px -10px rgba(255, 255, 255, 0.1)',
+                                                    boxShadow: '0 10px 20px -5px rgba(255, 255, 255, 0.1)',
                                                     '&:hover': { bgcolor: '#f1f5f9' }
                                                 }
                                             }}
@@ -778,11 +813,11 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         variant="outlined"
                                         disabled
                                         sx={{
-                                            borderRadius: '1.5rem',
-                                            py: 2.5,
+                                            borderRadius: '1rem',
+                                            py: 1.5,
                                             fontWeight: 900,
                                             textTransform: 'none',
-                                            fontSize: '1.1rem',
+                                            fontSize: '0.95rem',
                                             opacity: 0.6,
                                             borderWidth: '2px !important',
                                             color: 'slate.400',
@@ -819,18 +854,18 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         sx={{
                                             bgcolor: '#10B981', // forest
                                             color: 'white',
-                                            borderRadius: '1.5rem',
-                                            py: 2.5,
+                                            borderRadius: '1rem',
+                                            py: 1.5,
                                             fontWeight: 900,
                                             textTransform: 'none',
-                                            fontSize: '1.1rem',
+                                            fontSize: '0.95rem',
                                             letterSpacing: '-0.02em',
-                                            boxShadow: '0 20px 40px -10px rgba(34, 197, 94, 0.3)',
+                                            boxShadow: '0 10px 20px -5px rgba(34, 197, 94, 0.3)',
                                             '&:hover': { bgcolor: '#059669', scale: 1.01 },
                                             '.dark &': {
                                                 bgcolor: '#10B981',
                                                 color: 'white',
-                                                boxShadow: '0 20px 40px -10px rgba(16, 185, 129, 0.2)'
+                                                boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.2)'
                                             }
                                         }}
                                     >
@@ -1136,7 +1171,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         {isRecording ? "Recording..." : audioBlob ? "Voice Greeting recorded" : "Voice Greeting"}
                                     </Typography>
                                     <Typography variant="caption" sx={{ opacity: 0.5, '.dark &': { color: 'slate.400', opacity: 0.8 } }}>
-                                        {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}` : audioBlob ? "Click to remove and re-record" : "Attach a 10s voice note to stand out"}
+                                        {isRecording ? `${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}` : audioBlob ? "Click to remove and re-record" : "Attach a 10s voice note"}
                                     </Typography>
                                 </Box>
                             </Box>
@@ -1198,6 +1233,19 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Kudos Modal */}
+            {selectedReviewee && (
+                <KudosModal
+                    open={isKudosModalOpen}
+                    onClose={() => setIsKudosModalOpen(false)}
+                    journeyId={id}
+                    revieweeId={selectedReviewee.id}
+                    revieweeName={selectedReviewee.name}
+                    revieweeAvatar={selectedReviewee.avatar}
+                    reviewerId={user?.id || ''}
+                />
+            )}
         </div>
     );
 }

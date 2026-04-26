@@ -8,10 +8,12 @@ import Image from "next/image";
 import {
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Refresh as ResetIcon
+    Refresh as ResetIcon,
+    Verified as VerifiedIcon
 } from "@mui/icons-material";
 import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
 import { useJourneys, JourneyPost } from "../../../context/JourneysContext";
+import { ProfileBadge } from "./ProfileBadge";
 import { useMessages } from "../../../context/MessagesContext";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";

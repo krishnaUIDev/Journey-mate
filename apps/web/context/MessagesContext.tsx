@@ -57,6 +57,7 @@ export interface NotificationItem {
 
 interface MessagesContextType {
     messages: Message[];
+    supabase: any;
     loading: boolean;
     sendMessage: (journeyId: string, content: string, replyToId?: string | null, imageUrl?: string | null, audioUrl?: string | null) => Promise<void>;
     uploadChatImage: (file: File) => Promise<string | null>;
@@ -467,7 +468,24 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                 }
             }
 
-            const { error } = await (supabase as any)
+            const optimisticId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `00000000-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padStart(12, '0')}`;
+            const newMessage: Message = {
+                id: optimisticId,
+                journey_id: journeyId,
+                sender_id: user.id,
+                sender_name: user.fullName || user.username || 'Anonymous',
+                sender_avatar: user.imageUrl,
+                content,
+                reply_to_id: replyToId,
+                image_url: imageUrl,
+                audio_url: audioUrl,
+                created_at: new Date().toISOString()
+            };
+
+            // Optimistic update
+            setMessages(prev => [...prev, newMessage]);
+
+            const { data, error } = await (supabase as any)
                 .from('journey_messages')
                 .insert({
                     journey_id: journeyId,
@@ -478,9 +496,18 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     reply_to_id: replyToId,
                     image_url: imageUrl,
                     audio_url: audioUrl
-                });
+                })
+                .select()
+                .single();
 
             if (error) throw error;
+
+            // Replace optimistic message with real one to sync database ID
+            if (data) {
+                setMessages(prev => prev.map(m => m.id === optimisticId ? data as Message : m));
+            }
+
+            console.log("[MessagesContext] Message sent and reconciled successfully");
         } catch (err: any) {
             console.error("[MessagesContext] Error sending message:", err);
             showNotification(`Failed to send message: ${err?.message || 'Unknown error'}`, 'error');
@@ -490,6 +517,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
     const editMessage = async (messageId: string, content: string) => {
         if (!supabase) return;
+
+        // Optimistic update
+        const originalMessages = [...messages];
+        setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content } : m));
+
         try {
             const { error } = await (supabase as any)
                 .from('journey_messages')
@@ -498,6 +530,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
         } catch (err: any) {
             console.error("[MessagesContext] Error editing message:", err);
+            setMessages(originalMessages); // Rollback
             showNotification(`Failed to edit message: ${err.message}`, 'error');
             throw err;
         }
@@ -505,6 +538,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
     const deleteMessage = async (messageId: string) => {
         if (!supabase) return;
+
+        // Optimistic update
+        const originalMessages = [...messages];
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+
         try {
             const { error } = await (supabase as any)
                 .from('journey_messages')
@@ -514,6 +552,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
         } catch (err: any) {
             console.error("[MessagesContext] Error deleting message:", err);
+            setMessages(originalMessages); // Rollback
             showNotification(`Failed to delete message: ${err.message}`, 'error');
             throw err;
         }
@@ -781,6 +820,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     filter: `journey_id=eq.${journeyId}`,
                 },
                 (payload: any) => {
+                    console.log(`[MessagesContext] Realtime Event Received for journey ${journeyId}:`, payload.eventType, payload.new?.id);
                     if (payload.eventType === 'INSERT') {
                         setMessages((prev) => {
                             if (prev.some(m => m.id === payload.new.id)) return prev;
@@ -1109,6 +1149,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     return (
         <MessagesContext.Provider value={{
             messages,
+            supabase,
             loading,
             sendMessage,
             uploadChatImage,

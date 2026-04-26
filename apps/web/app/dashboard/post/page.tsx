@@ -169,7 +169,8 @@ export default function PostJourneyPage() {
                     name: user?.fullName || "A Traveler",
                     avatar: user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`,
                     rating: 0,
-                    verified: false
+                    verified: false,
+                    verificationTier: 'bronze'
                 },
                 tags: ["New Trip"],
                 status: 'upcoming',
