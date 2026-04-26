@@ -19,7 +19,8 @@ import {
     DialogContent,
     DialogActions,
     TextField,
-    Stack
+    Stack,
+    Fab
 } from '@mui/material';
 import {
     ArrowBack as BackIcon,
@@ -41,7 +42,8 @@ import {
     Star as KudosIcon,
     Luggage as LuggageIcon,
     Star as StarIcon,
-    Badge as BadgeIcon
+    Badge as BadgeIcon,
+    Edit as PencilIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -54,6 +56,7 @@ import { KudosCabinet } from '../../components/KudosCabinet';
 import { ItineraryTimeline } from '../../components/ItineraryTimeline';
 import { SouvenirWall } from '../../components/SouvenirWall';
 import { getUserKudos } from '../../../actions/kudos';
+import GuestBook from '../../components/GuestBook';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
     ssr: false,
@@ -1108,6 +1111,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         userId={user?.id || ""}
                                         isCompanion={true}
                                     />
+                                    <GuestBook
+                                        journeyId={journey.id}
+                                        currentUser={{
+                                            id: user?.id || "",
+                                            name: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : "Anonymous",
+                                            avatar: user?.imageUrl
+                                        }}
+                                        isParticipant={isOwner || requestStatus === 'accepted'}
+                                    />
                                 </div>
                             )}
 
@@ -1162,6 +1174,35 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                     setIsChatOpen(false);
                 }} />
             </Box>
+
+            {/* Floating Action Button for Scrapbook (Mobile/Tablet) */}
+            {(isOwner || requestStatus === 'accepted') && (
+                <Fab
+                    color="primary"
+                    aria-label="sign scrapbook"
+                    onClick={() => {
+                        // Find the "Sign Scrapbook" button and trigger it
+                        const guestbookBtn = document.querySelector('button:has(svg[data-testid="CreateIcon"])');
+                        if (guestbookBtn instanceof HTMLElement) {
+                            guestbookBtn.scrollIntoView({ behavior: 'smooth' });
+                            setTimeout(() => guestbookBtn.click(), 300);
+                        }
+                    }}
+                    sx={{
+                        position: 'fixed',
+                        bottom: { xs: 80, sm: 100 },
+                        right: { xs: 16, sm: 32 },
+                        bgcolor: '#3B82F6',
+                        zIndex: 1200,
+                        '&:hover': { bgcolor: '#2563EB', transform: 'scale(1.1)' },
+                        boxShadow: '0 8px 32px rgba(59,130,246,0.4)',
+                        display: { xs: 'flex', md: 'none' }
+                    }}
+                >
+                    <PencilIcon />
+                </Fab>
+            )}
+
 
             {/* Request Join Modal */}
             <Dialog
@@ -1373,17 +1414,19 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             </Dialog>
 
             {/* Kudos Modal */}
-            {selectedReviewee && (
-                <KudosModal
-                    open={isKudosModalOpen}
-                    onClose={() => setIsKudosModalOpen(false)}
-                    journeyId={id}
-                    revieweeId={selectedReviewee.id}
-                    revieweeName={selectedReviewee.name}
-                    revieweeAvatar={selectedReviewee.avatar}
-                    reviewerId={user?.id || ''}
-                />
-            )}
-        </div>
+            {
+                selectedReviewee && (
+                    <KudosModal
+                        open={isKudosModalOpen}
+                        onClose={() => setIsKudosModalOpen(false)}
+                        journeyId={id}
+                        revieweeId={selectedReviewee.id}
+                        revieweeName={selectedReviewee.name}
+                        revieweeAvatar={selectedReviewee.avatar}
+                        reviewerId={user?.id || ''}
+                    />
+                )
+            }
+        </div >
     );
 }

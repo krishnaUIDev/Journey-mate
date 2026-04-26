@@ -180,17 +180,30 @@ export function ItineraryTimeline({ journeyId, userId, isCompanion }: ItineraryT
                 {isCompanion && (
                     <Button
                         variant="contained"
-                        startIcon={<AddIcon />}
                         onClick={() => setOpen(true)}
                         sx={{
-                            borderRadius: '1rem',
+                            borderRadius: '2rem',
+                            fontWeight: 900,
                             textTransform: 'none',
-                            fontWeight: 800,
-                            bgcolor: '#10B981',
-                            '&:hover': { bgcolor: '#059669' }
+                            bgcolor: '#3B82F6',
+                            px: 2,
+                            py: 0.5,
+                            boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                                bgcolor: '#2563EB',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 6px 20px rgba(0,118,255,0.23)',
+                            },
+                            display: 'flex',
+                            gap: 1,
+                            alignItems: 'center'
                         }}
                     >
-                        Add Activity
+                        <AddIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="button" sx={{ fontWeight: 900, fontSize: '0.7rem' }}>
+                            Add Activity
+                        </Typography>
                     </Button>
                 )}
             </Box>

@@ -125,19 +125,31 @@ export function SouvenirWall({ journeyId, userId, isCompanion }: SouvenirWallPro
                 </Typography>
                 {isCompanion && (
                     <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
+                        variant="contained"
                         onClick={() => setOpen(true)}
                         sx={{
-                            borderRadius: '1rem',
+                            borderRadius: '2rem',
+                            fontWeight: 900,
                             textTransform: 'none',
-                            fontWeight: 800,
-                            color: '#3B82F6',
-                            bgcolor: 'rgba(59, 130, 246, 0.1)',
-                            '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.2)' }
+                            bgcolor: '#3B82F6',
+                            px: 2,
+                            py: 0.5,
+                            boxShadow: '0 4px 14px 0 rgba(0,118,255,0.39)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                                bgcolor: '#2563EB',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 6px 20px rgba(0,118,255,0.23)',
+                            },
+                            display: 'flex',
+                            gap: 1,
+                            alignItems: 'center'
                         }}
                     >
-                        Add Memory
+                        <AddIcon sx={{ fontSize: 16 }} />
+                        <Typography variant="button" sx={{ fontWeight: 900, fontSize: '0.7rem' }}>
+                            Add Memory
+                        </Typography>
                     </Button>
                 )}
             </Box>
