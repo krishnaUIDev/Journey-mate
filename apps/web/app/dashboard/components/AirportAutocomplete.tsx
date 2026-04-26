@@ -104,7 +104,8 @@ export function AirportAutocomplete({ value, onChange, placeholder, label, class
                 mb: 0.5,
                 ml: 1,
                 fontSize: '10px',
-                letterSpacing: '0.05em'
+                letterSpacing: '0.05em',
+                '.dark &': { color: 'rgba(255,255,255,0.5)' }
             }}>
                 {label}
             </Typography>

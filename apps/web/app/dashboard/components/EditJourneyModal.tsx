@@ -184,10 +184,10 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
             }}
         >
             <DialogTitle component="div" sx={{ m: 0, p: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h5" component="span" sx={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
+                <Typography variant="h5" component="span" sx={{ fontWeight: 900, letterSpacing: '-0.02em', '.dark &': { color: 'white' } }}>
                     Edit Trip Details
                 </Typography>
-                <IconButton onClick={onClose} size="small">
+                <IconButton onClick={onClose} size="small" sx={{ '.dark &': { color: 'rgba(255,255,255,0.6)' } }}>
                     <CloseIcon />
                 </IconButton>
             </DialogTitle>
@@ -223,7 +223,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
 
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                 Travel Date
                             </Typography>
                             <DatePicker
@@ -250,7 +250,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                             />
                         </Box>
                         <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                 Trip Status
                             </Typography>
                             <Select
@@ -292,7 +292,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                             />
                         </Box>
                         <Box sx={{ flex: 1 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                 Flight Number
                             </Typography>
                             <TextField
@@ -317,7 +317,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                         </Box>
                     </Box>
                     <Box sx={{ mb: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 1, display: 'block', fontSize: '10px', color: 'text.secondary' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 1, display: 'block', fontSize: '10px', color: 'text.secondary', '.dark &': { color: 'rgba(255,255,255,0.4)' } }}>
                             Boarding Pass Verification (Optional)
                         </Typography>
                         <Box sx={{
@@ -363,6 +363,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                                         textTransform: 'none',
                                         fontWeight: 800,
                                         color: 'text.secondary',
+                                        '.dark &': { color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.1)' },
                                         '&:hover': { bgcolor: 'rgba(0,0,0,0.03)' }
                                     }}
                                 >
@@ -374,7 +375,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                     </Box>
 
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                             Layovers (Optional)
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -429,7 +430,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
                     </Box>
 
                     <Box>
-                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', ml: 1, mb: 0.5, display: 'block', fontSize: '10px', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                             Update Description
                         </Typography>
                         <TextField
@@ -461,7 +462,7 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
             <DialogActions sx={{ p: 3, gap: 2 }}>
                 <Button
                     onClick={onClose}
-                    sx={{ borderRadius: '1rem', px: 4, py: 1.5, fontWeight: 900, textTransform: 'none', color: 'text.secondary' }}
+                    sx={{ borderRadius: '1rem', px: 4, py: 1.5, fontWeight: 900, textTransform: 'none', color: 'text.secondary', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}
                 >
                     Cancel
                 </Button>

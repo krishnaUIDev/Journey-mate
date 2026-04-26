@@ -247,7 +247,7 @@ export default function PostJourneyPage() {
                     <div className="relative space-y-8">
                         {/* Route Section */}
                         <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
                                 <span className="w-1 h-1 bg-forest/40 rounded-full" /> Boarding Pass (Optional)
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -280,7 +280,7 @@ export default function PostJourneyPage() {
 
                         {/* Flight Details Section */}
                         <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
                                 <span className="w-1 h-1 bg-sand rounded-full" /> Flight Details
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -294,7 +294,7 @@ export default function PostJourneyPage() {
                                     }}
                                 />
                                 <div className="space-y-1.5">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                         Flight Number
                                     </Typography>
                                     <TextField
@@ -318,7 +318,7 @@ export default function PostJourneyPage() {
 
                                 {/* Boarding Pass Section */}
                                 <div className="space-y-4">
-                                    <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
+                                    <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
                                         <span className="w-1 h-1 bg-amber-500 rounded-full" /> Trust & Verification
                                     </label>
                                     <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center gap-4">
@@ -377,7 +377,7 @@ export default function PostJourneyPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                         Layovers (Optional)
                                     </Typography>
                                     <div className="space-y-3">
@@ -431,7 +431,7 @@ export default function PostJourneyPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                         Travel Date
                                     </Typography>
                                     <DatePicker
@@ -467,12 +467,12 @@ export default function PostJourneyPage() {
 
                         {/* Additional Info Section */}
                         <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 tracking-[0.2em] flex items-center gap-2">
+                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
                                 <span className="w-1 h-1 bg-sky-400 rounded-full" /> Additional Info
                             </label>
                             <div className="space-y-6">
                                 <div className="space-y-4">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                         Preferred Contact Method
                                     </Typography>
 
@@ -539,7 +539,7 @@ export default function PostJourneyPage() {
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between pr-2">
-                                        <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
+                                        <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                                             Trip Notes
                                         </Typography>
                                         <div className="flex gap-2">
@@ -610,7 +610,8 @@ export default function PostJourneyPage() {
                                 },
                                 '&.Mui-disabled': {
                                     bgcolor: 'rgba(0,0,0,0.05)',
-                                    color: 'rgba(0,0,0,0.2)'
+                                    color: 'rgba(0,0,0,0.2)',
+                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)' }
                                 },
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                             }}

@@ -71,7 +71,7 @@ export function AirlineSearchBox({ value, onChange, label, placeholder }: Airlin
     return (
         <Box sx={{ width: '100%' }}>
             {label && (
-                <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', mb: 0.5, display: 'block' }}>
+                <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', mb: 0.5, display: 'block', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
                     {label}
                 </Typography>
             )}
