@@ -30,7 +30,6 @@ import {
     Verified as VerifiedIcon,
     ChatBubbleOutlined as ChatIcon,
     Instagram as InstagramIcon,
-    Edit as EditPenIcon,
     Mic as MicIcon,
     Stop as StopIcon,
     Delete as TrashIcon,
@@ -640,25 +639,6 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                         <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
                                             {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
                                         </h1>
-                                        {isOwner && (
-                                            <Tooltip title="Edit Group Identity">
-                                                <Box sx={{ flexShrink: 0 }}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={toggleChat}
-                                                        aria-label="Edit Group Identity"
-                                                        sx={{
-                                                            bgcolor: 'rgba(34, 197, 94, 0.1)',
-                                                            color: 'forest.main',
-                                                            border: '1px solid rgba(34, 197, 94, 0.2)',
-                                                            '&:hover': { bgcolor: 'forest.main', color: 'white' }
-                                                        }}
-                                                    >
-                                                        <EditPenIcon sx={{ fontSize: 18 }} />
-                                                    </IconButton>
-                                                </Box>
-                                            </Tooltip>
-                                        )}
                                     </div>
                                 </Box>
                             </div>
