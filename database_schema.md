@@ -6,6 +6,8 @@ This document provides a visualization of the data architecture supporting the J
 
 ```mermaid
 erDiagram
+    journeys ||--o{ journey_itinerary : "organizes"
+    journeys ||--o{ journey_souvenirs : "preserves"
     journeys ||--o{ journey_requests : "manages"
     journeys ||--o{ journey_messages : "contains"
     journeys ||--o{ journey_expenses : "tracks"
@@ -23,8 +25,40 @@ erDiagram
         text airline_name
         text airline_iata
         text contact_info
+        text boarding_pass_url
         numeric user_rating
         boolean user_verified
+        timestamp created_at
+    }
+
+    journey_itinerary {
+        uuid id PK
+        uuid journey_id FK
+        text title
+        text description
+        text type "meetup | activity | layover | food | transport"
+        timestamp start_time
+        text location
+        text created_by
+    }
+
+    journey_souvenirs {
+        uuid id PK
+        uuid journey_id FK
+        text user_id
+        text type "photo | note"
+        text content "URL or Text"
+        text caption
+        timestamp created_at
+    }
+
+    jobs {
+        uuid id PK
+        text title
+        text dept
+        text type
+        text location
+        boolean active
         timestamp created_at
     }
 
@@ -68,6 +102,7 @@ erDiagram
         text reviewee_id "Clerk User ID"
         text content "Kudos feedback"
         text type "positive | neutral | negative"
+        text[] badges
         timestamp created_at
     }
 
@@ -97,8 +132,10 @@ erDiagram
 
 1.  **Centralized Architecture**: The `journeys` table acts as the primary anchor for all collaborative features. All utility data is tied to a specific journey via `journey_id`.
 2.  **External Identity**: High-level identity (User Profiles) is managed by **Clerk**. The local database stores Clerk IDs (`user_id`, `payer_id`, etc.) to facilitate data attribution without duplicating the entire auth profile.
-3.  **Lifecycle Management**: 
+3.  **Collaborative Timeline**: The `journey_itinerary` and `journey_souvenirs` tables enable real-time collaboration and memory preservation for accepted companions.
+4.  **Reputation System**: The `user_reviews` table now includes `badges` to visualize specific trust traits awarded by the community.
+5.  **Lifecycle Management**: 
     - **Requests** manage participant entry.
-    - **Messages** and **Expenses** provide real-time collaboration.
-    - **Vault** provides time-gated security (automatic expiration).
-    - **Reviews** ensure long-term trust and safety.
+    - **Itinerary** and **Messages** provide real-time coordination.
+    - **Souvenirs** and **Expenses** handle memory sharing and settlements.
+    - **Reviews** build long-term platform trust.
