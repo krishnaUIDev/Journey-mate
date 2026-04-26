@@ -249,14 +249,71 @@ export function BoardingPassTicket({
                         }
                     }}>
                         <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`JOURNEY:${originCode}-${destCode}|${flightNumber}|${formattedDate}`)}&bgcolor=${'ffffff'}`}
+                            key={`${originCode}-${destCode}-${flightNumber}-${formattedDate}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://journey-mate.com/ticket/generate?from=${originCode}&to=${destCode}&flight=${flightNumber}&date=${formattedDate}&pax=${encodeURIComponent(passengerName)}&airline=${encodeURIComponent(airline)}`)}&bgcolor=${'ffffff'}`}
                             alt="Boarding Pass QR"
                             style={{ width: 80, height: 80, display: 'block', filter: 'contrast(1.1)' }}
                         />
                     </Box>
-                    <Typography variant="caption" sx={{ fontWeight: 900, color: 'slate.400', letterSpacing: '0.2em', textAlign: 'center' }}>
-                        SCAN FOR<br />VERIFICATION
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: 'slate.400', letterSpacing: '0.2em', textAlign: 'center', mb: 3 }}>
+                        SCAN FOR<br />WALLET PASS
                     </Typography>
+
+                    {/* Wallet Buttons */}
+                    <Stack spacing={1} sx={{ width: '100%' }}>
+                        <Box
+                            onClick={() => alert("Pass added to Apple Wallet!")}
+                            sx={{
+                                bgcolor: 'black',
+                                borderRadius: '8px',
+                                py: 1,
+                                px: 1.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                '&:hover': { opacity: 0.8, transform: 'scale(0.98)' }
+                            }}
+                        >
+                            <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: 8 }}>
+                                <path
+                                    fill="white"
+                                    d="M19,13H5V9H19V13M5,5H19V7H5V5M19,15H5V19H19V15M21,3H3V21H21V3Z"
+                                />
+                            </svg>
+                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 600, fontSize: '9px' }}>
+                                Add to Apple Wallet
+                            </Typography>
+                        </Box>
+                        <Box
+                            onClick={() => alert("Pass added to Google Wallet!")}
+                            sx={{
+                                bgcolor: 'white',
+                                border: '1px solid #dadce0',
+                                borderRadius: '8px',
+                                py: 1,
+                                px: 1.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                '&:hover': { bgcolor: '#f8f9fa', transform: 'scale(0.98)' }
+                            }}
+                        >
+                            <svg viewBox="0 0 24 24" width="16" height="16" style={{ marginRight: 8 }}>
+                                <path
+                                    fill="#4285F4"
+                                    d="M20,4H4C2.89,4 2,4.89 2,6V18C2,19.11 2.89,20 4,20H20C21.11,20 22,19.11 22,18V6C22,4.89 21.11,4 20,4M20,18H4V8H20V18M19,10H5V16H19V10"
+                                />
+                            </svg>
+                            <Typography variant="caption" sx={{ color: '#3c4043', fontWeight: 600, fontSize: '9px' }}>
+                                Add to Google Wallet
+                            </Typography>
+                        </Box>
+                    </Stack>
+
                     <Box sx={{ mt: 'auto', width: '100%' }}>
                         <Divider sx={{ my: 2, opacity: 0.1 }} />
                         <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
