@@ -60,13 +60,6 @@ export function Hero() {
                         </Link>
                     )}
                 </div>
-
-                <div className="mt-12 flex justify-center animate-bounce-slow">
-                    <a href="https://www.buymeacoffee.com/journeymate" target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/20 hover:bg-white/20 px-6 py-3 rounded-2xl transition-all duration-500 transform hover:scale-105 shadow-2xl">
-                        <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC Logo" className="w-6 h-6 grayscale group-hover:grayscale-0 transition-all duration-500" />
-                        <span className="text-white/80 group-hover:text-white font-bold text-sm tracking-tight">Support Journey-mate</span>
-                    </a>
-                </div>
             </div>
         </section>
     );

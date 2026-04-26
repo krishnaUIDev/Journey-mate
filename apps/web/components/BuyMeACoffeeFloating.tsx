@@ -1,28 +1,27 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 
 export function BuyMeACoffeeFloating() {
     return (
-        <div className="fixed bottom-8 right-8 z-[9999] group">
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-[9999] group">
             <a
                 href="https://www.buymeacoffee.com/journeymate"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 p-2 pr-6 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 hover:scale-105 active:scale-95 group"
+                className="flex items-center gap-0 md:gap-3 bg-white/80 dark:bg-black/80 backdrop-blur-2xl border border-gray-200/50 dark:border-white/10 p-1.5 md:p-2 md:pr-6 pr-1.5 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 hover:scale-105 active:scale-95 group"
                 aria-label="Buy Me a Coffee"
             >
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-[#FFDD00] flex items-center justify-center transition-transform duration-700 group-hover:rotate-[12deg]">
+                <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-[#FFDD00] flex items-center justify-center transition-transform duration-700 group-hover:rotate-[12deg]">
                     <img
                         src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg"
                         alt="BMC Logo"
-                        className="w-7 h-7"
+                        className="w-6 h-6 md:w-7 md:h-7"
                     />
                     <div className="absolute inset-0 bg-gradient-to-tr from-white/40 to-transparent pointer-events-none" />
                 </div>
 
-                <div className="flex flex-col">
+                <div className="hidden md:flex flex-col">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-offwhite/40 leading-none mb-1 group-hover:text-[#FFDD00] transition-colors duration-500">
                         Support Us
                     </span>
