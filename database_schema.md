@@ -7,6 +7,7 @@ This document provides a visualization of the data architecture supporting the J
 ```mermaid
 %%{init: { 'theme': 'base', 'er': { 'useMaxWidth': false, 'fontSize': 24 } } }%%
 erDiagram
+    journeys ||--o{ journey_guestbook : "reflects"
     journeys ||--o{ journey_itinerary : "organizes"
     journeys ||--o{ journey_souvenirs : "preserves"
     journeys ||--o{ journey_requests : "manages"
@@ -29,6 +30,33 @@ erDiagram
         text boarding_pass_url
         numeric user_rating
         boolean user_verified
+        timestamp created_at
+    }
+
+    journey_guestbook {
+        uuid id PK
+        uuid journey_id FK
+        text author_id "Clerk ID"
+        text author_name
+        text author_avatar
+        text content
+        text emotion
+        timestamp created_at
+    }
+
+    blog_posts {
+        uuid id PK
+        text slug "Unique URL identifier"
+        text title
+        text excerpt
+        text content "Markdown"
+        text image_url
+        text author_id "Clerk ID"
+        text author_name
+        text author_avatar
+        text location_label
+        jsonb location_coords
+        text category
         timestamp created_at
     }
 
