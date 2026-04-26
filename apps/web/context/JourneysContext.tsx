@@ -29,6 +29,7 @@ export interface JourneyPost {
     boardingPassUrl?: string;
     layovers: string[];
     routeData?: Record<string, [number, number]>;
+    luggageCapacity?: string;
 }
 
 interface JourneyRow {
@@ -54,6 +55,7 @@ interface JourneyRow {
     boarding_pass_url: string | null;
     layovers: string[] | null;
     route_data: Record<string, [number, number]> | null;
+    luggage_capacity: string | null;
     created_at: string;
 }
 
@@ -109,6 +111,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 boardingPassUrl: item.boarding_pass_url ?? undefined,
                 layovers: item.layovers || [],
                 routeData: item.route_data ?? undefined,
+                luggageCapacity: item.luggage_capacity ?? undefined,
                 user: {
                     name: item.user_name,
                     avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
@@ -238,7 +241,8 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     airline_iata: newJourney.airlineIata,
                     boarding_pass_url: newJourney.boardingPassUrl,
                     layovers: newJourney.layovers,
-                    route_data: newJourney.routeData
+                    route_data: newJourney.routeData,
+                    luggage_capacity: newJourney.luggageCapacity
                 }])
                 .select()
                 .single();
@@ -263,6 +267,7 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                     boardingPassUrl: row.boarding_pass_url ?? undefined,
                     layovers: row.layovers || [],
                     routeData: row.route_data ?? undefined,
+                    luggageCapacity: row.luggage_capacity ?? undefined,
                     user: {
                         name: row.user_name,
                         avatar: row.user_avatar || "",

@@ -38,7 +38,10 @@ import {
     CloudUpload as UploadIcon,
     AutoFixHigh as MagicIcon,
     CameraAlt as PhotoIcon,
-    Star as KudosIcon
+    Star as KudosIcon,
+    Luggage as LuggageIcon,
+    Star as StarIcon,
+    Badge as BadgeIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import { useUser } from '@clerk/nextjs';
@@ -659,11 +662,21 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             </p>
 
                             {journey.boardingPassUrl && (
-                                <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-forest/10 dark:bg-forest/20 border border-forest/20 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700">
+                                <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700">
                                     <VerifiedIcon sx={{ fontSize: 16, color: '#10B981' }} />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black text-forest uppercase tracking-widest leading-none mb-0.5">Verified Journey</span>
-                                        <span className="text-[9px] font-bold text-forest/70 dark:text-forest/60">Boarding Pass Uploaded</span>
+                                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mb-0.5">Verified Journey</span>
+                                        <span className="text-[9px] font-bold text-emerald-600/70 dark:text-emerald-400/60">Boarding Pass Uploaded</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {journey.luggageCapacity && (
+                                <div className="mt-3 flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                                    <LuggageIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest leading-none mb-0.5">Extra Space</span>
+                                        <span className="text-[9px] font-bold text-amber-600/70 dark:text-amber-400/60">{journey.luggageCapacity} Offered</span>
                                     </div>
                                 </div>
                             )}

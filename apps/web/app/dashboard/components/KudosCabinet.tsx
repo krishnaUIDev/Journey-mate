@@ -21,11 +21,20 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
 
+const BADGE_MAP: Record<string, { label: string; icon: string; color: string }> = {
+    'expert_navigator': { label: 'Expert Navigator', icon: '🧭', color: '#3b82f6' },
+    'great_storyteller': { label: 'Great Storyteller', icon: '📖', color: '#a855f7' },
+    'helpful_luggage': { label: 'Helpful with Luggage', icon: '🧳', color: '#f59e0b' },
+    'punctual': { label: 'Punctual', icon: '⏰', color: '#10b981' },
+    'safe_traveler': { label: 'Safe Traveler', icon: '🛡️', color: '#ef4444' }
+};
+
 interface Kudos {
     id: string;
     reviewer_id: string;
     content: string;
     type: 'positive' | 'neutral' | 'negative';
+    badges?: string[];
     created_at: string;
 }
 
@@ -90,6 +99,38 @@ export function KudosCabinet({ reviews, userName }: KudosCabinetProps) {
                         }}>
                             "{kudo.content}"
                         </Typography>
+
+                        {kudo.badges && kudo.badges.length > 0 && (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                                {kudo.badges.map((badgeId) => {
+                                    const badge = BADGE_MAP[badgeId];
+                                    if (!badge) return null;
+                                    return (
+                                        <Box
+                                            key={badgeId}
+                                            sx={{
+                                                px: 1.2,
+                                                py: 0.5,
+                                                borderRadius: '0.75rem',
+                                                fontSize: '9px',
+                                                fontWeight: 900,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 0.5,
+                                                bgcolor: `${badge.color}15`,
+                                                color: badge.color,
+                                                border: `1px solid ${badge.color}30`,
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.02em'
+                                            }}
+                                        >
+                                            <span>{badge.icon}</span>
+                                            {badge.label}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
+                        )}
                     </Paper>
                 ))}
             </Stack>

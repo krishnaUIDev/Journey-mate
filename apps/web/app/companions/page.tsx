@@ -9,6 +9,14 @@ import { Box, Container, Typography, Grid, Paper, Stack, Avatar, Chip, Button, C
 import { Star as StarIcon, Verified as VerifiedIcon, Search as SearchIcon, Language as LanguageIcon } from "@mui/icons-material";
 import { supabase } from "../../lib/supabase";
 
+const BADGE_MAP: Record<string, { label: string; icon: string; color: string }> = {
+    'expert_navigator': { label: 'Expert Navigator', icon: '🧭', color: '#3b82f6' },
+    'great_storyteller': { label: 'Great Storyteller', icon: '📖', color: '#a855f7' },
+    'helpful_luggage': { label: 'Helpful with Luggage', icon: '🧳', color: '#f59e0b' },
+    'punctual': { label: 'Punctual', icon: '⏰', color: '#10b981' },
+    'safe_traveler': { label: 'Safe Traveler', icon: '🛡️', color: '#ef4444' }
+};
+
 type Locale = keyof typeof messages;
 
 interface CompanionProfile {
@@ -19,6 +27,7 @@ interface CompanionProfile {
     review_count: number;
     languages: string[];
     specialty: string;
+    badges: string[];
     is_verified: boolean;
 }
 
@@ -68,6 +77,7 @@ export default function CompanionsPage() {
                                     review_count: 0,
                                     languages: ['English'], // Default
                                     specialty: 'Companion', // Default
+                                    badges: [],
                                     is_verified: item.user_verified || false
                                 });
                                 // Limit additional profiles to avoid overwhelming
@@ -177,6 +187,40 @@ export default function CompanionsPage() {
                                                         <Typography variant="caption" sx={{ opacity: 0.5 }}>({mate.review_count || 0} reviews)</Typography>
                                                     </Stack>
                                                 </Box>
+
+                                                {mate.badges && mate.badges.length > 0 && (
+                                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                                                        {mate.badges.slice(0, 3).map((badgeId) => {
+                                                            const badge = BADGE_MAP[badgeId];
+                                                            if (!badge) return null;
+                                                            return (
+                                                                <Box
+                                                                    key={badgeId}
+                                                                    sx={{
+                                                                        px: 1,
+                                                                        py: 0.4,
+                                                                        borderRadius: '0.5rem',
+                                                                        fontSize: '8px',
+                                                                        fontWeight: 900,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: 0.4,
+                                                                        bgcolor: `${badge.color}15`,
+                                                                        color: badge.color,
+                                                                        border: `1px solid ${badge.color}30`,
+                                                                        textTransform: 'uppercase',
+                                                                        letterSpacing: '0.02em',
+                                                                        transition: 'all 0.2s',
+                                                                        '&:hover': { transform: 'scale(1.1)', bgcolor: `${badge.color}25` }
+                                                                    }}
+                                                                >
+                                                                    <span>{badge.icon}</span>
+                                                                    {badge.label}
+                                                                </Box>
+                                                            );
+                                                        })}
+                                                    </Box>
+                                                )}
 
                                                 {mate.languages && mate.languages.length > 0 && (
                                                     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', justifyContent: 'center', gap: 1 }}>

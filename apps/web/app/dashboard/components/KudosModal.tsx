@@ -25,6 +25,14 @@ import { submitKudos } from '../../actions/kudos';
 import { AutoFixHigh as MagicIcon } from '@mui/icons-material';
 import { Tooltip, IconButton, CircularProgress as TinyProgress } from '@mui/material';
 
+const AVAILABLE_BADGES = [
+    { id: 'expert_navigator', label: 'Expert Navigator', icon: '🧭', color: '#3b82f6' },
+    { id: 'great_storyteller', label: 'Great Storyteller', icon: '📖', color: '#a855f7' },
+    { id: 'helpful_luggage', label: 'Helpful with Luggage', icon: '🧳', color: '#f59e0b' },
+    { id: 'punctual', label: 'Punctual', icon: '⏰', color: '#10b981' },
+    { id: 'safe_traveler', label: 'Safe Traveler', icon: '🛡️', color: '#ef4444' }
+];
+
 interface KudosModalProps {
     open: boolean;
     onClose: () => void;
@@ -38,6 +46,7 @@ interface KudosModalProps {
 export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName, revieweeAvatar, reviewerId }: KudosModalProps) {
     const [content, setContent] = useState("");
     const [type, setType] = useState<'positive' | 'neutral' | 'negative'>('positive');
+    const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -89,7 +98,8 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
                 reviewee_id: revieweeId,
                 journey_id: journeyId,
                 content: content.trim(),
-                type
+                type,
+                badges: selectedBadges
             });
             onClose();
         } catch (err: any) {
@@ -170,6 +180,57 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
                         <ToggleButton value="neutral"><NeutralIcon sx={{ mr: 1 }} /> OK</ToggleButton>
                         <ToggleButton value="negative"><NegativeIcon sx={{ mr: 1 }} /> Tough</ToggleButton>
                     </ToggleButtonGroup>
+                </Box>
+
+                <Box sx={{ mb: 4 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, textTransform: 'uppercase', color: 'slate.500', display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>
+                        Award Trust Trait (Optional)
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {AVAILABLE_BADGES.map((badge) => {
+                            const isSelected = selectedBadges.includes(badge.id);
+                            return (
+                                <Box
+                                    key={badge.id}
+                                    onClick={() => {
+                                        if (isSelected) {
+                                            setSelectedBadges(selectedBadges.filter(id => id !== badge.id));
+                                        } else if (selectedBadges.length < 3) {
+                                            setSelectedBadges([...selectedBadges, badge.id]);
+                                        }
+                                    }}
+                                    sx={{
+                                        px: 1.5,
+                                        py: 0.8,
+                                        borderRadius: '0.75rem',
+                                        fontSize: '10px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                        transition: 'all 0.2s',
+                                        bgcolor: isSelected ? badge.color : 'rgba(0,0,0,0.03)',
+                                        color: isSelected ? 'white' : 'slate.600',
+                                        border: '1px solid',
+                                        borderColor: isSelected ? badge.color : 'transparent',
+                                        opacity: (!isSelected && selectedBadges.length >= 3) ? 0.4 : 1,
+                                        '.dark &': {
+                                            bgcolor: isSelected ? badge.color : 'rgba(255,255,255,0.05)',
+                                            color: isSelected ? 'white' : 'slate.400',
+                                        },
+                                        '&:hover': {
+                                            transform: (!isSelected && selectedBadges.length < 3) ? 'scale(1.05)' : 'none',
+                                            borderColor: isSelected ? badge.color : badge.color
+                                        }
+                                    }}
+                                >
+                                    <span>{badge.icon}</span>
+                                    {badge.label}
+                                </Box>
+                            );
+                        })}
+                    </Box>
                 </Box>
 
                 <TextField

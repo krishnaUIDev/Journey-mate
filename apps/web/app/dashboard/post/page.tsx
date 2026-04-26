@@ -14,7 +14,8 @@ import {
     Delete as DeleteIcon,
     WhatsApp as WhatsAppIcon,
     Instagram as InstagramIcon,
-    Email as MailIcon
+    Email as MailIcon,
+    Luggage as LuggageIcon
 } from "@mui/icons-material";
 import { scanBoardingPass } from "../../actions/aiScanner";
 import { AirportAutocomplete } from "../components/AirportAutocomplete";
@@ -40,6 +41,7 @@ export default function PostJourneyPage() {
     const [contactInfo, setContactInfo] = useState("");
     const [contactMethod, setContactMethod] = useState<'whatsapp' | 'instagram' | 'email'>('whatsapp');
     const [description, setDescription] = useState("");
+    const [luggageCapacity, setLuggageCapacity] = useState<string>("");
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -210,7 +212,8 @@ export default function PostJourneyPage() {
                 tags: ["New Trip"],
                 status: 'upcoming',
                 routeData: routeCoords,
-                boardingPassUrl
+                boardingPassUrl,
+                luggageCapacity: luggageCapacity ? `${luggageCapacity}kg` : undefined
             });
             router.push('/dashboard');
         } finally {
@@ -534,25 +537,37 @@ export default function PostJourneyPage() {
                                     />
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-4">
                                     <div className="flex items-center justify-between pr-2">
                                         <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
                                             Trip Notes
                                         </Typography>
-                                        <Tooltip title="AI Suggestion based on your route">
-                                            <IconButton
-                                                size="small"
-                                                onClick={handleAISuggestNotes}
-                                                disabled={isGenerating || !from || !to}
-                                                sx={{
-                                                    color: 'forest.main',
-                                                    bgcolor: 'rgba(34, 197, 94, 0.05)',
-                                                    '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' }
-                                                }}
-                                            >
-                                                {isGenerating ? <CircularProgress size={14} color="inherit" /> : <AIStatusIcon sx={{ fontSize: 16 }} />}
-                                            </IconButton>
-                                        </Tooltip>
+                                        <div className="flex gap-2">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(251, 191, 36, 0.05)', px: 2, py: 0.5, borderRadius: '1rem', border: '1px solid rgba(251, 191, 36, 0.1)' }}>
+                                                <LuggageIcon sx={{ fontSize: 14, color: '#fbbf24' }} />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Extra KG"
+                                                    value={luggageCapacity}
+                                                    onChange={(e) => setLuggageCapacity(e.target.value)}
+                                                    className="bg-transparent border-none outline-none text-[10px] font-black w-14 text-slate-600 dark:text-slate-300 placeholder:text-slate-400"
+                                                />
+                                            </Box>
+                                            <Tooltip title="AI Suggestion based on your route">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={handleAISuggestNotes}
+                                                    disabled={isGenerating || !from || !to}
+                                                    sx={{
+                                                        color: 'forest.main',
+                                                        bgcolor: 'rgba(34, 197, 94, 0.05)',
+                                                        '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' }
+                                                    }}
+                                                >
+                                                    {isGenerating ? <CircularProgress size={14} color="inherit" /> : <AIStatusIcon sx={{ fontSize: 16 }} />}
+                                                </IconButton>
+                                            </Tooltip>
+                                        </div>
                                     </div>
                                     <textarea
                                         rows={3}

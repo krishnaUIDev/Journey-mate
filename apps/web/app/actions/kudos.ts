@@ -8,6 +8,7 @@ export async function submitKudos(review: {
     journey_id: string;
     content: string;
     type: 'positive' | 'neutral' | 'negative';
+    badges?: string[];
 }) {
     if (!supabase) throw new Error("Supabase is not initialized.");
 
