@@ -639,15 +639,21 @@ export default function PostJourneyPage() {
                                 LIVE TICKET PREVIEW
                             </Typography>
 
-                            <BoardingPassTicket
-                                origin={from}
-                                destination={to}
-                                airline={airlineName}
-                                flightNumber={flightNumber}
-                                date={date}
-                                passengerName={user?.fullName || "Guest Traveler"}
-                                passengerAvatar={user?.imageUrl}
-                            />
+                            {(() => {
+                                const coordsArr = routeCoords[to.split(' (')[1]?.replace(')', '') || to];
+                                return (
+                                    <BoardingPassTicket
+                                        origin={from}
+                                        destination={to}
+                                        airline={airlineName}
+                                        flightNumber={flightNumber}
+                                        date={date}
+                                        passengerName={user?.fullName || "Guest Traveler"}
+                                        passengerAvatar={user?.imageUrl}
+                                        destCoords={coordsArr ? { lat: coordsArr[0], lng: coordsArr[1] } : undefined}
+                                    />
+                                );
+                            })()}
 
                             <Box sx={{
                                 p: 4,

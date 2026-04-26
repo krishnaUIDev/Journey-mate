@@ -21,8 +21,12 @@ function TicketContent() {
     const dateStr = searchParams.get('date') || '';
     const pax = searchParams.get('pax') || 'Guest Traveler';
     const airline = searchParams.get('airline') || 'Journey-Mate Air';
+    const lat = parseFloat(searchParams.get('lat') || '');
+    const lng = parseFloat(searchParams.get('lng') || '');
 
     const date = dateStr ? dayjs(dateStr) : dayjs();
+
+    const destCoords = isNaN(lat) || isNaN(lng) ? undefined : { lat, lng };
 
     const handleShare = async () => {
         if (navigator.share) {
@@ -66,6 +70,7 @@ function TicketContent() {
                             flightNumber={flight}
                             date={date}
                             passengerName={pax}
+                            destCoords={destCoords}
                         />
                     </Box>
 
