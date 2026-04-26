@@ -6,13 +6,13 @@ This document provides a visualization of the data architecture supporting the J
 
 ```mermaid
 erDiagram
-    JOURNEYS ||--o{ JOURNEY_REQUESTS : "manages"
-    JOURNEYS ||--o{ JOURNEY_MESSAGES : "contains"
-    JOURNEYS ||--o{ JOURNEY_EXPENSES : "tracks"
-    JOURNEYS ||--o{ JOURNEY_REVIEWS : "collects"
-    JOURNEYS ||--o{ JOURNEY_EMERGENCY_CONTACTS : "secures"
+    journeys ||--o{ journey_requests : "manages"
+    journeys ||--o{ journey_messages : "contains"
+    journeys ||--o{ journey_expenses : "tracks"
+    journeys ||--o{ user_reviews : "collects"
+    journeys ||--o{ journey_emergency_contacts : "secures"
 
-    JOURNEYS {
+    journeys {
         uuid id PK
         text user_id "Clerk Owner ID"
         text origin
@@ -20,23 +20,27 @@ erDiagram
         date date
         text flight_number
         text description
+        text airline_name
+        text airline_iata
+        text contact_info
         numeric user_rating
         boolean user_verified
         timestamp created_at
     }
 
-    JOURNEY_REQUESTS {
+    journey_requests {
         uuid id PK
         uuid journey_id FK
         text requester_id "Clerk User ID"
         text requester_name
+        text requester_avatar
         text status "pending | accepted | rejected"
         numeric compatibility_score
         text compatibility_reason
         timestamp created_at
     }
 
-    JOURNEY_MESSAGES {
+    journey_messages {
         uuid id PK
         uuid journey_id FK
         text sender_id "Clerk User ID"
@@ -46,7 +50,7 @@ erDiagram
         timestamp created_at
     }
 
-    JOURNEY_EXPENSES {
+    journey_expenses {
         uuid id PK
         uuid journey_id FK
         text payer_id "Clerk User ID"
@@ -57,24 +61,34 @@ erDiagram
         timestamp created_at
     }
 
-    JOURNEY_REVIEWS {
+    user_reviews {
         uuid id PK
         uuid journey_id FK
         text reviewer_id "Clerk User ID"
         text reviewee_id "Clerk User ID"
-        integer rating "1-5"
-        text comment
+        text content "Kudos feedback"
+        text type "positive | neutral | negative"
         timestamp created_at
     }
 
-    JOURNEY_EMERGENCY_CONTACTS {
+    user_profiles {
+        uuid id PK "Matches Clerk ID"
+        text username
+        text avatar_url
+        numeric avg_rating
+        integer review_count
+        text[] languages
+        text specialty
+        boolean is_verified
+    }
+
+    journey_emergency_contacts {
         uuid id PK
         uuid journey_id FK
         text user_id "Clerk User ID"
         text contact_name
         text contact_phone
         text relation
-        timestamp expires_at "T+24h after landing"
         timestamp created_at
     }
 ```
