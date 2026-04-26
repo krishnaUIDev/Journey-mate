@@ -11,11 +11,9 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 import { getPostBySlug } from '../../actions/blog';
 import { AuthorCard } from '../../dashboard/components/AuthorCard';
+import { BlogMapSection } from '../BlogMapSection';
 
-const JourneyMap = dynamic(() => import("../../dashboard/components/JourneyMap"), {
-    ssr: false,
-    loading: () => <Box sx={{ width: '100%', height: '100%', bgcolor: 'rgba(0,0,0,0.05)' }} className="animate-pulse" />
-});
+
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -25,7 +23,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         return (
             <Container sx={{ py: 20, textAlign: 'center' }}>
                 <Typography variant="h4" sx={{ fontWeight: 900 }}>Post not found.</Typography>
-                <MuiLink component={Link} href="/blog" sx={{ mt: 2, display: 'inline-block' }}>Back to Blog</MuiLink>
+                <Link href="/blog" style={{ marginTop: '1rem', display: 'inline-block', textDecoration: 'none' }}>
+                    <MuiLink component="span">Back to Blog</MuiLink>
+                </Link>
             </Container>
         );
     }
@@ -41,7 +41,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                         separator={<NextIcon fontSize="small" />}
                         sx={{ mb: 4, '& .MuiTypography-root': { fontWeight: 700, fontSize: '0.8rem' } }}
                     >
-                        <MuiLink component={Link} href="/blog" color="inherit" underline="hover">BLOG</MuiLink>
+                        <Link href="/blog" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            <MuiLink component="span" color="inherit" underline="hover">BLOG</MuiLink>
+                        </Link>
                         <Typography color="text.primary" sx={{ '.dark &': { color: 'slate.400' } }}>{post.category.toUpperCase()}</Typography>
                     </Breadcrumbs>
 
@@ -70,29 +72,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
             {/* 2. Interactive Orientation Map */}
             {post.location_coords && (
-                <Box sx={{ height: 400, width: '100%', position: 'relative', overflow: 'hidden' }}>
-                    <JourneyMap
-                        center={centerCoord}
-                        zoom={6}
-                        markers={[{
-                            position: centerCoord,
-                            label: post.location_label || "Location",
-                            type: 'destination'
-                        }]}
-                        isAnimated={false}
-                    />
-                    <Box sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        height: 100,
-                        background: 'linear-gradient(to top, white, transparent)',
-                        '.dark &': { background: 'linear-gradient(to top, #020617, transparent)' },
-                        zIndex: 1000,
-                        pointerEvents: 'none'
-                    }} />
-                </Box>
+                <BlogMapSection
+                    center={centerCoord}
+                    label={post.location_label || "Location"}
+                />
             )}
 
             {/* 3. Post Content */}
@@ -131,22 +114,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <Box sx={{ py: 10, bgcolor: 'slate.50', borderTop: '1px solid rgba(0,0,0,0.05)', '.dark &': { bgcolor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' } }}>
                 <Container maxWidth="lg">
                     <Stack direction="row" sx={{ justifyContent: 'center' }}>
-                        <Button
-                            component={Link}
-                            href="/blog"
-                            variant="contained"
-                            sx={{
-                                borderRadius: '2rem',
-                                fontWeight: 900,
-                                px: 6,
-                                py: 1.5,
-                                bgcolor: '#3B82F6',
-                                textTransform: 'none',
-                                '&:hover': { bgcolor: '#2563EB' }
-                            }}
-                        >
-                            Back to Discover
-                        </Button>
+                        <Link href="/blog" style={{ textDecoration: 'none' }}>
+                            <Button
+                                variant="contained"
+                                sx={{
+                                    borderRadius: '2rem',
+                                    fontWeight: 900,
+                                    px: 6,
+                                    py: 1.5,
+                                    bgcolor: '#3B82F6',
+                                    textTransform: 'none',
+                                    '&:hover': { bgcolor: '#2563EB' }
+                                }}
+                            >
+                                Back to Discover
+                            </Button>
+                        </Link>
                     </Stack>
                 </Container>
             </Box>
