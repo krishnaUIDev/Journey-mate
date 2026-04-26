@@ -209,7 +209,7 @@ export default function PostJourneyPage() {
                     verified: false,
                     verificationTier: 'bronze'
                 },
-                tags: ["New Trip"],
+                tags: [],
                 status: 'upcoming',
                 routeData: routeCoords,
                 boardingPassUrl,

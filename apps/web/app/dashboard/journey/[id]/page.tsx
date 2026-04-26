@@ -489,7 +489,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* 2. Top Navigation - Adjusted to avoid dashboard nav overlap */}
-            <header className="fixed top-[72px] left-0 w-full p-6 flex justify-between items-center z-50 pointer-events-none">
+            <header className="fixed top-[72px] left-0 w-full lg:w-[calc(100%-480px)] p-6 flex justify-between items-center z-50 pointer-events-none">
                 <IconButton
                     onClick={() => router.back()}
                     className="pointer-events-auto"
@@ -1097,7 +1097,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
 
                             {/* Collaborative Itinerary & Souvenirs */}
                             {(isOwner || requestStatus === 'accepted') && (
-                                <div className="space-y-4 py-2 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                                     <ItineraryTimeline
                                         journeyId={journey.id}
                                         userId={user?.id || ""}
@@ -1120,16 +1120,22 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     </p>
                                 </div>
 
-                                <div className="flex flex-wrap gap-2">
-                                    {journey.tags.map((tag: string, idx: number) => (
-                                        <span
-                                            key={idx}
-                                            className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest border border-slate-200 dark:border-slate-700"
-                                        >
-                                            #{tag}
-                                        </span>
-                                    ))}
-                                </div>
+                                {(() => {
+                                    const displayTags = journey.tags.filter((t: string) => t !== 'New Trip');
+                                    if (displayTags.length === 0) return null;
+                                    return (
+                                        <div className="flex flex-wrap gap-2">
+                                            {displayTags.map((tag: string, idx: number) => (
+                                                <span
+                                                    key={idx}
+                                                    className="px-5 py-2 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest border border-slate-200 dark:border-slate-700"
+                                                >
+                                                    #{tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
