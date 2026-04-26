@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Typography, TextField, CircularProgress, Button, IconButton, Tooltip } from "@mui/material";
+import { Box, Typography, TextField, CircularProgress, Button, IconButton, Tooltip, Stack } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import {
@@ -27,6 +27,7 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 
 const AirlineSearchBox = dynamic(() => import("../components/AirlineSearchBox").then(mod => mod.AirlineSearchBox), { ssr: false });
+import { BoardingPassTicket } from "../components/BoardingPassTicket";
 
 export default function PostJourneyPage() {
     const router = useRouter();
@@ -222,8 +223,8 @@ export default function PostJourneyPage() {
     };
 
     return (
-        <div className="min-h-screen bg-offwhite dark:bg-navy p-4 lg:p-10">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen bg-offwhite dark:bg-navy p-4 lg:p-8">
+            <div className="max-w-7xl mx-auto">
                 <header className="flex items-center justify-between mb-10">
                     <div className="flex items-center gap-6">
                         <IconButton
@@ -239,387 +240,430 @@ export default function PostJourneyPage() {
                     </div>
                 </header>
 
-                <form onSubmit={handleSubmit} className="space-y-8 bg-white dark:bg-white/5 p-6 sm:p-10 rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-white/5 overflow-hidden relative">
-                    {/* Background accents */}
-                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-forest/5 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-sand/5 rounded-full blur-3xl" />
+                <Stack direction={{ xs: 'column', lg: 'row' }} spacing={8} sx={{ alignItems: 'flex-start' }}>
+                    {/* Form Panel */}
+                    <Box sx={{ flex: 1.2, width: '100%' }}>
+                        <form onSubmit={handleSubmit} className="space-y-8 bg-white dark:bg-white/5 p-6 sm:p-10 rounded-[2.5rem] shadow-xl border border-white/20 dark:border-white/5 overflow-hidden relative">
+                            {/* Background accents */}
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-forest/5 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-sand/5 rounded-full blur-3xl" />
 
-                    <div className="relative space-y-8">
-                        {/* Route Section */}
-                        <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
-                                <span className="w-1 h-1 bg-forest/40 rounded-full" /> Boarding Pass (Optional)
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <AirportAutocomplete
-                                    label="Origin"
-                                    placeholder="City or Airport (e.g. HYD)"
-                                    value={from}
-                                    onChange={(val, coords) => {
-                                        setFrom(val);
-                                        if (coords) {
-                                            const code = val.split(' (')[1]?.replace(')', '') || val;
-                                            setRouteCoords(prev => ({ ...prev, [code]: coords }));
-                                        }
-                                    }}
-                                />
-                                <AirportAutocomplete
-                                    label="Destination"
-                                    placeholder="City or Airport (e.g. JFK)"
-                                    value={to}
-                                    onChange={(val, coords) => {
-                                        setTo(val);
-                                        if (coords) {
-                                            const code = val.split(' (')[1]?.replace(')', '') || val;
-                                            setRouteCoords(prev => ({ ...prev, [code]: coords }));
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Flight Details Section */}
-                        <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
-                                <span className="w-1 h-1 bg-sand rounded-full" /> Flight Details
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <AirlineSearchBox
-                                    label="Airline Name"
-                                    placeholder="e.g. Emirates"
-                                    value={airlineName}
-                                    onChange={(name, iata) => {
-                                        setAirlineName(name);
-                                        if (iata) setAirlineIata(iata);
-                                    }}
-                                />
-                                <div className="space-y-1.5">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
-                                        Flight Number
-                                    </Typography>
-                                    <TextField
-                                        fullWidth
-                                        placeholder="e.g. EK501"
-                                        variant="standard"
-                                        value={flightNumber}
-                                        onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
-                                        slotProps={{
-                                            input: {
-                                                disableUnderline: true,
-                                                sx: {
-                                                    px: 3, py: 1.5, bgcolor: 'rgba(0,0,0,0.03)',
-                                                    '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                                                    borderRadius: '1.25rem', fontSize: '0.875rem', fontWeight: 700
-                                                }
-                                            }
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Boarding Pass Section */}
+                            <div className="relative space-y-8">
+                                {/* Route Section */}
                                 <div className="space-y-4">
                                     <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
-                                        <span className="w-1 h-1 bg-amber-500 rounded-full" /> Trust & Verification
+                                        <span className="w-1 h-1 bg-forest/40 rounded-full" /> Boarding Pass (Optional)
                                     </label>
-                                    <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center gap-4">
-                                        <div className="text-center">
-                                            <h4 className="font-bold text-sm text-navy dark:text-offwhite mb-1">Boarding Pass (Optional)</h4>
-                                            <p className="text-[10px] text-gray-500 font-medium">Adds a verification badge to your trip for more trust.</p>
-                                        </div>
-
-                                        {boardingPassUrl ? (
-                                            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 group">
-                                                <Image
-                                                    src={boardingPassUrl}
-                                                    alt="Boarding Pass Preview"
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <Button
-                                                        size="small"
-                                                        variant="contained"
-                                                        color="error"
-                                                        onClick={() => setBoardingPassUrl("")}
-                                                        sx={{ borderRadius: '1rem', fontWeight: 900 }}
-                                                    >
-                                                        Remove
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div
-                                                onClick={() => inputRef.current?.click()}
-                                                className="w-full h-32 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all border border-gray-100 dark:border-white/10"
-                                            >
-                                                {uploadingPass ? (
-                                                    <CircularProgress size={24} color="inherit" />
-                                                ) : isScanning ? (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <CircularProgress size={24} color="inherit" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Scanning Pass...</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <span className="text-2xl">📸</span>
-                                                        <span className="text-[10px] font-black text-forest uppercase">Upload Pass</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                        <input
-                                            type="file"
-                                            ref={inputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleBoardingPassUpload}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <AirportAutocomplete
+                                            label="Origin"
+                                            placeholder="City or Airport (e.g. HYD)"
+                                            value={from}
+                                            onChange={(val, coords) => {
+                                                setFrom(val);
+                                                if (coords) {
+                                                    const code = val.split(' (')[1]?.replace(')', '') || val;
+                                                    setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                                }
+                                            }}
+                                        />
+                                        <AirportAutocomplete
+                                            label="Destination"
+                                            placeholder="City or Airport (e.g. JFK)"
+                                            value={to}
+                                            onChange={(val, coords) => {
+                                                setTo(val);
+                                                if (coords) {
+                                                    const code = val.split(' (')[1]?.replace(')', '') || val;
+                                                    setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                                }
+                                            }}
                                         />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
-                                        Layovers (Optional)
-                                    </Typography>
-                                    <div className="space-y-3">
-                                        {layovers.map((l, idx) => (
-                                            <div key={idx} className="flex gap-2 items-center">
-                                                <div className="flex-1">
-                                                    <AirportAutocomplete
-                                                        label=""
-                                                        placeholder={`Layover ${idx + 1}`}
-                                                        value={l}
-                                                        onChange={(val, coords) => {
-                                                            const newL = [...layovers];
-                                                            newL[idx] = val;
-                                                            setLayovers(newL);
-                                                            if (coords) {
-                                                                const code = val.split(' (')[1]?.replace(')', '') || val;
-                                                                setRouteCoords(prev => ({ ...prev, [code]: coords }));
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => setLayovers(layovers.filter((_, i) => i !== idx))}
-                                                    sx={{ mt: 2, color: 'error.main' }}
-                                                >
-                                                    <DeleteIcon sx={{ fontSize: 18 }} />
-                                                </IconButton>
-                                            </div>
-                                        ))}
-                                        <Button
-                                            startIcon={<AddIcon />}
-                                            disabled={layovers.length > 0 && !layovers[layovers.length - 1]}
-                                            onClick={() => setLayovers([...layovers, ""])}
-                                            size="small"
-                                            sx={{
-                                                alignSelf: 'flex-start',
-                                                textTransform: 'none',
-                                                fontWeight: 800,
-                                                fontSize: '11px',
-                                                color: 'forest.main',
-                                                bgcolor: 'rgba(34, 197, 94, 0.05)',
-                                                borderRadius: '1rem',
-                                                px: 2,
-                                                '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' },
-                                                '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.03)', color: 'text.disabled' }
+
+                                {/* Flight Details Section */}
+                                <div className="space-y-4">
+                                    <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
+                                        <span className="w-1 h-1 bg-sand rounded-full" /> Flight Details
+                                    </label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <AirlineSearchBox
+                                            label="Airline Name"
+                                            placeholder="e.g. Emirates"
+                                            value={airlineName}
+                                            onChange={(name, iata) => {
+                                                setAirlineName(name);
+                                                if (iata) setAirlineIata(iata);
                                             }}
-                                        >
-                                            Add Layover
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
-                                        Travel Date
-                                    </Typography>
-                                    <DatePicker
-                                        value={date}
-                                        onChange={(newValue) => {
-                                            setDate(newValue);
-                                            // Clear error if it was about the date limit
-                                            if (errorMessage?.includes("already have a journey posted")) {
-                                                setErrorMessage(null);
-                                            }
-                                        }}
-                                        disablePast
-                                        slotProps={{
-                                            textField: {
-                                                fullWidth: true,
-                                                variant: 'standard',
-                                                slotProps: {
+                                        />
+                                        <div className="space-y-1.5">
+                                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
+                                                Flight Number
+                                            </Typography>
+                                            <TextField
+                                                fullWidth
+                                                placeholder="e.g. EK501"
+                                                variant="standard"
+                                                value={flightNumber}
+                                                onChange={(e) => setFlightNumber(e.target.value.toUpperCase())}
+                                                slotProps={{
                                                     input: {
                                                         disableUnderline: true,
                                                         sx: {
-                                                            px: 3, py: 1.3, bgcolor: 'rgba(0,0,0,0.03)',
+                                                            px: 3, py: 1.5, bgcolor: 'rgba(0,0,0,0.03)',
                                                             '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
                                                             borderRadius: '1.25rem', fontSize: '0.875rem', fontWeight: 700
                                                         }
                                                     }
-                                                }
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Additional Info Section */}
-                        <div className="space-y-4">
-                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
-                                <span className="w-1 h-1 bg-sky-400 rounded-full" /> Additional Info
-                            </label>
-                            <div className="space-y-6">
-                                <div className="space-y-4">
-                                    <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
-                                        Preferred Contact Method
-                                    </Typography>
-
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        {[
-                                            { id: 'whatsapp', icon: <WhatsAppIcon />, label: 'WhatsApp', color: '#22c55e' },
-                                            { id: 'instagram', icon: <InstagramIcon />, label: 'Instagram', color: '#dc2743' },
-                                            { id: 'email', icon: <MailIcon />, label: 'Email', color: '#3b82f6' }
-                                        ].map((method) => (
-                                            <Button
-                                                key={method.id}
-                                                variant={contactMethod === method.id ? "contained" : "outlined"}
-                                                onClick={() => {
-                                                    setContactMethod(method.id as any);
-                                                    setContactInfo(""); // Clear when switching for clarity
                                                 }}
-                                                startIcon={method.icon}
-                                                sx={{
-                                                    flex: 1,
-                                                    borderRadius: '1.25rem',
-                                                    textTransform: 'none',
-                                                    fontWeight: 800,
-                                                    py: 1,
-                                                    fontSize: '0.75rem',
-                                                    bgcolor: contactMethod === method.id ? method.color : 'transparent',
-                                                    color: contactMethod === method.id ? 'white' : 'text.primary',
-                                                    borderColor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.1)',
-                                                    '&:hover': {
-                                                        bgcolor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.05)',
-                                                        borderColor: method.color
-                                                    },
-                                                    '.dark &': {
-                                                        color: contactMethod === method.id ? 'white' : 'offwhite'
-                                                    }
-                                                }}
-                                            >
-                                                {method.label}
-                                            </Button>
-                                        ))}
-                                    </Box>
+                                            />
+                                        </div>
 
-                                    <TextField
-                                        fullWidth
-                                        placeholder={
-                                            contactMethod === 'whatsapp' ? "WhatsApp Number (e.g. +1...)" :
-                                                contactMethod === 'instagram' ? "Instagram Username (e.g. travel_buddy)" :
-                                                    "Email Address (e.g. name@example.com)"
-                                        }
-                                        variant="standard"
-                                        value={contactInfo}
-                                        onChange={(e) => setContactInfo(e.target.value)}
-                                        slotProps={{
-                                            input: {
-                                                disableUnderline: true,
-                                                sx: {
-                                                    px: 3, py: 1.5, bgcolor: 'rgba(0,0,0,0.03)',
-                                                    '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
-                                                    borderRadius: '1.25rem', fontSize: '0.875rem', fontWeight: 700
-                                                }
-                                            }
-                                        }}
-                                    />
-                                </div>
+                                        {/* Boarding Pass Section */}
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
+                                                <span className="w-1 h-1 bg-amber-500 rounded-full" /> Trust & Verification
+                                            </label>
+                                            <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-[2rem] border border-dashed border-gray-200 dark:border-white/10 flex flex-col items-center gap-4">
+                                                <div className="text-center">
+                                                    <h4 className="font-bold text-sm text-navy dark:text-offwhite mb-1">Boarding Pass (Optional)</h4>
+                                                    <p className="text-[10px] text-gray-500 font-medium">Adds a verification badge to your trip for more trust.</p>
+                                                </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between pr-2">
-                                        <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
-                                            Trip Notes
-                                        </Typography>
-                                        <div className="flex gap-2">
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(251, 191, 36, 0.05)', px: 2, py: 0.5, borderRadius: '1rem', border: '1px solid rgba(251, 191, 36, 0.1)' }}>
-                                                <LuggageIcon sx={{ fontSize: 14, color: '#fbbf24' }} />
+                                                {boardingPassUrl ? (
+                                                    <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-gray-100 dark:border-white/10 group">
+                                                        <Image
+                                                            src={boardingPassUrl}
+                                                            alt="Boarding Pass Preview"
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <Button
+                                                                size="small"
+                                                                variant="contained"
+                                                                color="error"
+                                                                onClick={() => setBoardingPassUrl("")}
+                                                                sx={{ borderRadius: '1rem', fontWeight: 900 }}
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        onClick={() => inputRef.current?.click()}
+                                                        className="w-full h-32 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10 transition-all border border-gray-100 dark:border-white/10"
+                                                    >
+                                                        {uploadingPass ? (
+                                                            <CircularProgress size={24} color="inherit" />
+                                                        ) : isScanning ? (
+                                                            <div className="flex flex-col items-center gap-2">
+                                                                <CircularProgress size={24} color="inherit" />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest animate-pulse">Scanning Pass...</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center gap-1">
+                                                                <span className="text-2xl">📸</span>
+                                                                <span className="text-[10px] font-black text-forest uppercase">Upload Pass</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 <input
-                                                    type="number"
-                                                    placeholder="Extra KG"
-                                                    value={luggageCapacity}
-                                                    onChange={(e) => setLuggageCapacity(e.target.value)}
-                                                    className="bg-transparent border-none outline-none text-[10px] font-black w-14 text-slate-600 dark:text-slate-300 placeholder:text-slate-400"
+                                                    type="file"
+                                                    ref={inputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleBoardingPassUpload}
                                                 />
-                                            </Box>
-                                            <Tooltip title="AI Suggestion based on your route">
-                                                <IconButton
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
+                                                Layovers (Optional)
+                                            </Typography>
+                                            <div className="space-y-3">
+                                                {layovers.map((l, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-center">
+                                                        <div className="flex-1">
+                                                            <AirportAutocomplete
+                                                                label=""
+                                                                placeholder={`Layover ${idx + 1}`}
+                                                                value={l}
+                                                                onChange={(val, coords) => {
+                                                                    const newL = [...layovers];
+                                                                    newL[idx] = val;
+                                                                    setLayovers(newL);
+                                                                    if (coords) {
+                                                                        const code = val.split(' (')[1]?.replace(')', '') || val;
+                                                                        setRouteCoords(prev => ({ ...prev, [code]: coords }));
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => setLayovers(layovers.filter((_, i) => i !== idx))}
+                                                            sx={{ mt: 2, color: 'error.main' }}
+                                                        >
+                                                            <DeleteIcon sx={{ fontSize: 18 }} />
+                                                        </IconButton>
+                                                    </div>
+                                                ))}
+                                                <Button
+                                                    startIcon={<AddIcon />}
+                                                    disabled={layovers.length > 0 && !layovers[layovers.length - 1]}
+                                                    onClick={() => setLayovers([...layovers, ""])}
                                                     size="small"
-                                                    onClick={handleAISuggestNotes}
-                                                    disabled={isGenerating || !from || !to}
                                                     sx={{
+                                                        alignSelf: 'flex-start',
+                                                        textTransform: 'none',
+                                                        fontWeight: 800,
+                                                        fontSize: '11px',
                                                         color: 'forest.main',
                                                         bgcolor: 'rgba(34, 197, 94, 0.05)',
-                                                        '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' }
+                                                        borderRadius: '1rem',
+                                                        px: 2,
+                                                        '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' },
+                                                        '&.Mui-disabled': { bgcolor: 'rgba(0,0,0,0.03)', color: 'text.disabled' }
                                                     }}
                                                 >
-                                                    {isGenerating ? <CircularProgress size={14} color="inherit" /> : <AIStatusIcon sx={{ fontSize: 16 }} />}
-                                                </IconButton>
-                                            </Tooltip>
+                                                    Add Layover
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
+                                                Travel Date
+                                            </Typography>
+                                            <DatePicker
+                                                value={date}
+                                                onChange={(newValue) => {
+                                                    setDate(newValue);
+                                                    // Clear error if it was about the date limit
+                                                    if (errorMessage?.includes("already have a journey posted")) {
+                                                        setErrorMessage(null);
+                                                    }
+                                                }}
+                                                disablePast
+                                                slotProps={{
+                                                    textField: {
+                                                        fullWidth: true,
+                                                        variant: 'standard',
+                                                        slotProps: {
+                                                            input: {
+                                                                disableUnderline: true,
+                                                                sx: {
+                                                                    px: 3, py: 1.3, bgcolor: 'rgba(0,0,0,0.03)',
+                                                                    '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                                                    borderRadius: '1.25rem', fontSize: '0.875rem', fontWeight: 700
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                            />
                                         </div>
                                     </div>
-                                    <textarea
-                                        rows={3}
-                                        placeholder="Describe your trip, luggage help needed, or topics you love to chat about..."
-                                        className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-[1.5rem] text-navy dark:text-offwhite font-medium focus:ring-4 focus:ring-forest/10 outline-none transition-all resize-none shadow-inner text-sm leading-relaxed"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                    />
                                 </div>
-                            </div>
-                        </div>
 
-                        {errorMessage && (
-                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-5 rounded-3xl flex items-center gap-3">
-                                <span className="text-xl">⚠️</span>
-                                <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', lineHeight: 1.4 }}>
-                                    {errorMessage}
+                                {/* Additional Info Section */}
+                                <div className="space-y-4">
+                                    <label className="text-[10px] uppercase font-black text-gray-400 dark:text-white/40 tracking-[0.2em] flex items-center gap-2">
+                                        <span className="w-1 h-1 bg-sky-400 rounded-full" /> Additional Info
+                                    </label>
+                                    <div className="space-y-6">
+                                        <div className="space-y-4">
+                                            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
+                                                Preferred Contact Method
+                                            </Typography>
+
+                                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                                {[
+                                                    { id: 'whatsapp', icon: <WhatsAppIcon />, label: 'WhatsApp', color: '#22c55e' },
+                                                    { id: 'instagram', icon: <InstagramIcon />, label: 'Instagram', color: '#dc2743' },
+                                                    { id: 'email', icon: <MailIcon />, label: 'Email', color: '#3b82f6' }
+                                                ].map((method) => (
+                                                    <Button
+                                                        key={method.id}
+                                                        variant={contactMethod === method.id ? "contained" : "outlined"}
+                                                        onClick={() => {
+                                                            setContactMethod(method.id as any);
+                                                            setContactInfo(""); // Clear when switching for clarity
+                                                        }}
+                                                        startIcon={method.icon}
+                                                        sx={{
+                                                            flex: 1,
+                                                            borderRadius: '1.25rem',
+                                                            textTransform: 'none',
+                                                            fontWeight: 800,
+                                                            py: 1,
+                                                            fontSize: '0.75rem',
+                                                            bgcolor: contactMethod === method.id ? method.color : 'transparent',
+                                                            color: contactMethod === method.id ? 'white' : 'text.primary',
+                                                            borderColor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.1)',
+                                                            '&:hover': {
+                                                                bgcolor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.05)',
+                                                                borderColor: method.color
+                                                            },
+                                                            '.dark &': {
+                                                                color: contactMethod === method.id ? 'white' : 'offwhite'
+                                                            }
+                                                        }}
+                                                    >
+                                                        {method.label}
+                                                    </Button>
+                                                ))}
+                                            </Box>
+
+                                            <TextField
+                                                fullWidth
+                                                placeholder={
+                                                    contactMethod === 'whatsapp' ? "WhatsApp Number (e.g. +1...)" :
+                                                        contactMethod === 'instagram' ? "Instagram Username (e.g. travel_buddy)" :
+                                                            "Email Address (e.g. name@example.com)"
+                                                }
+                                                variant="standard"
+                                                value={contactInfo}
+                                                onChange={(e) => setContactInfo(e.target.value)}
+                                                slotProps={{
+                                                    input: {
+                                                        disableUnderline: true,
+                                                        sx: {
+                                                            px: 3, py: 1.5, bgcolor: 'rgba(0,0,0,0.03)',
+                                                            '.dark &': { color: 'white', bgcolor: 'rgba(255,255,255,0.03)' },
+                                                            borderRadius: '1.25rem', fontSize: '0.875rem', fontWeight: 700
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between pr-2">
+                                                <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em', '.dark &': { color: 'rgba(255,255,255,0.5)' } }}>
+                                                    Trip Notes
+                                                </Typography>
+                                                <div className="flex gap-2">
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'rgba(251, 191, 36, 0.05)', px: 2, py: 0.5, borderRadius: '1rem', border: '1px solid rgba(251, 191, 36, 0.1)' }}>
+                                                        <LuggageIcon sx={{ fontSize: 14, color: '#fbbf24' }} />
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Extra KG"
+                                                            value={luggageCapacity}
+                                                            onChange={(e) => setLuggageCapacity(e.target.value)}
+                                                            className="bg-transparent border-none outline-none text-[10px] font-black w-14 text-slate-600 dark:text-slate-300 placeholder:text-slate-400"
+                                                        />
+                                                    </Box>
+                                                    <Tooltip title="AI Suggestion based on your route">
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={handleAISuggestNotes}
+                                                            disabled={isGenerating || !from || !to}
+                                                            sx={{
+                                                                color: 'forest.main',
+                                                                bgcolor: 'rgba(34, 197, 94, 0.05)',
+                                                                '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.1)' }
+                                                            }}
+                                                        >
+                                                            {isGenerating ? <CircularProgress size={14} color="inherit" /> : <AIStatusIcon sx={{ fontSize: 16 }} />}
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                            <textarea
+                                                rows={3}
+                                                placeholder="Describe your trip, luggage help needed, or topics you love to chat about..."
+                                                className="w-full px-6 py-4 bg-gray-50 dark:bg-white/5 border border-transparent focus:border-forest/20 rounded-[1.5rem] text-navy dark:text-offwhite font-medium focus:ring-4 focus:ring-forest/10 outline-none transition-all resize-none shadow-inner text-sm leading-relaxed"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {errorMessage && (
+                                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-5 rounded-3xl flex items-center gap-3">
+                                        <span className="text-xl">⚠️</span>
+                                        <Typography variant="caption" sx={{ color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', lineHeight: 1.4 }}>
+                                            {errorMessage}
+                                        </Typography>
+                                    </div>
+                                )}
+
+                                <Button
+                                    fullWidth
+                                    type="submit"
+                                    variant="contained"
+                                    disabled={submitting || !from || !to || !flightNumber || !airlineName || !!errorMessage}
+                                    sx={{
+                                        py: 2.5,
+                                        borderRadius: '1.5rem',
+                                        bgcolor: 'navy.main',
+                                        fontWeight: 900,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.15em',
+                                        fontSize: '0.85rem',
+                                        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                                        '&:hover': {
+                                            bgcolor: 'forest.main',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: '0 25px 45px rgba(0,0,0,0.25)',
+                                        },
+                                        '&.Mui-disabled': {
+                                            bgcolor: 'rgba(0,0,0,0.05)',
+                                            color: 'rgba(0,0,0,0.2)',
+                                            '.dark &': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)' }
+                                        },
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }}
+                                >
+                                    {submitting ? <CircularProgress size={24} color="inherit" /> : "Publish Trip"}
+                                </Button>
+                            </div>
+                        </form>
+                    </Box>
+
+                    {/* Preview Panel */}
+                    <Box sx={{
+                        flex: 1,
+                        width: '100%',
+                        position: { lg: 'sticky' },
+                        top: { lg: 32 },
+                        pt: { xs: 4, lg: 0 }
+                    }}>
+                        <Stack spacing={4}>
+                            <Typography variant="overline" sx={{ fontWeight: 900, color: 'forest.main', letterSpacing: '0.2em', textAlign: 'center' }}>
+                                LIVE TICKET PREVIEW
+                            </Typography>
+
+                            <BoardingPassTicket
+                                origin={from}
+                                destination={to}
+                                airline={airlineName}
+                                flightNumber={flightNumber}
+                                date={date}
+                                passengerName={user?.fullName || "Guest Traveler"}
+                                passengerAvatar={user?.imageUrl}
+                            />
+
+                            <Box sx={{
+                                p: 4,
+                                borderRadius: '2rem',
+                                border: '1px dashed rgba(0,0,0,0.1)',
+                                '.dark &': { borderColor: 'rgba(255,255,255,0.1)' },
+                                textAlign: 'center'
+                            }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontStyle: 'italic' }}>
+                                    "Your journey details will be verified against real-time flight data.
+                                    A high accuracy score increases your companion matching compatibility."
                                 </Typography>
-                            </div>
-                        )}
-
-                        <Button
-                            fullWidth
-                            type="submit"
-                            variant="contained"
-                            disabled={submitting || !from || !to || !flightNumber || !airlineName || !!errorMessage}
-                            sx={{
-                                py: 2.5,
-                                borderRadius: '1.5rem',
-                                bgcolor: 'navy.main',
-                                fontWeight: 900,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.15em',
-                                fontSize: '0.85rem',
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                                '&:hover': {
-                                    bgcolor: 'forest.main',
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: '0 25px 45px rgba(0,0,0,0.25)',
-                                },
-                                '&.Mui-disabled': {
-                                    bgcolor: 'rgba(0,0,0,0.05)',
-                                    color: 'rgba(0,0,0,0.2)',
-                                    '.dark &': { bgcolor: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.2)' }
-                                },
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                            }}
-                        >
-                            {submitting ? <CircularProgress size={24} color="inherit" /> : "Publish Trip"}
-                        </Button>
-                    </div>
-                </form>
+                            </Box>
+                        </Stack>
+                    </Box>
+                </Stack>
             </div>
         </div>
     );
