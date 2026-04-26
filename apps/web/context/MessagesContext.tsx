@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Snackbar, Alert } from "@mui/material";
 import dayjs from "dayjs";
 
@@ -62,7 +62,11 @@ interface MessagesContextType {
     sendMessage: (journeyId: string, content: string, replyToId?: string | null, imageUrl?: string | null, audioUrl?: string | null) => Promise<void>;
     uploadChatImage: (file: File) => Promise<string | null>;
     uploadChatAudio: (file: File | Blob) => Promise<string | null>;
-    subscribeToJourney: (journeyId: string) => () => void;
+    subscribeToJourney: (journeyId: string, options?: {
+        onItineraryChange?: () => void;
+        onSouvenirChange?: () => void;
+        onRequestsChange?: () => void;
+    }) => () => void;
     // New Request Flow
     sendRequest: (journeyId: string, message?: string, rating?: number, isVerified?: boolean, audioUrl?: string, boardingPassUrl?: string) => Promise<void>;
     getRequests: (journeyId: string) => Promise<JourneyRequest[]>;
@@ -119,7 +123,14 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     const userRef = useRef<any>(null);
 
     const channelsRef = useRef<Record<string, any>>({});
+    const listenersRef = useRef<Record<string, {
+        onItineraryChange: Set<() => void>;
+        onSouvenirChange: Set<() => void>;
+        onRequestsChange: Set<() => void>;
+    }>>({});
+    const subscriptionCountsRef = useRef<Record<string, number>>({});
     const { user } = useUser();
+    const { getToken } = useAuth();
 
     // Keep refs in sync
     useEffect(() => {
@@ -154,34 +165,33 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         if (user && supabase) {
             const fetchContextData = async () => {
                 try {
-                    // 1. My outgoing requests
-                    const { data: reqData } = await (supabase as any)
-                        .from('journey_requests')
-                        .select('journey_id, status')
-                        .eq('requester_id', user.id);
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                    const token = await getToken();
 
-                    if (reqData) {
+                    // 1. My outgoing requests (Simplified: we'll fetch all and filter or use a specific endpoint)
+                    const reqRes = await fetch(`${apiUrl}/requests/my`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (reqRes.ok) {
+                        const reqData = await reqRes.json();
                         const requestMap = reqData.reduce((acc: any, req: any) => {
                             acc[req.journey_id] = req.status;
                             return acc;
                         }, {});
                         setMyRequests(requestMap);
-
-                        // Also track which journeys I'm an accepted participant in
                         setParticipatingJourneys(reqData.filter((r: any) => r.status === 'accepted').map((r: any) => r.journey_id));
                     }
 
                     // 2. My owned journeys
-                    const { data: ownData } = await (supabase as any)
-                        .from('journeys')
-                        .select('id, origin, destination')
-                        .eq('user_id', user.id);
-
-                    if (ownData) {
+                    const ownRes = await fetch(`${apiUrl}/journeys/my`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (ownRes.ok) {
+                        const ownData = await ownRes.json();
                         setOwnedJourneys(ownData);
                     }
                 } catch (err) {
-                    console.error("[MessagesContext] Error fetching context data:", err);
+                    console.error("[MessagesContext] Error fetching context data via API:", err);
                 }
             };
 
@@ -206,17 +216,15 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                         if (oldStatus !== newStatus && newStatus !== 'pending') {
                             setMyRequests(prev => ({ ...prev, [payload.new.journey_id]: newStatus }));
 
-                            // Get journey details for the notification
-                            const { data: jData } = await (supabase as any)
-                                .from('journeys')
-                                .select('origin, destination')
-                                .eq('id', payload.new.journey_id)
-                                .single();
+                            // Get journey details for the notification via API
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                            const jRes = await fetch(`${apiUrl}/journeys/${payload.new.journey_id}`);
+                            const jData = jRes.ok ? await jRes.json() : null;
 
                             const title = newStatus === 'accepted' ? 'Request Accepted' : 'Request Declined';
                             const msg = newStatus === 'accepted'
-                                ? `You're joining the trip to ${jData?.destination}.`
-                                : `Your request for ${jData?.destination} was declined.`;
+                                ? `You're joining the trip to ${jData?.destination || 'your destination'}.`
+                                : `Your request for ${jData?.destination || 'the trip'} was declined.`;
 
                             showNotification(msg, newStatus === 'accepted' ? 'success' : 'info');
 
@@ -350,41 +358,32 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
     }, [user]);
 
-    const showNotification = (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
+    const showNotification = useCallback((message: string, severity: 'success' | 'error' | 'info' = 'info') => {
         setNotification({ open: true, message, severity });
-    };
+    }, []);
 
-    const handleCloseNotification = () => {
+    const handleCloseNotification = useCallback(() => {
         setNotification(prev => ({ ...prev, open: false }));
-    };
+    }, []);
 
     const fetchMessages = useCallback(async (journeyId: string) => {
-        if (!supabase) return;
         setLoading(true);
         try {
-            const { data, error } = await (supabase as any)
-                .from('journey_messages')
-                .select('*')
-                .eq('journey_id', journeyId)
-                .order('created_at', { ascending: true });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/messages/journey/${journeyId}`);
+            if (!res.ok) throw new Error('Failed to fetch messages');
+            const data = await res.json();
 
-            if (error) throw error;
-            console.log(`[MessagesContext] Fetched ${data?.length || 0} messages for journey ${journeyId}`);
+            console.log(`[MessagesContext] Fetched ${data?.length || 0} messages via API for journey ${journeyId}`);
             setMessages(data || []);
         } catch (err: any) {
-            // PGRST204/PGRST205: Table not found in schema cache
-            // 42P01: undefined_table
-            if (err?.code === 'PGRST204' || err?.code === 'PGRST205' || err?.code === '42P01') {
-                console.warn("[MessagesContext] Table 'journey_messages' not found. Run the SQL migration script from walkthrough.md.");
-            } else {
-                console.error("Error fetching messages:", err);
-            }
+            console.error("Error fetching messages via API:", err);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    const uploadChatImage = async (file: File): Promise<string | null> => {
+    const uploadChatImage = useCallback(async (file: File): Promise<string | null> => {
         if (!supabase || !user) return null;
         try {
             const fileExt = file.name.split('.').pop();
@@ -407,9 +406,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             showNotification("Failed to upload image.", "error");
             return null;
         }
-    };
+    }, [user, showNotification]);
 
-    const uploadChatAudio = async (file: File | Blob): Promise<string | null> => {
+    const uploadChatAudio = useCallback(async (file: File | Blob): Promise<string | null> => {
         if (!supabase || !user) return null;
         try {
             const fileName = `${user.id}/${Math.random().toString(36).substring(2)}.webm`;
@@ -431,44 +430,23 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             showNotification("Failed to upload audio.", "error");
             return null;
         }
-    };
+    }, [user, showNotification]);
 
-    const sendMessage = async (journeyId: string, content: string, replyToId: string | null = null, imageUrl: string | null = null, audioUrl: string | null = null) => {
+    const sendMessage = useCallback(async (journeyId: string, content: string, replyToId: string | null = null, imageUrl: string | null = null, audioUrl: string | null = null) => {
         if (!user) {
             const errorMsg = "You must be logged in to participate in the discussion.";
             showNotification(errorMsg, 'error');
             throw new Error(errorMsg);
         }
-        if (!supabase) {
-            const errorMsg = "Database connection error. Please try again later.";
-            showNotification(errorMsg, 'error');
-            throw new Error(errorMsg);
-        }
 
         try {
-            // Check if journey is past
-            const { data: journeyData } = await (supabase as any)
-                .from('journeys')
-                .select('user_id, date')
-                .eq('id', journeyId)
-                .single();
-
-            const isPast = journeyData?.date && dayjs(journeyData.date).isBefore(dayjs(), 'day');
-            if (isPast) {
-                showNotification("Discussion is archived for past trips.", 'info');
-                return;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Authentication token is missing. Please sign in again.');
             }
 
-            const isOwner = journeyData?.user_id === user.id;
-            if (!isOwner) {
-                const status = await checkRequestStatus(journeyId);
-                if (status !== 'accepted') {
-                    showNotification("You must be an accepted traveler to participate.", 'error');
-                    return;
-                }
-            }
-
-            const optimisticId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `00000000-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padStart(12, '0')}`;
+            const optimisticId = `opt-${Math.random().toString(36).substr(2, 9)}`;
             const newMessage: Message = {
                 id: optimisticId,
                 journey_id: journeyId,
@@ -485,9 +463,13 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
             // Optimistic update
             setMessages(prev => [...prev, newMessage]);
 
-            const { data, error } = await (supabase as any)
-                .from('journey_messages')
-                .insert({
+            const res = await fetch(`${apiUrl}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     sender_id: user.id,
                     sender_name: user.fullName || user.username || 'Anonymous',
@@ -497,68 +479,73 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
                     image_url: imageUrl,
                     audio_url: audioUrl
                 })
-                .select()
-                .single();
+            });
 
-            if (error) throw error;
+            if (!res.ok) throw new Error('Failed to send message via API');
+            const data = await res.json();
 
-            // Replace optimistic message with real one to sync database ID
+            // Replace optimistic message
             if (data) {
                 setMessages(prev => prev.map(m => m.id === optimisticId ? data as Message : m));
             }
 
-            console.log("[MessagesContext] Message sent and reconciled successfully");
+            console.log("[MessagesContext] Message sent via API and reconciled");
         } catch (err: any) {
-            console.error("[MessagesContext] Error sending message:", err);
+            console.error("[MessagesContext] Error sending message via API:", err);
             showNotification(`Failed to send message: ${err?.message || 'Unknown error'}`, 'error');
             throw err;
         }
-    };
+    }, [user, getToken, showNotification]);
 
-    const editMessage = async (messageId: string, content: string) => {
-        if (!supabase) return;
-
+    const editMessage = useCallback(async (messageId: string, content: string) => {
         // Optimistic update
         const originalMessages = [...messages];
         setMessages(prev => prev.map(m => m.id === messageId ? { ...m, content } : m));
 
         try {
-            const { error } = await (supabase as any)
-                .from('journey_messages')
-                .update({ content })
-                .eq('id', messageId);
-            if (error) throw error;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/messages/${messageId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ content })
+            });
+            if (!res.ok) throw new Error('Failed to edit message via API');
         } catch (err: any) {
             console.error("[MessagesContext] Error editing message:", err);
             setMessages(originalMessages); // Rollback
             showNotification(`Failed to edit message: ${err.message}`, 'error');
             throw err;
         }
-    };
+    }, [messages, getToken, showNotification]);
 
-    const deleteMessage = async (messageId: string) => {
-        if (!supabase) return;
-
+    const deleteMessage = useCallback(async (messageId: string) => {
         // Optimistic update
         const originalMessages = [...messages];
         setMessages(prev => prev.filter(m => m.id !== messageId));
 
         try {
-            const { error } = await (supabase as any)
-                .from('journey_messages')
-                .delete()
-                .eq('id', messageId);
-
-            if (error) throw error;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/messages/${messageId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete message via API');
         } catch (err: any) {
             console.error("[MessagesContext] Error deleting message:", err);
             setMessages(originalMessages); // Rollback
             showNotification(`Failed to delete message: ${err.message}`, 'error');
             throw err;
         }
-    };
+    }, [messages, getToken, showNotification]);
 
-    const calculateCompatibility = (journeyDesc: string, requestMsg: string): { score: number; reason: string } => {
+    const calculateCompatibility = useCallback((journeyDesc: string, requestMsg: string): { score: number; reason: string } => {
         const desc = (journeyDesc || '').toLowerCase();
         const msg = (requestMsg || '').toLowerCase();
 
@@ -589,174 +576,118 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         }
 
         return { score, reason: matchedReason };
-    };
+    }, []);
 
-    const sendRequest = async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '', boardingPassUrl: string = '') => {
-        if (!user || !supabase) return;
+    const sendRequest = useCallback(async (journeyId: string, message: string = '', rating: number = 5.0, isVerified: boolean = true, audioUrl: string = '', boardingPassUrl: string = '') => {
+        if (!user) return;
         try {
-            // Fetch journey description for compatibility check
-            const { data: journeyData } = await (supabase as any)
-                .from('journeys')
-                .select('description')
-                .eq('id', journeyId)
-                .single();
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
 
-            const { score, reason } = calculateCompatibility(journeyData?.description || '', message);
-
-            const { error } = await (supabase as any)
-                .from('journey_requests')
-                .insert([{
+            const res = await fetch(`${apiUrl}/requests`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     requester_id: user.id,
                     requester_name: user.fullName || user.username || "Anonymous",
                     requester_avatar: user.imageUrl,
                     status: 'pending',
-                    message: message || '',
-                    requester_rating: rating || 5.0,
-                    requester_verified: isVerified ?? true,
-                    requester_audio_url: audioUrl || null,
-                    boarding_pass_url: boardingPassUrl || null,
-                    compatibility_score: score,
-                    compatibility_reason: reason
-                }]);
-            if (error) throw error;
+                    message,
+                    requester_rating: rating,
+                    requester_verified: isVerified,
+                    requester_audio_url: audioUrl,
+                    boarding_pass_url: boardingPassUrl
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to send request via API');
             showNotification("Your request has been sent! We'll notify you once accepted.", 'success');
         } catch (err: any) {
-            console.error("[MessagesContext] Error sending request:", err);
+            console.error("[MessagesContext] Error sending request via API:", err);
             showNotification(`Failed to send request: ${err.message}`, 'error');
         }
-    };
+    }, [user, getToken, showNotification]);
 
-    const getMutualCompanions = async (userId1: string, userId2: string): Promise<string[]> => {
-        if (!supabase) return [];
+    const getMutualCompanions = useCallback(async (userId1: string, userId2: string): Promise<string[]> => {
         try {
-            // Find shared journeys where both users were accepted
-            const { data: journeys1 } = await (supabase as any)
-                .from('journey_requests')
-                .select('journey_id')
-                .eq('requester_id', userId1)
-                .eq('status', 'accepted');
-
-            const { data: journeys2 } = await (supabase as any)
-                .from('journey_requests')
-                .select('journey_id')
-                .eq('requester_id', userId2)
-                .eq('status', 'accepted');
-
-            if (!journeys1 || !journeys2) return [];
-
-            const ids1 = new Set(journeys1.map((j: any) => j.journey_id));
-            const commonIds = (journeys2 as any[]).map(j => j.journey_id).filter(id => ids1.has(id));
-
-            if (commonIds.length === 0) return [];
-
-            // Get names of other travelers in those common journeys
-            const { data: connections } = await (supabase as any)
-                .from('journey_requests')
-                .select('requester_name')
-                .in('journey_id', commonIds)
-                .neq('requester_id', userId1)
-                .neq('requester_id', userId2)
-                .eq('status', 'accepted')
-                .limit(3);
-
-            return connections ? connections.map((c: any) => c.requester_name) : [];
-        } catch (err) {
-            console.error("[MessagesContext] Error fetching mutual companions:", err);
-            return [];
-        }
-    };
-
-    const getRequests = async (journeyId: string): Promise<JourneyRequest[]> => {
-        if (!supabase) return [];
-        try {
-            const { data, error } = await (supabase as any)
-                .from('journey_requests')
-                .select('*')
-                .eq('journey_id', journeyId);
-            if (error) throw error;
-            return data as JourneyRequest[];
-        } catch (err) {
-            console.error("[MessagesContext] Error fetching requests:", err);
-            return [];
-        }
-    };
-
-    const updateRequestStatus = async (requestId: string, status: 'accepted' | 'rejected') => {
-        if (!supabase) return;
-        try {
-            // First fetch the request to get the name and current status
-            const { data: request } = await (supabase as any)
-                .from('journey_requests')
-                .select('requester_name, journey_id, requester_id, status')
-                .eq('id', requestId)
-                .single();
-
-            const { error } = await (supabase as any)
-                .from('journey_requests')
-                .update({ status })
-                .eq('id', requestId);
-
-            if (error) throw error;
-
-            // If it was a removal (rejected from an accepted state), send a system message
-            if (status === 'rejected' && request?.status === 'accepted') {
-                const userName = request.requester_name || 'Someone';
-                await (supabase as any)
-                    .from('journey_messages')
-                    .insert({
-                        journey_id: request.journey_id,
-                        sender_id: request.requester_id,
-                        sender_name: userName,
-                        sender_avatar: '',
-                        content: `${userName} was removed from the group`,
-                        is_system: true
-                    });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/requests/mutual/${userId1}/${userId2}`);
+            if (res.ok) {
+                return await res.json();
             }
+            return [];
+        } catch (err) {
+            console.error("[MessagesContext] Error fetching mutual companions via API:", err);
+            return [];
+        }
+    }, []);
+
+    const getRequests = useCallback(async (journeyId: string): Promise<JourneyRequest[]> => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/requests/journey/${journeyId}`);
+            if (res.ok) {
+                return await res.json();
+            }
+            return [];
+        } catch (err) {
+            console.error("[MessagesContext] Error fetching requests via API:", err);
+            return [];
+        }
+    }, []);
+
+    const updateRequestStatus = useCallback(async (requestId: string, status: 'accepted' | 'rejected') => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/requests/${requestId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (!res.ok) throw new Error('Failed to update request status via API');
 
             showNotification(`Traveler request ${status === 'accepted' ? 'approved' : 'declined'}.`, status === 'accepted' ? 'success' : 'info');
         } catch (err: any) {
-            console.error("[MessagesContext] Error updating request status:", err);
+            console.error("[MessagesContext] Error updating request status via API:", err);
             showNotification(`Failed to update request: ${err.message}`, 'error');
         }
-    };
+    }, [getToken]);
 
-    const leaveJourney = async (journeyId: string) => {
-        if (!supabase || !user) return;
+    const leaveJourney = useCallback(async (journeyId: string) => {
+        if (!user) return;
         try {
-            // 1. Send system message first while still accepted
-            const userName = user.fullName || user.username || 'Someone';
-            await (supabase as any)
-                .from('journey_messages')
-                .insert({
-                    journey_id: journeyId,
-                    sender_id: user.id,
-                    sender_name: userName,
-                    sender_avatar: user.imageUrl,
-                    content: `${userName} left the group`,
-                    is_system: true
-                });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/requests/journey/${journeyId}/leave`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-            // 2. Update status to rejected (to revoke access)
-            const { error } = await (supabase as any)
-                .from('journey_requests')
-                .update({ status: 'rejected' })
-                .eq('journey_id', journeyId)
-                .eq('requester_id', user.id);
-
-            if (error) throw error;
+            if (!res.ok) throw new Error('Failed to leave journey via API');
 
             setParticipatingJourneys(prev => prev.filter(id => id !== journeyId));
             setMyRequests(prev => ({ ...prev, [journeyId]: 'rejected' }));
 
             showNotification("You have left the journey discussion.", 'info');
         } catch (err: any) {
-            console.error("[MessagesContext] Error leaving journey:", err);
+            console.error("[MessagesContext] Error leaving journey via API:", err);
             showNotification(`Failed to leave journey: ${err.message}`, 'error');
         }
-    };
+    }, [getToken, user]);
 
-    const setTypingStatus = (journeyId: string, isTyping: boolean) => {
+    const setTypingStatus = useCallback((journeyId: string, isTyping: boolean) => {
         if (!user || !supabase) return;
         const channel = channelsRef.current[journeyId];
         if (!channel) return;
@@ -772,377 +703,505 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         } else {
             channel.untrack();
         }
-    };
+    }, [user]);
 
-    const checkRequestStatus = async (journeyId: string): Promise<'pending' | 'accepted' | 'rejected' | 'none'> => {
-        if (!user || !supabase) return 'none';
+    const checkRequestStatus = useCallback(async (journeyId: string): Promise<'pending' | 'accepted' | 'rejected' | 'none'> => {
+        if (!user) return 'none';
         try {
-            const { data, error } = await (supabase as any)
-                .from('journey_requests')
-                .select('status')
-                .eq('journey_id', journeyId)
-                .eq('requester_id', user.id)
-                .single();
-
-            if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "not found"
-            return data?.status || 'none';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/requests/journey/${journeyId}/status`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                return data.status || 'none';
+            }
+            return 'none';
         } catch (err) {
-            console.error("[MessagesContext] Error checking request status:", err);
+            console.error("[MessagesContext] Error checking request status via API:", err);
             return 'none';
         }
-    };
+    }, [getToken, user]);
 
-    const subscribeToJourney = useCallback((journeyId: string) => {
+    const subscribeToJourney = useCallback((journeyId: string, options?: {
+        onItineraryChange?: () => void;
+        onSouvenirChange?: () => void;
+        onRequestsChange?: () => void;
+    }) => {
         if (!supabase) return () => { };
 
         // Initial fetch
         fetchMessages(journeyId);
 
-        // Realtime subscription
-        const channel = (supabase as any)
-            .channel(`journey_chat:${journeyId}`, {
-                config: {
-                    presence: {
-                        key: user?.id || 'anonymous',
+        // Initialize listener container if first time
+        if (!listenersRef.current[journeyId]) {
+            listenersRef.current[journeyId] = {
+                onItineraryChange: new Set(),
+                onSouvenirChange: new Set(),
+                onRequestsChange: new Set(),
+            };
+        }
+
+        // Add current callbacks to sets
+        if (options?.onItineraryChange) listenersRef.current[journeyId].onItineraryChange.add(options.onItineraryChange);
+        if (options?.onSouvenirChange) listenersRef.current[journeyId].onSouvenirChange.add(options.onSouvenirChange);
+        if (options?.onRequestsChange) listenersRef.current[journeyId].onRequestsChange.add(options.onRequestsChange);
+
+        // Track instance count
+        subscriptionCountsRef.current[journeyId] = (subscriptionCountsRef.current[journeyId] || 0) + 1;
+
+        // Only create/subscribe if this is the first instance
+        if (subscriptionCountsRef.current[journeyId] === 1) {
+            console.log(`[MessagesContext] Creating NEW realtime channel for journey ${journeyId}`);
+            const channel = (supabase as any)
+                .channel(`journey_main:${journeyId}`, {
+                    config: {
+                        presence: {
+                            key: user?.id || 'anonymous',
+                        },
                     },
-                },
-            });
-
-        channelsRef.current[journeyId] = channel;
-
-        channel
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'journey_messages',
-                    filter: `journey_id=eq.${journeyId}`,
-                },
-                (payload: any) => {
-                    console.log(`[MessagesContext] Realtime Event Received for journey ${journeyId}:`, payload.eventType, payload.new?.id);
-                    if (payload.eventType === 'INSERT') {
-                        setMessages((prev) => {
-                            if (prev.some(m => m.id === payload.new.id)) return prev;
-                            return [...prev, payload.new as Message];
-                        });
-                    } else if (payload.eventType === 'UPDATE') {
-                        setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
-                    } else if (payload.eventType === 'DELETE') {
-                        setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
-                    }
-                }
-            )
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'journey_locations',
-                    filter: `journey_id=eq.${journeyId}`,
-                },
-                (payload: any) => {
-                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                        setSquadLocations(prev => ({
-                            ...prev,
-                            [payload.new.user_id]: {
-                                userId: payload.new.user_id,
-                                userName: payload.new.user_name,
-                                lat: payload.new.lat,
-                                lng: payload.new.lng,
-                                updatedAt: payload.new.updated_at
-                            }
-                        }));
-                    } else if (payload.eventType === 'DELETE') {
-                        setSquadLocations(prev => {
-                            const next = { ...prev };
-                            delete next[payload.old.user_id];
-                            return next;
-                        });
-                    }
-                }
-            )
-            .on('presence', { event: 'sync' }, () => {
-                const newState = channel.presenceState();
-                const typing: { id: string; name: string; avatar: string }[] = [];
-
-                Object.values(newState).forEach((presences: any) => {
-                    presences.forEach((presence: any) => {
-                        if (presence.is_typing && presence.id !== user?.id) {
-                            typing.push({
-                                id: presence.id,
-                                name: presence.name,
-                                avatar: presence.avatar
-                            });
-                        }
-                    });
                 });
 
-                setTypingUsers(prev => ({ ...prev, [journeyId]: typing }));
-            })
-            .subscribe();
+            channelsRef.current[journeyId] = channel;
+
+            channel
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_messages',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    (payload: any) => {
+                        console.log(`[MessagesContext] Realtime Event Received for journey ${journeyId}:`, payload.eventType, payload.new?.id);
+                        if (payload.eventType === 'INSERT') {
+                            setMessages((prev) => {
+                                if (prev.some(m => m.id === payload.new.id)) return prev;
+                                return [...prev, payload.new as Message];
+                            });
+                        } else if (payload.eventType === 'UPDATE') {
+                            setMessages((prev) => prev.map(m => m.id === payload.new.id ? payload.new as Message : m));
+                        } else if (payload.eventType === 'DELETE') {
+                            setMessages((prev) => prev.filter(m => m.id !== payload.old.id));
+                        }
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_locations',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    (payload: any) => {
+                        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                            setSquadLocations(prev => ({
+                                ...prev,
+                                [payload.new.user_id]: {
+                                    userId: payload.new.user_id,
+                                    userName: payload.new.user_name,
+                                    lat: payload.new.lat,
+                                    lng: payload.new.lng,
+                                    updatedAt: payload.new.updated_at
+                                }
+                            }));
+                        } else if (payload.eventType === 'DELETE') {
+                            setSquadLocations(prev => {
+                                const next = { ...prev };
+                                delete next[payload.old.user_id];
+                                return next;
+                            });
+                        }
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_itinerary',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    () => {
+                        listenersRef.current[journeyId]?.onItineraryChange.forEach(cb => cb());
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_souvenirs',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    () => {
+                        listenersRef.current[journeyId]?.onSouvenirChange.forEach(cb => cb());
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'journey_requests',
+                        filter: `journey_id=eq.${journeyId}`,
+                    },
+                    () => {
+                        listenersRef.current[journeyId]?.onRequestsChange.forEach(cb => cb());
+                    }
+                )
+                .on('presence', { event: 'sync' }, () => {
+                    const newState = channel.presenceState();
+                    const typing: { id: string; name: string; avatar: string }[] = [];
+
+                    Object.values(newState).forEach((presences: any) => {
+                        presences.forEach((presence: any) => {
+                            if (presence.is_typing && presence.id !== user?.id) {
+                                typing.push({
+                                    id: presence.id,
+                                    name: presence.name,
+                                    avatar: presence.avatar
+                                });
+                            }
+                        });
+                    });
+
+                    setTypingUsers(prev => ({ ...prev, [journeyId]: typing }));
+                })
+                .subscribe();
+        } else {
+            console.log(`[MessagesContext] Re-using EXISTING realtime channel for journey ${journeyId}. Active subscriptions: ${subscriptionCountsRef.current[journeyId]}`);
+        }
 
         return () => {
-            delete channelsRef.current[journeyId];
-            (supabase as any).removeChannel(channel);
-            setTypingUsers(prev => {
-                const next = { ...prev };
-                delete next[journeyId];
-                return next;
-            });
+            const currentCount = subscriptionCountsRef.current[journeyId];
+            if (currentCount === undefined) return;
+
+            subscriptionCountsRef.current[journeyId] = currentCount - 1;
+
+            const listeners = listenersRef.current[journeyId];
+            if (listeners && options) {
+                if (options.onItineraryChange) listeners.onItineraryChange.delete(options.onItineraryChange);
+                if (options.onSouvenirChange) listeners.onSouvenirChange.delete(options.onSouvenirChange);
+                if (options.onRequestsChange) listeners.onRequestsChange.delete(options.onRequestsChange);
+            }
+
+            // If last instance, cleanup channel
+            if (subscriptionCountsRef.current[journeyId] === 0) {
+                console.log(`[MessagesContext] Cleaning up REALTIME channel for journey ${journeyId}`);
+                const channel = channelsRef.current[journeyId];
+                if (channel) {
+                    (supabase as any).removeChannel(channel);
+                }
+                delete channelsRef.current[journeyId];
+                delete listenersRef.current[journeyId];
+                delete subscriptionCountsRef.current[journeyId];
+
+                setTypingUsers(prev => {
+                    const next = { ...prev };
+                    delete next[journeyId];
+                    return next;
+                });
+            }
         };
     }, [fetchMessages, user?.id]);
 
-    const markAsRead = (id: string) => {
+    const markAsRead = useCallback((id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    };
+    }, []);
 
-    const addExpense = async (journeyId: string, amount: number, description: string) => {
-        if (!supabase || !user) return;
+    const addExpense = useCallback(async (journeyId: string, amount: number, description: string) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_expenses')
-                .insert([{
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/expenses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     payer_id: user.id,
                     payer_name: user.fullName || user.username || "Anonymous",
                     amount,
                     description,
                     currency: 'USD'
-                }]);
-            if (error) throw error;
+                })
+            });
+            if (!res.ok) throw new Error('Failed to add expense via API');
             showNotification("Expense added and shared with the group!", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error adding expense:", err);
+            console.error("[MessagesContext] Error adding expense via API:", err);
             showNotification("Failed to add expense.", "error");
         }
-    };
+    }, [user, getToken]);
 
-    const getExpenses = async (journeyId: string) => {
-        if (!supabase) return [];
-        const { data } = await (supabase as any)
-            .from('journey_expenses')
-            .select('*')
-            .eq('journey_id', journeyId)
-            .order('created_at', { ascending: false });
-        return data || [];
-    };
-
-    const updateExpense = async (journeyId: string, expenseId: string, amount: number, description: string) => {
-        if (!supabase || !user) return;
+    const getExpenses = useCallback(async (journeyId: string) => {
         try {
-            const { error } = await (supabase as any)
-                .from('journey_expenses')
-                .update({ amount, description })
-                .eq('id', expenseId)
-                .eq('payer_id', user.id);
-            if (error) throw error;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/expenses/journey/${journeyId}`);
+            if (res.ok) {
+                return await res.json();
+            }
+            return [];
+        } catch (err) {
+            console.error("[MessagesContext] Error fetching expenses via API:", err);
+            return [];
+        }
+    }, []);
 
-            // Post a notification in chat
+    const updateExpense = useCallback(async (journeyId: string, expenseId: string, amount: number, description: string) => {
+        if (!user) return;
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/expenses/${expenseId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    payerId: user.id,
+                    updates: { amount, description }
+                })
+            });
+            if (!res.ok) throw new Error('Failed to update expense via API');
+
             await sendMessage(journeyId, `[EXPENSE UPDATED] ${description}: $${amount.toFixed(2)}`);
             showNotification("Expense updated.", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error updating expense:", err);
+            console.error("[MessagesContext] Error updating expense via API:", err);
             showNotification("Failed to update expense.", "error");
         }
-    };
+    }, [user, getToken, sendMessage]);
 
-    const deleteExpense = async (journeyId: string, expenseId: string, description: string) => {
-        if (!supabase || !user) return;
+    const deleteExpense = useCallback(async (journeyId: string, expenseId: string, description: string) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_expenses')
-                .delete()
-                .eq('id', expenseId)
-                .eq('payer_id', user.id);
-            if (error) throw error;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/expenses/${expenseId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ payerId: user.id })
+            });
+            if (!res.ok) throw new Error('Failed to delete expense via API');
 
-            // Post a notification in chat
             await sendMessage(journeyId, `[EXPENSE REMOVED] ${description}`);
             showNotification("Expense removed.", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error deleting expense:", err);
+            console.error("[MessagesContext] Error deleting expense via API:", err);
             showNotification("Failed to delete expense.", "error");
         }
-    };
+    }, [user, getToken, sendMessage]);
 
-    const recordSettlement = async (journeyId: string, amount: number, receiverId: string, receiverName: string) => {
-        if (!supabase || !user) return;
+    const recordSettlement = useCallback(async (journeyId: string, amount: number, receiverId: string, receiverName: string) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_expenses')
-                .insert([{
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/expenses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     payer_id: user.id,
                     payer_name: user.firstName || "Traveler",
                     amount: amount,
                     description: `Settled balance with ${receiverName}`,
                     is_settlement: true,
-                    receiver_id: receiverId
-                }]);
-            if (error) throw error;
+                    receiver_id: receiverId,
+                    currency: 'USD'
+                })
+            });
+            if (!res.ok) throw new Error('Failed to record settlement via API');
 
-            // Post notification in chat
             await sendMessage(journeyId, `[SETTLED] ${user.firstName} paid ${receiverName}: $${amount.toFixed(2)}`);
             showNotification(`Settlement recorded with ${receiverName}`, "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error recording settlement:", err);
+            console.error("[MessagesContext] Error recording settlement via API:", err);
             showNotification("Failed to record settlement.", "error");
         }
-    };
+    }, [user, getToken, sendMessage]);
 
-    const submitReview = async (journeyId: string, revieweeId: string, rating: number, comment: string) => {
-        if (!supabase || !user) return;
+    const submitReview = useCallback(async (journeyId: string, revieweeId: string, rating: number, comment: string) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_reviews')
-                .insert([{
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     reviewer_id: user.id,
                     reviewee_id: revieweeId,
                     rating,
                     comment
-                }]);
-            if (error) throw error;
+                })
+            });
+            if (!res.ok) throw new Error('Failed to submit review via API');
             showNotification("Thank you for your review!", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error submitting review:", err);
+            console.error("[MessagesContext] Error submitting review via API:", err);
             showNotification("Failed to submit review.", "error");
         }
-    };
+    }, [user, getToken]);
 
-    const getEmergencyContacts = async (journeyId: string) => {
-        const cacheKey = `emergency_contacts_${journeyId}`;
-        if (!supabase) {
-            // Fallback to local cache if offline
-            const cached = localStorage.getItem(cacheKey);
-            return cached ? JSON.parse(cached) : [];
-        }
-
+    const getEmergencyContacts = useCallback(async (journeyId: string) => {
         try {
-            const { data, error } = await (supabase as any)
-                .from('journey_emergency_contacts')
-                .select('*')
-                .eq('journey_id', journeyId);
-
-            if (error) throw error;
-
-            // Soft self-destruct: Filter out expired contacts
-            const validContacts = (data || []).filter((c: any) => dayjs().isBefore(dayjs(c.expires_at)));
-
-            // Update local cache
-            localStorage.setItem(cacheKey, JSON.stringify(validContacts));
-
-            return validContacts;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/security/journey/${journeyId}`);
+            if (res.ok) {
+                const data = await res.json();
+                return (data || []).filter((c: any) => dayjs().isBefore(dayjs(c.expires_at)));
+            }
+            return [];
         } catch (err: any) {
-            console.error("[MessagesContext] Error fetching emergency contacts:", err);
-            const cached = localStorage.getItem(cacheKey);
-            return cached ? JSON.parse(cached) : [];
+            console.error("[MessagesContext] Error fetching emergency contacts via API:", err);
+            return [];
         }
-    };
+    }, []);
 
-    const addSouvenir = async (journey_id: string, image_url: string, caption: string) => {
-        if (!supabase || !user) return null;
+    const addSouvenir = useCallback(async (journey_id: string, image_url: string, caption: string) => {
+        if (!user) return null;
         try {
-            const { data, error } = await (supabase as any)
-                .from('journey_souvenirs')
-                .insert([{
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/souvenirs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id,
                     user_id: user.id,
                     user_name: user.fullName || "Traveler",
                     user_avatar: user.imageUrl,
                     image_url,
                     caption
-                }])
-                .select()
-                .single();
-
-            if (error) {
-                console.error("[MessagesContext] Supabase Error adding souvenir:", error);
-                throw error;
-            }
+                })
+            });
+            if (!res.ok) throw new Error('Failed to add souvenir via API');
+            const data = await res.json();
             showNotification("Memory added to souvenirs!", "success");
             return data;
         } catch (err: any) {
-            console.error("[MessagesContext] Error adding souvenir:", err);
+            console.error("[MessagesContext] Error adding souvenir via API:", err);
             showNotification(`Failed to add memory: ${err.message || 'Unknown error'}`, "error");
             return null;
         }
-    };
+    }, [user, getToken]);
 
-    const getSouvenirs = async (journey_id: string) => {
-        if (!supabase) return [];
-        const { data } = await (supabase as any)
-            .from('journey_souvenirs')
-            .select('*')
-            .eq('journey_id', journey_id)
-            .order('created_at', { ascending: false });
-        return data || [];
-    };
-
-    const saveEmergencyContact = async (journeyId: string, name: string, phone: string, relation: string) => {
-        if (!supabase || !user) return;
+    const getSouvenirs = useCallback(async (journey_id: string) => {
         try {
-            const expiresAt = dayjs().add(7, 'day').toISOString();
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/souvenirs/journey/${journey_id}`);
+            if (res.ok) {
+                return await res.json();
+            }
+            return [];
+        } catch (err) {
+            console.error("[MessagesContext] Error fetching souvenirs via API:", err);
+            return [];
+        }
+    }, []);
 
-            // Use upsert to enforce single-contact limit per participant
-            const { error } = await (supabase as any)
-                .from('journey_emergency_contacts')
-                .upsert([
-                    {
-                        journey_id: journeyId,
-                        user_id: user.id,
-                        uploader_name: user.fullName || user.username || "A Participant",
-                        contact_name: name,
-                        contact_phone: phone,
-                        relation,
-                        expires_at: expiresAt
-                    }
-                ], { onConflict: 'journey_id,user_id' }); // Note: Requires UNIQUE constraint on (journey_id, user_id)
-
-            if (error) throw error;
+    const saveEmergencyContact = useCallback(async (journeyId: string, name: string, phone: string, relation: string) => {
+        if (!user) return;
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/security/vault`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    journey_id: journeyId,
+                    user_id: user.id,
+                    uploader_name: user.fullName || user.username || "A Participant",
+                    contact_name: name,
+                    contact_phone: phone,
+                    relation,
+                    expires_at: dayjs().add(7, 'day').toISOString()
+                })
+            });
+            if (!res.ok) throw new Error('Failed to save contact via API');
             showNotification("Emergency contact updated in the Security Vault.", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error saving contact:", err);
+            console.error("[MessagesContext] Error saving contact via API:", err);
             showNotification("Failed to save contact.", "error");
         }
-    };
+    }, [user, getToken]);
 
-    const deleteEmergencyContact = async (journeyId: string) => {
-        if (!supabase || !user) return;
+    const deleteEmergencyContact = useCallback(async (journeyId: string) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_emergency_contacts')
-                .delete()
-                .eq('journey_id', journeyId)
-                .eq('user_id', user.id);
-
-            if (error) throw error;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            const res = await fetch(`${apiUrl}/security/vault/${journeyId}/user/${user.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete contact via API');
             showNotification("Your emergency contact has been removed.", "success");
         } catch (err: any) {
-            console.error("[MessagesContext] Error deleting contact:", err);
+            console.error("[MessagesContext] Error deleting contact via API:", err);
             showNotification("Failed to delete contact.", "error");
         }
-    };
+    }, [user, getToken]);
 
-    const shareLocation = async (journeyId: string, lat: number, lng: number) => {
-        if (!supabase || !user) return;
+    const shareLocation = useCallback(async (journeyId: string, lat: number, lng: number) => {
+        if (!user) return;
         try {
-            const { error } = await (supabase as any)
-                .from('journey_locations')
-                .upsert([{
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token is missing.');
+            await fetch(`${apiUrl}/locations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
                     journey_id: journeyId,
                     user_id: user.id,
                     user_name: user.firstName || "Traveler",
                     lat,
-                    lng,
-                    updated_at: new Date().toISOString()
-                }], { onConflict: 'journey_id,user_id' });
-            if (error) throw error;
+                    lng
+                })
+            });
         } catch (err: any) {
-            console.error("[MessagesContext] Error sharing location:", err);
+            console.error("[MessagesContext] Error sharing location via API:", err);
         }
-    };
+    }, [user, getToken]);
 
     const unreadCount = notifications.filter(n => !n.read).length;
 

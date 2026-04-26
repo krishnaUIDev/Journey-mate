@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material';
 import Image from 'next/image';
 import { addSouvenir, getJourneySouvenirs, deleteSouvenir } from '../../actions/souvenirs';
-import { supabase } from '../../../lib/supabase';
+import { useMessages } from '../../../context/MessagesContext';
 
 interface Souvenir {
     id: string;
@@ -43,6 +43,7 @@ interface SouvenirWallProps {
 }
 
 export function SouvenirWall({ journeyId, userId, isCompanion }: SouvenirWallProps) {
+    const { subscribeToJourney } = useMessages();
     const [souvenirs, setSouvenirs] = useState<Souvenir[]>([]);
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
@@ -60,23 +61,15 @@ export function SouvenirWall({ journeyId, userId, isCompanion }: SouvenirWallPro
 
         fetchSouvenirs();
 
-        if (!supabase) return;
-        const channel = supabase
-            .channel(`souvenirs-${journeyId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'journey_souvenirs',
-                filter: `journey_id=eq.${journeyId}`
-            }, () => {
+        const unsubscribe = subscribeToJourney(journeyId, {
+            onSouvenirChange: () => {
+                console.log("[SouvenirWall] Refreshing souvenirs via Realtime");
                 fetchSouvenirs();
-            })
-            .subscribe();
+            }
+        });
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [journeyId]);
+        return unsubscribe;
+    }, [journeyId, subscribeToJourney]);
 
     const handleAdd = async () => {
         if (!content && mode === 'note') return;

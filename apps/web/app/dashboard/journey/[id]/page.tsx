@@ -144,24 +144,27 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const { getMutualCompanions, uploadChatImage } = useMessages();
 
     const fetchAcceptedParticipants = useCallback(async () => {
-        if (!supabase) return;
-        const { data } = await supabase
-            .from('journey_requests')
-            .select('requester_id, requester_name, requester_avatar')
-            .eq('journey_id', id)
-            .eq('status', 'accepted');
-        if (data) {
-            setAcceptedParticipants(data);
-            // Fetch kudos for everyone once participants are loaded
-            const userIds = [journey?.userId, ...data.map((p: any) => p.requester_id)].filter(Boolean);
-            const kudosMap: Record<string, any[]> = {};
-            for (const uid of userIds) {
-                const k = await getUserKudos(uid);
-                kudosMap[uid] = k;
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await fetch(`${apiUrl}/requests/journey/${id}/accepted`);
+            if (!res.ok) throw new Error('Failed to fetch participants');
+            const data = await res.json();
+
+            if (data) {
+                setAcceptedParticipants(data);
+                // Fetch kudos for everyone once participants are loaded
+                const userIds = [journey?.user_id, ...data.map((p: any) => p.requester_id)].filter(Boolean);
+                const kudosMap: Record<string, any[]> = {};
+                for (const uid of userIds) {
+                    const k = await getUserKudos(uid);
+                    kudosMap[uid] = k;
+                }
+                setAllKudos(kudosMap);
             }
-            setAllKudos(kudosMap);
+        } catch (err) {
+            console.error("Error fetching accepted participants via API:", err);
         }
-    }, [id, supabase, journey?.userId]);
+    }, [id, journey?.user_id]);
 
     const toggleChat = () => {
         const newState = !chatOpen;
@@ -169,7 +172,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         setIsChatOpen(newState);
     };
 
-    const isOwner = user?.id && journey?.userId && user.id.trim() === journey.userId.trim();
+    const isOwner = user?.id && journey?.user_id && user.id.trim() === journey.user_id.trim();
     const isCompleted = journey?.status === 'completed';
     const isCancelled = journey?.status === 'cancelled';
     const isPastTrip = isCompleted || isCancelled || (journey?.date && dayjs(journey.date).isBefore(dayjs(), 'day'));
@@ -178,7 +181,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         if (journey) {
             console.log("[JourneyDetailPage] Status:", {
                 userId: user?.id,
-                journeyOwnerId: journey?.userId,
+                journeyOwnerId: journey?.user_id,
                 isOwner
             });
         }
@@ -207,7 +210,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             fetchAcceptedParticipants();
 
             // Initial status check
-            if (user?.id && user.id !== found.userId && !isPastTrip) {
+            if (user?.id && user.id !== found.user_id && !isPastTrip) {
                 checkRequestStatus(id).then(status => {
                     setRequestStatus(status);
                     setRequestLoading(false);
@@ -262,12 +265,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         supabase.removeChannel(channel);
                     };
                 }
-            } else if (isPastTrip || (user?.id && user.id === found.userId)) {
+            } else if (isPastTrip || (user?.id && user.id === found.user_id)) {
                 setRequestStatus('accepted');
                 setRequestLoading(false);
 
                 // If owner, also subscribe to all request changes to refresh participants
-                if (user?.id === found.userId && supabase) {
+                if (user?.id === found.user_id && supabase) {
                     const channel = supabase
                         .channel(`journey_participants_${id}`)
                         .on('postgres_changes', { event: '*', schema: 'public', table: 'journey_requests', filter: `journey_id=eq.${id}` }, () => {
@@ -285,10 +288,10 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     }, [id, journeys, user?.id, checkRequestStatus, supabase, isPastTrip, showNotification, fetchAcceptedParticipants]);
 
     useEffect(() => {
-        if (user?.id && journey?.userId && user.id !== journey.userId) {
-            getMutualCompanions(user.id, journey.userId).then(setMutualCompanions);
+        if (user?.id && journey?.user_id && user.id !== journey.user_id) {
+            getMutualCompanions(user.id, journey.user_id).then(setMutualCompanions);
         }
-    }, [user?.id, journey?.userId, getMutualCompanions]);
+    }, [user?.id, journey?.user_id, getMutualCompanions]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -303,7 +306,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
 
     const handleShare = async () => {
         const shareData = {
-            title: `Journey from ${journey?.from} to ${journey?.to}`,
+            title: `Journey from ${journey?.origin} to ${journey?.destination}`,
             text: `Check out this journey on Journey-Mate! ${journey?.description}`,
             url: window.location.href,
         };
@@ -372,7 +375,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         try {
             // Simulated AI Generation based on journey description
             const desc = (journey?.description || '').toLowerCase();
-            const to = journey?.to?.split(' (')[0] || '';
+            const to = journey?.destination?.split(' (')[0] || '';
 
             let draft = `Hi! I'm also traveling to ${to} and would love to pair up. `;
 
@@ -450,12 +453,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
-    const originCoords = getCoords(journey.from, journey.routeData);
-    const destCoords = getCoords(journey.to, journey.routeData);
+    const originCoords = getCoords(journey.origin, journey.route_data);
+    const destCoords = getCoords(journey.destination, journey.route_data);
 
     const mapMarkers: any[] = [
-        { position: originCoords, label: journey.from, type: 'origin' },
-        { position: destCoords, label: journey.to, type: 'destination' }
+        { position: originCoords, label: journey.origin, type: 'origin' },
+        { position: destCoords, label: journey.destination, type: 'destination' }
     ];
 
     const mapRoute: [number, number][] = [originCoords];
@@ -464,7 +467,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     if (journey.layovers && Array.isArray(journey.layovers)) {
         journey.layovers.forEach((l: string, idx: number) => {
             if (!l) return;
-            const coords = getCoords(l, journey.routeData);
+            const coords = getCoords(l, journey.route_data);
             mapMarkers.push({ position: coords, label: l, type: 'layover' });
             mapRoute.push(coords);
         });
@@ -547,14 +550,14 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         <div className="flex items-center gap-4 mb-4">
                             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl px-8 py-5 rounded-3xl border border-white/20 dark:border-white/5 shadow-2xl flex flex-col items-center">
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase mb-1">
-                                    {journey.airlineName || 'FLIGHT'}
+                                    {journey.airline_name || 'FLIGHT'}
                                 </span>
                                 <div className="flex items-center gap-3">
-                                    {journey.flightNumber && (
+                                    {journey.flight_number && (
                                         <div className="relative w-8 h-8">
                                             <Image
-                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flightNumber.match(/^[A-Z0-9]{2}/)?.[0] || 'AA'}.png`}
-                                                alt={`${journey.flightNumber} logo`}
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.flight_number.match(/^[A-Z0-9]{2}/)?.[0] || 'AA'}.png`}
+                                                alt={`${journey.flight_number} logo`}
                                                 fill
                                                 className="object-contain"
                                                 sizes="32px"
@@ -562,7 +565,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             />
                                         </div>
                                     )}
-                                    <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                                    <span className="text-2xl font-black text-slate-800 dark:text-white">{journey.flight_number}</span>
                                 </div>
                                 {journey.layovers && journey.layovers.length > 0 && (
                                     <div className="mt-2 flex flex-wrap gap-1 justify-center">
@@ -596,14 +599,14 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         <div className="hidden lg:flex items-center gap-4 mb-6">
                             <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-3 rounded-2xl border border-slate-100 dark:border-slate-700 inline-flex flex-col items-center">
                                 <span className="text-[10px] font-black tracking-[0.3em] text-slate-400 dark:text-slate-500 uppercase">
-                                    {journey.airlineName || 'FLIGHT'}
+                                    {journey.airline_name || 'FLIGHT'}
                                 </span>
                                 <div className="flex items-center gap-3">
-                                    {(journey.airlineIata || journey.flightNumber) && (
+                                    {(journey.airline_iata || journey.flight_number) && (
                                         <div className="relative w-6 h-6">
                                             <Image
-                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
-                                                alt={`${journey.airlineName || 'Airline'} logo`}
+                                                src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airline_iata || journey.flight_number?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                alt={`${journey.airline_name || 'Airline'} logo`}
                                                 fill
                                                 className="object-contain"
                                                 sizes="24px"
@@ -611,7 +614,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                             />
                                         </div>
                                     )}
-                                    <span className="text-xl font-black text-slate-800 dark:text-white">{journey.flightNumber}</span>
+                                    <span className="text-xl font-black text-slate-800 dark:text-white">{journey.flight_number}</span>
                                 </div>
                             </div>
                             {journey.layovers && journey.layovers.length > 0 && (
@@ -630,14 +633,14 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                         <div className="flex flex-col mb-8">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <Box>
-                                    {journey.groupName && (
+                                    {journey.group_name && (
                                         <Typography sx={{ color: 'forest.main', fontWeight: 900, mb: 1, letterSpacing: '0.1em', fontSize: '10px', textTransform: 'uppercase' }}>
-                                            {journey.groupName}
+                                            {journey.group_name}
                                         </Typography>
                                     )}
                                     <div className="flex items-center gap-3">
                                         <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
-                                            {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
+                                            {journey.origin.split(' (')[0]} → {journey.destination.split(' (')[0]}
                                         </h1>
                                     </div>
                                 </Box>
@@ -646,7 +649,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 Scheduled for {dayjs(journey.date).format('dddd, MMMM DD')}
                             </p>
 
-                            {journey.boardingPassUrl && (
+                            {journey.boarding_pass_url && (
                                 <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700">
                                     <VerifiedIcon sx={{ fontSize: 16, color: '#10B981' }} />
                                     <div className="flex flex-col">
@@ -656,12 +659,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 </div>
                             )}
 
-                            {journey.luggageCapacity && (
+                            {journey.luggage_capacity && (
                                 <div className="mt-3 flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-2xl w-fit animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
                                     <LuggageIcon sx={{ fontSize: 16, color: '#F59E0B' }} />
                                     <div className="flex flex-col">
                                         <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest leading-none mb-0.5">Extra Space</span>
-                                        <span className="text-[9px] font-bold text-amber-600/70 dark:text-amber-400/60">{journey.luggageCapacity} Offered</span>
+                                        <span className="text-[9px] font-bold text-amber-600/70 dark:text-amber-400/60">{journey.luggage_capacity} Offered</span>
                                     </div>
                                 </div>
                             )}
@@ -673,8 +676,8 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <div className="relative flex-shrink-0">
                                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-slate-800 transition-all group-hover:scale-105 relative">
                                         <Image
-                                            src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=128&width=128&fit=crop` : journey.user.avatar}
-                                            alt={journey.user.name}
+                                            src={journey.user_avatar?.includes('clerk.com') ? `${journey.user_avatar}?height=128&width=128&fit=crop` : journey.user_avatar}
+                                            alt={journey.user_name}
                                             fill
                                             className="object-cover"
                                             priority
@@ -687,15 +690,15 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 </div>
                                 <div className="flex flex-col min-w-0">
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">{journey.user.name}</h2>
-                                        <ProfileBadge tier={journey.user.verificationTier} />
+                                        <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">{journey.user_name}</h2>
+                                        <ProfileBadge tier={journey.user_verification_tier} />
                                     </div>
                                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest whitespace-nowrap">
                                             TRAVELER PROFILE
                                         </span>
                                         <span className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 rounded-lg text-[9px] font-black whitespace-nowrap">
-                                            {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
+                                            {journey.user_rating > 0 ? `★ ${journey.user_rating.toFixed(1)}` : 'NEW MEMBER'}
                                         </span>
                                     </div>
 
@@ -750,16 +753,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                 variant="contained"
                                                 onClick={() => {
                                                     setSelectedReviewee({
-                                                        id: journey.userId!,
-                                                        name: journey.user.name,
-                                                        avatar: journey.user.avatar
+                                                        id: journey.user_id!,
+                                                        name: journey.user_name,
+                                                        avatar: journey.user_avatar
                                                     });
                                                     setIsKudosModalOpen(true);
                                                 }}
-                                                startIcon={(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? <VerifiedIcon /> : <KudosIcon />}
-                                                disabled={(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id)}
+                                                startIcon={(allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id) ? <VerifiedIcon /> : <KudosIcon />}
+                                                disabled={(allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id)}
                                                 sx={{
-                                                    bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#fbbf24',
+                                                    bgcolor: (allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#fbbf24',
                                                     color: 'black',
                                                     borderRadius: '1rem',
                                                     py: 1.5,
@@ -768,16 +771,16 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                                     fontSize: '0.95rem',
                                                     letterSpacing: '-0.02em',
                                                     boxShadow: '0 10px 20px -5px rgba(251, 191, 36, 0.3)',
-                                                    '&:hover': { bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#f59e0b' },
+                                                    '&:hover': { bgcolor: (allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#f59e0b' },
                                                     '.dark &': {
-                                                        bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.700' : '#fbbf24',
+                                                        bgcolor: (allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id) ? 'slate.700' : '#fbbf24',
                                                         color: 'black'
                                                     }
                                                 }}
                                             >
-                                                {(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id)
+                                                {(allKudos[journey.user_id] || []).some(k => k.reviewer_id === user?.id)
                                                     ? "Kudos Shared"
-                                                    : `Leave Kudos for ${journey.user.name.split(' ')[0]}`}
+                                                    : `Leave Kudos for ${journey.user_name.split(' ')[0]}`}
                                             </Button>
                                         )}
                                         <Button
@@ -899,12 +902,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 )}
 
-                                {journey.boardingPassUrl && isOwner && (
+                                {journey.boarding_pass_url && isOwner && (
                                     <div className="mt-8 bg-slate-50 dark:bg-white/5 p-5 rounded-[2rem] border border-slate-100 dark:border-white/10 overflow-hidden">
                                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">YOUR BOARDING PASS</h3>
                                         <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-inner">
                                             <Image
-                                                src={journey.boardingPassUrl}
+                                                src={journey.boarding_pass_url}
                                                 alt="Boarding Pass"
                                                 fill
                                                 className="object-cover"
@@ -916,12 +919,12 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                             </div>
 
                             {/* Secondary Actions / Connect Section - More Compact */}
-                            {journey.contactInfo && (
+                            {journey.contact_info && (
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-700">
                                     <h2 className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">CONNECT WITH OWNER</h2>
                                     <div className="flex flex-col gap-3">
                                         {(() => {
-                                            const contact = journey.contactInfo;
+                                            const contact = journey.contact_info;
                                             const cleanPhone = contact.replace(/[\s\-\+\(\)]/g, '');
                                             const isEmail = contact.includes('@') && !contact.startsWith('@');
                                             const isWhatsApp = /^\d+$/.test(cleanPhone) && cleanPhone.length > 5;
@@ -1044,7 +1047,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
 
                             {/* Companion Trust Wall */}
                             {(() => {
-                                const ownerId = journey?.userId;
+                                const ownerId = journey?.user_id;
                                 const ownerReviews = ownerId ? (allKudos[ownerId] || []) : [];
                                 const hasReviews = ownerReviews.length > 0 || acceptedParticipants.some(p => (allKudos[p.requester_id]?.length || 0) > 0);
 

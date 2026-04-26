@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "pnpm exec turbo run build",
-    "dev": "pnpm exec turbo run dev --concurrency 4",
+    "dev": "pnpm exec turbo run dev --concurrency 10",
     "clean": "rm -rf .turbo apps/*/.turbo apps/*/.next packages/*/.turbo packages/*/dist",
     "clean:force": "rm -rf node_modules .turbo apps/*/node_modules apps/*/.turbo apps/*/.next packages/*/node_modules packages/*/.turbo packages/*/dist",
     "lint": "pnpm exec turbo run lint",

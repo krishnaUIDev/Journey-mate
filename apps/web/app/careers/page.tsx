@@ -1,16 +1,19 @@
-import { supabase } from "../../lib/supabase";
 import CareersClient from "./CareersClient";
 
 export const revalidate = 60; // revalidate every 60 seconds
 
 export default async function CareersPage() {
-    if (!supabase) return <CareersClient jobs={[]} />;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-    const { data: jobs } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("active", true)
-        .order("created_at", { ascending: false });
+    let jobs = [];
+    try {
+        const response = await fetch(`${apiUrl}/jobs`, { next: { revalidate: 60 } });
+        if (response.ok) {
+            jobs = await response.json();
+        }
+    } catch (err) {
+        console.error("Error fetching jobs from API:", err);
+    }
 
-    return <CareersClient jobs={(jobs as any) ?? []} />;
+    return <CareersClient jobs={jobs} />;
 }

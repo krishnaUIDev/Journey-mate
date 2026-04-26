@@ -57,8 +57,8 @@ export function JourneyFeed() {
             // Filter out completed/cancelled unless explicitly searched (though typically feed is for upcoming)
             if (journey.status === 'completed' || journey.status === 'cancelled') return false;
 
-            const matchFrom = !searchFrom || (journey.from || "").toLowerCase().includes(searchFrom.toLowerCase());
-            const matchTo = !searchTo || (journey.to || "").toLowerCase().includes(searchTo.toLowerCase());
+            const matchFrom = !searchFrom || (journey.origin || "").toLowerCase().includes(searchFrom.toLowerCase());
+            const matchTo = !searchTo || (journey.destination || "").toLowerCase().includes(searchTo.toLowerCase());
             const matchDate = !searchDate || (journey.date || "") === searchDate.format('YYYY-MM-DD');
             return matchFrom && matchTo && matchDate;
         });
@@ -219,7 +219,7 @@ export function JourneyFeed() {
                 ) : (
                     filteredJourneys.slice(0, visibleCount).map((journey) => {
                         const isPast = dayjs(journey.date).isBefore(dayjs(), 'day');
-                        const isOwner = user?.id === journey.userId;
+                        const isOwner = user?.id === journey.user_id;
 
                         return (
                             <div
@@ -229,10 +229,10 @@ export function JourneyFeed() {
                             >
                                 {/* Header / Route Icon - More Compact */}
                                 {(() => {
-                                    const fromCity = journey.from.split(' (')[0];
-                                    const fromCode = journey.from.match(/\(([^)]+)\)/)?.[1] || journey.from.slice(0, 3).toUpperCase();
-                                    const toCity = journey.to.split(' (')[0];
-                                    const toCode = journey.to.match(/\(([^)]+)\)/)?.[1] || journey.to.slice(0, 3).toUpperCase();
+                                    const fromCity = journey.origin.split(' (')[0];
+                                    const fromCode = journey.origin.match(/\(([^)]+)\)/)?.[1] || journey.origin.slice(0, 3).toUpperCase();
+                                    const toCity = journey.destination.split(' (')[0];
+                                    const toCode = journey.destination.match(/\(([^)]+)\)/)?.[1] || journey.destination.slice(0, 3).toUpperCase();
                                     return (
                                         <div className="flex-shrink-0 w-12 bg-gray-50 dark:bg-white/5 rounded-xl flex flex-col items-center justify-center border border-gray-100 dark:border-white/10 py-2 gap-0.5">
                                             <Tooltip title={fromCity} placement="left" arrow>
@@ -257,7 +257,7 @@ export function JourneyFeed() {
                                     {/* Route title + single status pill */}
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <h3 className="font-black text-navy dark:text-white truncate text-sm leading-tight">
-                                            {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
+                                            {journey.origin.split(' (')[0]} → {journey.destination.split(' (')[0]}
                                         </h3>
                                         <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${myRequests[journey.id] === 'accepted' ? 'bg-blue-500/10 text-blue-500'
                                             : myRequests[journey.id] === 'pending' ? 'bg-orange-500/10 text-orange-500'
@@ -273,20 +273,20 @@ export function JourneyFeed() {
                                     {/* Date + airline row */}
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2">
                                         <span className="text-gray-500 dark:text-gray-400">{dayjs(journey.date).format('MMM DD')}</span>
-                                        {(journey.airlineIata || journey.flightNumber) && (
+                                        {(journey.airline_iata || journey.flight_number) && (
                                             <>
                                                 <span>·</span>
                                                 <div className="flex items-center gap-1">
                                                     <div className="relative w-3 h-3 flex-shrink-0">
                                                         <Image
-                                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airline_iata || journey.flight_number?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
                                                             alt=""
                                                             fill
                                                             className="object-contain"
                                                             sizes="12px"
                                                         />
                                                     </div>
-                                                    <span className="uppercase tracking-wide">{journey.flightNumber || journey.airlineName}</span>
+                                                    <span className="uppercase tracking-wide">{journey.flight_number || journey.airline_name}</span>
                                                 </div>
                                             </>
                                         )}
@@ -296,22 +296,22 @@ export function JourneyFeed() {
                                     <div className="flex items-center gap-1.5">
                                         <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 dark:border-white/10 flex-shrink-0">
                                             <Image
-                                                src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=40&width=40&fit=crop` : journey.user.avatar}
+                                                src={journey.user_avatar?.includes('clerk.com') ? `${journey.user_avatar}?height=40&width=40&fit=crop` : journey.user_avatar}
                                                 alt=""
                                                 fill
                                                 className="object-cover"
                                                 sizes="20px"
                                             />
                                         </div>
-                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 truncate">{journey.user.name}</span>
-                                        {journey.user.rating > 0 && (
-                                            <span className="text-[9px] font-black text-amber-500 flex-shrink-0">★ {journey.user.rating.toFixed(1)}</span>
+                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 truncate">{journey.user_name}</span>
+                                        {journey.user_rating > 0 && (
+                                            <span className="text-[9px] font-black text-amber-500 flex-shrink-0">★ {journey.user_rating.toFixed(1)}</span>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Actions - Compact Context Menu style */}
-                                {user?.id === journey.userId && (
+                                {user?.id === journey.user_id && (
                                     <div className="flex flex-col gap-1 ml-auto">
                                         <IconButton
                                             size="small"
@@ -320,7 +320,7 @@ export function JourneyFeed() {
                                                 setEditingJourney(journey);
                                                 setIsEditModalOpen(true);
                                             }}
-                                            aria-label={`Edit journey from ${journey.from} to ${journey.to}`}
+                                            aria-label={`Edit journey from ${journey.origin} to ${journey.destination}`}
                                             sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } }}
                                         >
                                             <EditIcon sx={{ fontSize: 14, color: 'gray' }} />
@@ -332,7 +332,7 @@ export function JourneyFeed() {
                                                 setDeletingJourney(journey);
                                                 setIsDeleteModalOpen(true);
                                             }}
-                                            aria-label={`Delete journey from ${journey.from} to ${journey.to}`}
+                                            aria-label={`Delete journey from ${journey.origin} to ${journey.destination}`}
                                             sx={{ p: 0.5, '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' } }}
                                         >
                                             <DeleteIcon sx={{ fontSize: 14, color: '#ef4444' }} />
@@ -373,7 +373,7 @@ export function JourneyFeed() {
             {deletingJourney && (
                 <DeleteConfirmationModal
                     open={isDeleteModalOpen}
-                    title={`${deletingJourney.from} to ${deletingJourney.to}`}
+                    title={`${deletingJourney.origin} to ${deletingJourney.destination}`}
                     onClose={() => {
                         setIsDeleteModalOpen(false);
                         setDeletingJourney(null);

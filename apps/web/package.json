@@ -21,6 +21,7 @@
     "@mui/material": "^9.0.0",
     "@mui/x-date-pickers": "^9.0.2",
     "@repo/ui": "workspace:*",
+    "@journey-mate/shared": "workspace:*",
     "@supabase/supabase-js": "^2.103.3",
     "agora-extension-beauty-effect": "1.0.2-beta",
     "agora-extension-virtual-background": "^2.1.0",

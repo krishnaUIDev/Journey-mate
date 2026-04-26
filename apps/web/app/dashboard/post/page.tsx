@@ -144,7 +144,7 @@ export default function PostJourneyPage() {
 
         const selectedDate = date?.format('YYYY-MM-DD');
         const isDuplicate = journeys.some(j =>
-            j.user.name === (user?.fullName || "A Traveler") &&
+            j.user_name === (user?.fullName || "A Traveler") &&
             j.date === selectedDate
         );
 
@@ -193,28 +193,27 @@ export default function PostJourneyPage() {
 
         try {
             await addJourney({
-                userId: user?.id || "",
-                from: from.split(' (')[1]?.replace(')', '') || from,
-                to: to.split(' (')[1]?.replace(')', '') || to,
+                user_id: user?.id || "",
+                origin: from.split(' (')[1]?.replace(')', '') || from,
+                destination: to.split(' (')[1]?.replace(')', '') || to,
                 date: selectedDate || dayjs().format('YYYY-MM-DD'),
-                flightNumber,
-                airlineName,
-                airlineIata,
+                flight_number: flightNumber,
+                airline_name: airlineName,
+                airline_iata: airlineIata,
                 layovers: layovers.map(l => l.split(' (')[1]?.replace(')', '') || l),
-                contactInfo: formattedContact,
+                contact_info: formattedContact,
+                contact_method: contactMethod,
                 description,
-                user: {
-                    name: user?.fullName || "A Traveler",
-                    avatar: user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`,
-                    rating: 0,
-                    verified: false,
-                    verificationTier: 'bronze'
-                },
+                user_name: user?.fullName || "A Traveler",
+                user_avatar: user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id || 'default'}`,
+                user_rating: 0,
+                user_verified: false,
+                user_verification_tier: 'bronze',
                 tags: [],
                 status: 'upcoming',
-                routeData: routeCoords,
-                boardingPassUrl,
-                luggageCapacity: luggageCapacity ? `${luggageCapacity}kg` : undefined
+                route_data: routeCoords,
+                boarding_pass_url: boardingPassUrl,
+                luggage_capacity: luggageCapacity ? `${luggageCapacity}kg` : undefined
             });
             router.push('/dashboard');
         } finally {

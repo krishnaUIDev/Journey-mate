@@ -1,26 +1,30 @@
 "use server";
 
-import { supabase } from "../../lib/supabase";
+import { auth } from "@clerk/nextjs/server";
+import { GuestbookEntry } from "@journey-mate/shared";
 
-export async function submitGuestbookEntry(entry: {
-    journey_id: string;
-    author_id: string;
-    author_name: string;
-    author_avatar?: string;
-    content: string;
-    emotion?: string;
-}) {
-    if (!supabase) throw new Error("Supabase is not initialized.");
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+export async function submitGuestbookEntry(entry: GuestbookEntry) {
+    const { getToken } = await auth();
+    const token = await getToken();
 
     try {
-        const { data, error } = await (supabase as any)
-            .from('journey_guestbook')
-            .insert([entry])
-            .select()
-            .single();
+        const response = await fetch(`${API_URL}/guestbook`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(entry)
+        });
 
-        if (error) throw error;
-        return data;
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.message || "Failed to submit guestbook entry via API");
+        }
+
+        return await response.json();
     } catch (error: any) {
         console.error("Submit Guestbook Error:", error);
         throw new Error(error.message || "Failed to submit guestbook entry.");
@@ -28,17 +32,13 @@ export async function submitGuestbookEntry(entry: {
 }
 
 export async function getJourneyGuestbook(journeyId: string) {
-    if (!supabase) throw new Error("Supabase is not initialized.");
-
     try {
-        const { data, error } = await (supabase as any)
-            .from('journey_guestbook')
-            .select('*')
-            .eq('journey_id', journeyId)
-            .order('created_at', { ascending: false });
+        const response = await fetch(`${API_URL}/guestbook/journey/${journeyId}`, {
+            next: { revalidate: 30 }
+        });
 
-        if (error) throw error;
-        return data || [];
+        if (!response.ok) throw new Error("Failed to fetch guestbook from API");
+        return await response.json();
     } catch (error: any) {
         console.error("Fetch Guestbook Error:", error);
         return [];

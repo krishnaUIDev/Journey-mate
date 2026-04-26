@@ -32,7 +32,7 @@ import {
 import { Tooltip, CircularProgress as TinyProgress } from '@mui/material';
 import dayjs from 'dayjs';
 import { addItineraryItem, getJourneyItinerary, deleteItineraryItem } from '../../actions/itinerary';
-import { supabase } from '../../../lib/supabase';
+import { useMessages } from '../../../context/MessagesContext';
 
 interface ItineraryItem {
     id: string;
@@ -51,6 +51,7 @@ interface ItineraryTimelineProps {
 }
 
 export function ItineraryTimeline({ journeyId, userId, isCompanion }: ItineraryTimelineProps) {
+    const { subscribeToJourney } = useMessages();
     const [items, setItems] = useState<ItineraryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [open, setOpen] = useState(false);
@@ -89,24 +90,15 @@ export function ItineraryTimeline({ journeyId, userId, isCompanion }: ItineraryT
 
         fetchItinerary();
 
-        // Real-time subscription
-        if (!supabase) return;
-        const channel = supabase
-            .channel(`itinerary-${journeyId}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'journey_itinerary',
-                filter: `journey_id=eq.${journeyId}`
-            }, () => {
+        const unsubscribe = subscribeToJourney(journeyId, {
+            onItineraryChange: () => {
+                console.log("[ItineraryTimeline] Refreshing itinerary via Realtime");
                 fetchItinerary();
-            })
-            .subscribe();
+            }
+        });
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [journeyId]);
+        return unsubscribe;
+    }, [journeyId, subscribeToJourney]);
 
     const handleAddItem = async () => {
         if (!title) return;

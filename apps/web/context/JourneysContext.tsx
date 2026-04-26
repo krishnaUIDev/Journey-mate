@@ -1,36 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { useMessages } from "./MessagesContext";
+import { useAuth } from "@clerk/nextjs";
+import { Journey } from "@journey-mate/shared";
 
-export interface JourneyPost {
-    id: string;
-    userId?: string;
-    from: string;
-    to: string;
-    date: string;
-    flightNumber?: string;
-    contactInfo?: string;
-    user: {
-        name: string;
-        avatar: string;
-        rating: number;
-        verified: boolean;
-        verificationTier: 'bronze' | 'silver' | 'gold';
-    };
-    description: string;
-    tags: string[];
-    groupName?: string;
-    groupAvatar?: string;
-    status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
-    airlineName?: string;
-    airlineIata?: string;
-    boardingPassUrl?: string;
-    layovers: string[];
-    routeData?: Record<string, [number, number]>;
-    luggageCapacity?: string;
-}
+export type JourneyPost = Journey & { id: string };
 
 interface JourneyRow {
     id: string;
@@ -76,59 +52,25 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
     const [error, setError] = useState<string | null>(null);
     const { showNotification } = useMessages();
 
-    const fetchJourneys = async () => {
-        if (!supabase) {
-            console.error("Supabase client is null. Environment variables might be missing.");
-            setError("Database connection error: Missing credentials.");
-            setLoading(false);
-            return;
-        }
-
+    const fetchJourneys = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error: supabaseError } = await (supabase as any)
-                .from('journeys')
-                .select('*')
-                .order('created_at', { ascending: false });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/journeys`);
 
-            if (supabaseError) throw supabaseError;
+            if (!response.ok) {
+                throw new Error('Failed to fetch journeys from API');
+            }
 
-            const mappedJourneys: JourneyPost[] = ((data as JourneyRow[]) || []).map(item => ({
-                id: item.id,
-                userId: item.user_id ?? undefined,
-                from: item.origin,
-                to: item.destination,
-                date: item.date,
-                flightNumber: item.flight_number ?? undefined,
-                contactInfo: item.contact_info ?? undefined,
-                description: item.description || "",
-                tags: item.tags || [],
-                groupName: item.group_name ?? undefined,
-                groupAvatar: item.group_avatar ?? undefined,
-                status: item.status || 'upcoming',
-                airlineName: item.airline_name ?? undefined,
-                airlineIata: item.airline_iata ?? undefined,
-                boardingPassUrl: item.boarding_pass_url ?? undefined,
-                layovers: item.layovers || [],
-                routeData: item.route_data ?? undefined,
-                luggageCapacity: item.luggage_capacity ?? undefined,
-                user: {
-                    name: item.user_name,
-                    avatar: item.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.id}`,
-                    rating: item.user_rating || 0,
-                    verified: item.user_verified ?? false,
-                    verificationTier: item.user_verification_tier || 'bronze'
-                }
-            }));
-
-            setJourneys(mappedJourneys);
+            const data = await response.json();
+            setJourneys(data || []);
         } catch (err: any) {
-            console.error("Error fetching journeys:", err);
+            console.error("Error fetching journeys via API:", err);
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchJourneys();
@@ -145,62 +87,12 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
                 const { eventType, new: newRecord, old: oldRecord } = payload;
 
                 if (eventType === 'INSERT') {
-                    const newItem: JourneyPost = {
-                        id: newRecord.id,
-                        userId: newRecord.user_id,
-                        from: newRecord.origin,
-                        to: newRecord.destination,
-                        date: newRecord.date,
-                        flightNumber: newRecord.flight_number,
-                        contactInfo: newRecord.contact_info,
-                        description: newRecord.description || "",
-                        tags: newRecord.tags || [],
-                        groupName: newRecord.group_name,
-                        groupAvatar: newRecord.group_avatar,
-                        status: newRecord.status || 'upcoming',
-                        airlineName: newRecord.airline_name,
-                        airlineIata: newRecord.airline_iata,
-                        boardingPassUrl: newRecord.boarding_pass_url,
-                        layovers: newRecord.layovers || [],
-                        routeData: newRecord.route_data,
-                        user: {
-                            name: newRecord.user_name,
-                            avatar: newRecord.user_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newRecord.id}`,
-                            rating: newRecord.user_rating || 0,
-                            verified: newRecord.user_verified ?? false,
-                            verificationTier: newRecord.user_verification_tier || 'bronze'
-                        }
-                    };
                     setJourneys(prev => {
-                        if (prev.some(j => j.id === newItem.id)) return prev;
-                        return [newItem, ...prev];
+                        if (prev.some(j => j.id === newRecord.id)) return prev;
+                        return [newRecord, ...prev];
                     });
                 } else if (eventType === 'UPDATE') {
-                    setJourneys(prev => prev.map(j => (j.id === newRecord.id ? {
-                        ...j,
-                        from: newRecord.origin,
-                        to: newRecord.destination,
-                        date: newRecord.date,
-                        flightNumber: newRecord.flight_number,
-                        contactInfo: newRecord.contact_info,
-                        description: newRecord.description || "",
-                        tags: newRecord.tags || [],
-                        groupName: newRecord.group_name,
-                        groupAvatar: newRecord.group_avatar,
-                        status: newRecord.status || j.status,
-                        airlineName: newRecord.airline_name,
-                        airlineIata: newRecord.airline_iata,
-                        boardingPassUrl: newRecord.boarding_pass_url,
-                        layovers: newRecord.layovers || [],
-                        routeData: newRecord.route_data,
-                        user: {
-                            ...j.user,
-                            name: newRecord.user_name,
-                            avatar: newRecord.user_avatar || j.user.avatar,
-                            rating: newRecord.user_rating || 0,
-                            verified: newRecord.user_verified ?? false
-                        }
-                    } : j)));
+                    setJourneys(prev => prev.map(j => (j.id === newRecord.id ? newRecord : j)));
                 } else if (eventType === 'DELETE') {
                     setJourneys(prev => prev.filter(j => j.id !== oldRecord.id));
                 }
@@ -210,133 +102,105 @@ export function JourneysProvider({ children }: { children: ReactNode }) {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [fetchJourneys]);
 
-    const addJourney = async (newJourney: Omit<JourneyPost, "id">) => {
-        if (!supabase) {
-            console.error("Supabase client is null. Cannot add journey.");
-            showNotification("Database connection error: Missing credentials.", 'error');
-            return;
-        }
+    const { getToken } = useAuth();
 
+    const addJourney = useCallback(async (newJourney: Omit<JourneyPost, "id">) => {
         try {
-            const { data, error: supabaseError } = await (supabase as any)
-                .from('journeys')
-                .insert([{
-                    user_id: newJourney.userId,
-                    origin: newJourney.from,
-                    destination: newJourney.to,
-                    date: newJourney.date,
-                    flight_number: newJourney.flightNumber,
-                    contact_info: newJourney.contactInfo,
-                    description: newJourney.description,
-                    user_name: newJourney.user.name,
-                    user_avatar: newJourney.user.avatar,
-                    user_rating: newJourney.user.rating,
-                    user_verified: newJourney.user.verified,
-                    user_verification_tier: newJourney.user.verificationTier || 'bronze',
-                    tags: newJourney.tags,
-                    status: newJourney.status || 'upcoming',
-                    airline_name: newJourney.airlineName,
-                    airline_iata: newJourney.airlineIata,
-                    boarding_pass_url: newJourney.boardingPassUrl,
-                    layovers: newJourney.layovers,
-                    route_data: newJourney.routeData,
-                    luggage_capacity: newJourney.luggageCapacity
-                }])
-                .select()
-                .single();
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Authentication token is missing. Please sign in again.');
+            }
 
-            if (supabaseError) throw supabaseError;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+            const response = await fetch(`${apiUrl}/journeys`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(newJourney)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to post journey via API');
+            }
+
+            const data = await response.json();
 
             if (data) {
-                const row = data as JourneyRow;
-                const addedJourney: JourneyPost = {
-                    id: row.id,
-                    userId: row.user_id ?? undefined,
-                    from: row.origin,
-                    to: row.destination,
-                    date: row.date,
-                    flightNumber: row.flight_number ?? undefined,
-                    contactInfo: row.contact_info ?? undefined,
-                    description: row.description || "",
-                    tags: row.tags || [],
-                    status: row.status || 'upcoming',
-                    airlineName: row.airline_name ?? undefined,
-                    airlineIata: row.airline_iata ?? undefined,
-                    boardingPassUrl: row.boarding_pass_url ?? undefined,
-                    layovers: row.layovers || [],
-                    routeData: row.route_data ?? undefined,
-                    luggageCapacity: row.luggage_capacity ?? undefined,
-                    user: {
-                        name: row.user_name,
-                        avatar: row.user_avatar || "",
-                        rating: row.user_rating || 5.0,
-                        verified: row.user_verified ?? true,
-                        verificationTier: row.user_verification_tier || 'bronze'
-                    }
-                };
-                setJourneys(prev => [addedJourney, ...prev]);
-                showNotification("Journey published successfully!", 'success');
+                setJourneys(prev => [data, ...prev]);
+                showNotification("Journey published successfully via API!", 'success');
             }
         } catch (err: any) {
-            console.error("Error adding journey:", err);
+            console.error("Error adding journey via API:", err);
             showNotification(`Failed to post journey: ${err.message}`, 'error');
         }
-    };
+    }, [getToken, showNotification]);
 
-    const deleteJourney = async (id: string) => {
-        if (!supabase) return;
+    const deleteJourney = useCallback(async (id: string) => {
         try {
-            const { error: supabaseError } = await (supabase as any)
-                .from('journeys')
-                .delete()
-                .eq('id', id);
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Authentication token is missing.');
+            }
 
-            if (supabaseError) throw supabaseError;
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+            const response = await fetch(`${apiUrl}/journeys/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to delete journey via API');
+            }
 
             setJourneys(prev => prev.filter(j => j.id !== id));
-            showNotification("Journey deleted successfully.", 'info');
+            showNotification("Journey deleted successfully via API.", 'info');
         } catch (err: any) {
-            console.error("Error deleting journey:", err);
+            console.error("Error deleting journey via API:", err);
             showNotification(`Failed to delete journey: ${err.message}`, 'error');
         }
-    };
+    }, [getToken, showNotification]);
 
-    const updateJourney = async (id: string, updates: Partial<Omit<JourneyPost, "id">>) => {
-        if (!supabase) return;
+    const updateJourney = useCallback(async (id: string, updates: Partial<Omit<JourneyPost, "id">>) => {
         try {
-            const mappedUpdates: any = {};
-            if (updates.from) mappedUpdates.origin = updates.from;
-            if (updates.to) mappedUpdates.destination = updates.to;
-            if (updates.date) mappedUpdates.date = updates.date;
-            if (updates.flightNumber) mappedUpdates.flight_number = updates.flightNumber;
-            if (updates.contactInfo) mappedUpdates.contact_info = updates.contactInfo;
-            if (updates.description) mappedUpdates.description = updates.description;
-            if (updates.tags) mappedUpdates.tags = updates.tags;
-            if (updates.groupName) mappedUpdates.group_name = updates.groupName;
-            if (updates.groupAvatar) mappedUpdates.group_avatar = updates.groupAvatar;
-            if (updates.status) mappedUpdates.status = updates.status;
-            if (updates.airlineName) mappedUpdates.airline_name = updates.airlineName;
-            if (updates.airlineIata) mappedUpdates.airline_iata = updates.airlineIata;
-            if (updates.boardingPassUrl) mappedUpdates.boarding_pass_url = updates.boardingPassUrl;
-            if (updates.layovers) mappedUpdates.layovers = updates.layovers;
-            if (updates.routeData) mappedUpdates.route_data = updates.routeData;
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Authentication token is missing.');
+            }
 
-            const { error: supabaseError } = await (supabase as any)
-                .from('journeys')
-                .update(mappedUpdates)
-                .eq('id', id);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-            if (supabaseError) throw supabaseError;
+            const response = await fetch(`${apiUrl}/journeys/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updates)
+            });
 
-            setJourneys(prev => prev.map(j => (j.id === id ? { ...j, ...updates } : j)));
-            showNotification("Journey updated successfully!", 'success');
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.message || 'Failed to update journey via API');
+            }
+
+            const updatedRecord = await response.json();
+            setJourneys(prev => prev.map(j => (j.id === id ? updatedRecord : j)));
+            showNotification("Journey updated successfully via API!", 'success');
         } catch (err: any) {
-            console.error("Error updating journey:", err);
+            console.error("Error updating journey via API:", err);
             showNotification(`Failed to update journey: ${err.message}`, 'error');
         }
-    };
+    }, [getToken, showNotification]);
 
     return (
         <JourneysContext.Provider value={{ journeys, loading, error, addJourney, deleteJourney, updateJourney }}>

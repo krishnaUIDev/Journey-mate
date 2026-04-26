@@ -467,8 +467,7 @@ interface RequestManagerProps {
 }
 
 export function RequestManager({ journeyId }: RequestManagerProps) {
-    const { getRequests, updateRequestStatus } = useMessages();
-    const { supabase } = useMessages() as any;
+    const { getRequests, updateRequestStatus, subscribeToJourney } = useMessages();
     const [requests, setRequests] = useState<JourneyRequest[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -482,40 +481,15 @@ export function RequestManager({ journeyId }: RequestManagerProps) {
     useEffect(() => {
         loadRequests();
 
-        if (supabase) {
-            const channel = supabase
-                .channel(`journey_requests_mgr_${journeyId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'journey_requests',
-                        filter: `journey_id=eq.${journeyId}`,
-                    },
-                    (payload: any) => {
-                        setRequests(prev => [payload.new as JourneyRequest, ...prev]);
-                    }
-                )
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'journey_requests',
-                        filter: `journey_id=eq.${journeyId}`,
-                    },
-                    (payload: any) => {
-                        setRequests(prev => prev.map(r => r.id === payload.new.id ? payload.new as JourneyRequest : r));
-                    }
-                )
-                .subscribe();
+        const unsubscribe = subscribeToJourney(journeyId, {
+            onRequestsChange: () => {
+                console.log("[RequestManager] Refreshing requests due to Realtime change");
+                loadRequests();
+            }
+        });
 
-            return () => {
-                supabase.removeChannel(channel);
-            };
-        }
-    }, [journeyId, supabase]);
+        return unsubscribe;
+    }, [journeyId, subscribeToJourney]);
 
     const handleAction = async (requestId: string, status: 'accepted' | 'rejected') => {
         await updateRequestStatus(requestId, status);

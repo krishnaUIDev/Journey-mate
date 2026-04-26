@@ -39,35 +39,35 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
     const { updateJourney } = useJourneys();
     const [submitting, setSubmitting] = useState(false);
 
-    const [from, setFrom] = useState(journey.from);
-    const [to, setTo] = useState(journey.to);
+    const [from, setFrom] = useState(journey.origin || "");
+    const [to, setTo] = useState(journey.destination || "");
     const [date, setDate] = useState<Dayjs | null>(dayjs(journey.date));
-    const [flightNumber, setFlightNumber] = useState(journey.flightNumber || "");
-    const [airlineName, setAirlineName] = useState(journey.airlineName || "");
-    const [airlineIata, setAirlineIata] = useState(journey.airlineIata || "");
+    const [flightNumber, setFlightNumber] = useState(journey.flight_number || "");
+    const [airlineName, setAirlineName] = useState(journey.airline_name || "");
+    const [airlineIata, setAirlineIata] = useState(journey.airline_iata || "");
     const [layovers, setLayovers] = useState<string[]>(journey.layovers || []);
     const [description, setDescription] = useState(journey.description);
-    const [contactInfo, setContactInfo] = useState(journey.contactInfo || "");
-    const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>(journey.status);
-    const [boardingPassUrl, setBoardingPassUrl] = useState(journey.boardingPassUrl || "");
+    const [contactInfo, setContactInfo] = useState(journey.contact_info || "");
+    const [status, setStatus] = useState<'upcoming' | 'ongoing' | 'completed' | 'cancelled'>(journey.status || 'upcoming');
+    const [boardingPassUrl, setBoardingPassUrl] = useState(journey.boarding_pass_url || "");
     const [uploadingPass, setUploadingPass] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
-    const [routeCoords, setRouteCoords] = useState<Record<string, [number, number]>>(journey.routeData || {});
+    const [routeCoords, setRouteCoords] = useState<Record<string, [number, number]>>((journey.route_data as any) || {});
 
     useEffect(() => {
         if (open) {
-            setFrom(journey.from);
-            setTo(journey.to);
+            setFrom(journey.origin || "");
+            setTo(journey.destination || "");
             setDate(dayjs(journey.date));
-            setFlightNumber(journey.flightNumber || "");
-            setAirlineName(journey.airlineName || "");
-            setAirlineIata(journey.airlineIata || "");
+            setFlightNumber(journey.flight_number || "");
+            setAirlineName(journey.airline_name || "");
+            setAirlineIata(journey.airline_iata || "");
             setLayovers(journey.layovers || []);
             setDescription(journey.description);
-            setContactInfo(journey.contactInfo || "");
-            setStatus(journey.status);
-            setBoardingPassUrl(journey.boardingPassUrl || "");
-            setRouteCoords(journey.routeData || {});
+            setContactInfo(journey.contact_info || "");
+            setStatus(journey.status || 'upcoming');
+            setBoardingPassUrl(journey.boarding_pass_url || "");
+            setRouteCoords((journey.route_data as any) || {});
         }
     }, [open, journey]);
 
@@ -140,22 +140,18 @@ export function EditJourneyModal({ open, onClose, journey }: EditJourneyModalPro
         setSubmitting(true);
         try {
             await updateJourney(journey.id, {
-                from,
-                to,
+                origin: from,
+                destination: to,
                 date: date.format('YYYY-MM-DD'),
-                flightNumber,
-                airlineName,
-                airlineIata,
+                flight_number: flightNumber,
+                airline_name: airlineName,
+                airline_iata: airlineIata,
                 layovers: layovers.map(l => l.split(' (')[1]?.replace(')', '') || l),
                 description,
-                contactInfo,
+                contact_info: contactInfo,
                 status,
-                routeData: routeCoords,
-                boardingPassUrl,
-                user: {
-                    ...journey.user,
-                    verificationTier: journey.user.verificationTier
-                }
+                route_data: routeCoords,
+                boarding_pass_url: boardingPassUrl,
             });
             onClose();
         } catch (err) {

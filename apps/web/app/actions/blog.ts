@@ -1,35 +1,19 @@
 "use server";
 
-import { supabase } from "../../lib/supabase";
 import { revalidatePath } from "next/cache";
+import { auth } from "@clerk/nextjs/server";
+import { BlogPost } from "@journey-mate/shared";
 
-export interface BlogPost {
-    id: string;
-    title: string;
-    slug: string;
-    excerpt: string;
-    content: string;
-    image_url: string;
-    author_id: string;
-    author_name: string;
-    author_avatar?: string;
-    location_label?: string;
-    location_coords?: { lat: number; lng: number };
-    category: string;
-    created_at: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export async function getBlogPosts() {
-    if (!supabase) throw new Error("Supabase not initialized");
-
     try {
-        const { data, error } = await (supabase as any)
-            .from('blog_posts')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const response = await fetch(`${API_URL}/blogs`, {
+            next: { revalidate: 60 } // Cache for 60 seconds
+        });
 
-        if (error) throw error;
-        return data as BlogPost[];
+        if (!response.ok) throw new Error("Failed to fetch blog posts from API");
+        return await response.json() as BlogPost[];
     } catch (error) {
         console.error("Fetch Blog Posts Error:", error);
         return [];
@@ -37,17 +21,13 @@ export async function getBlogPosts() {
 }
 
 export async function getPostBySlug(slug: string) {
-    if (!supabase) throw new Error("Supabase not initialized");
-
     try {
-        const { data, error } = await (supabase as any)
-            .from('blog_posts')
-            .select('*')
-            .eq('slug', slug)
-            .single();
+        const response = await fetch(`${API_URL}/blogs/${slug}`, {
+            next: { revalidate: 60 }
+        });
 
-        if (error) throw error;
-        return data as BlogPost;
+        if (!response.ok) return null;
+        return await response.json() as BlogPost;
     } catch (error) {
         console.error("Fetch Blog Post Error:", error);
         return null;
@@ -55,23 +35,25 @@ export async function getPostBySlug(slug: string) {
 }
 
 export async function createBlogPost(post: Omit<BlogPost, 'id' | 'created_at' | 'slug'>) {
-    if (!supabase) throw new Error("Supabase not initialized");
-
-    // Generate slug from title
-    const slug = post.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
+    const { getToken } = await auth();
+    const token = await getToken();
 
     try {
-        const { data, error } = await (supabase as any)
-            .from('blog_posts')
-            .insert([{ ...post, slug }])
-            .select()
-            .single();
+        const response = await fetch(`${API_URL}/blogs`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(post)
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.message || "Failed to create blog post via API");
+        }
 
+        const data = await response.json();
         revalidatePath('/blog');
         return data as BlogPost;
     } catch (error: any) {

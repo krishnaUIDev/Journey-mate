@@ -1,41 +1,32 @@
 "use server";
 
-import { supabase } from "../../lib/supabase";
+import { auth } from "@clerk/nextjs/server";
+import * as Shared from "@journey-mate/shared";
 
-export async function submitKudos(review: {
-    reviewer_id: string;
-    reviewee_id: string;
-    journey_id: string;
-    content: string;
-    type: 'positive' | 'neutral' | 'negative';
-    badges?: string[];
-}) {
-    if (!supabase) throw new Error("Supabase is not initialized.");
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-    // Security & Logic checks
-    if (review.reviewer_id === review.reviewee_id) {
-        throw new Error("You cannot give kudos to yourself.");
-    }
+export async function submitKudos(review: Shared.Kudos) {
+    const { getToken } = await auth();
+    const token = await getToken();
 
-    const { data: existing } = await (supabase as any)
-        .from('user_reviews')
-        .select('id')
-        .eq('reviewer_id', review.reviewer_id)
-        .eq('reviewee_id', review.reviewee_id)
-        .limit(1);
-
-    if (existing && existing.length > 0) {
-        throw new Error("You have already given kudos to this user.");
-    }
+    if (!token) throw new Error("Unauthorized");
 
     try {
-        const { error } = await (supabase as any)
-            .from('user_reviews')
-            .insert([review]);
+        const response = await fetch(`${API_URL}/kudos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(review)
+        });
 
-        if (error) throw error;
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error || 'Failed to submit kudos');
+        }
 
-        return { success: true };
+        return await response.json();
     } catch (error: any) {
         console.error("Kudos Submit Error:", error);
         throw new Error(error.message || "Failed to submit kudos.");
@@ -43,17 +34,14 @@ export async function submitKudos(review: {
 }
 
 export async function getUserKudos(userId: string) {
-    if (!supabase) throw new Error("Supabase is not initialized.");
-
     try {
-        const { data, error } = await (supabase as any)
-            .from('user_reviews')
-            .select('*')
-            .eq('reviewee_id', userId)
-            .order('created_at', { ascending: false });
+        const response = await fetch(`${API_URL}/kudos/user/${userId}`);
 
-        if (error) throw error;
-        return data || [];
+        if (!response.ok) {
+            throw new Error('Failed to fetch kudos');
+        }
+
+        return await response.json();
     } catch (error: any) {
         console.error("Kudos Fetch Error:", error);
         return [];

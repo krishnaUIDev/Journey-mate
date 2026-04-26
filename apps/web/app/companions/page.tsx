@@ -7,7 +7,6 @@ import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 import { Box, Container, Typography, Grid, Paper, Stack, Avatar, Chip, Button, CircularProgress } from "@mui/material";
 import { Star as StarIcon, Verified as VerifiedIcon, Search as SearchIcon, Language as LanguageIcon } from "@mui/icons-material";
-import { supabase } from "../../lib/supabase";
 
 const BADGE_MAP: Record<string, { label: string; icon: string; color: string }> = {
     'expert_navigator': { label: 'Expert Navigator', icon: '🧭', color: '#3b82f6' },
@@ -40,28 +39,20 @@ export default function CompanionsPage() {
     useEffect(() => {
         async function fetchProfiles() {
             try {
-                if (!supabase) return;
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-                // 1. Fetch from user_profiles (all, not just verified)
-                const { data: profileData, error: profileError } = await supabase
-                    .from('user_profiles')
-                    .select('*')
-                    .order('avg_rating', { ascending: false })
-                    .limit(12);
-
-                if (profileError) throw profileError;
+                // 1. Fetch from user_profiles via API
+                const profileRes = await fetch(`${apiUrl}/profiles?limit=12`);
+                if (!profileRes.ok) throw new Error('Failed to fetch profiles');
+                const profileData = await profileRes.json();
 
                 let aggregatedProfiles: CompanionProfile[] = profileData || [];
 
-                // 2. Fallback: if we have few profiles, fetch unique users from journeys
+                // 2. Fallback: if we have few profiles, fetch unique users from journeys via API
                 if (aggregatedProfiles.length < 6) {
-                    const { data: journeyData, error: journeyError } = await (supabase as any)
-                        .from('journeys')
-                        .select('user_id, user_name, user_avatar, user_rating, user_verified, user_verification_tier')
-                        .order('created_at', { ascending: false })
-                        .limit(50);
-
-                    if (!journeyError && journeyData) {
+                    const journeyRes = await fetch(`${apiUrl}/profiles/public?limit=50`);
+                    if (journeyRes.ok) {
+                        const journeyData = await journeyRes.json();
                         // De-duplicate by user_id
                         const seenIds = new Set(aggregatedProfiles.map(p => p.id));
                         const additionalProfiles: CompanionProfile[] = [];

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import type { IAgoraRTCClient, ILocalVideoTrack, ILocalAudioTrack, IAgoraRTCRemoteUser } from "agora-rtc-sdk-ng";
 import { createClient } from "@supabase/supabase-js";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 // Lazy load AgoraRTC helpers
 let AgoraRTC: any = null;
@@ -63,6 +63,7 @@ const AGORA_TOKEN = (process.env.NEXT_PUBLIC_AGORA_TOKEN || "").trim();
 
 export function CallingProvider({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
+    const { getToken } = useAuth();
     const [callState, setCallState] = useState<CallState>("idle");
     const [callInfo, setCallInfo] = useState<CallInfo | null>(null);
     const [localVideoTrack, setLocalVideoTrack] = useState<ILocalVideoTrack | null>(null);
@@ -89,73 +90,15 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
     const userRef = useRef<any>(null);
     const sessionChannelRef = useRef<any>(null);
 
-    // Sync ref with user
-    useEffect(() => {
-        userRef.current = user;
-    }, [user]);
+    // --- 1. UTILITY FUNCTIONS ---
 
-    // Sync ref with state
-    useEffect(() => {
-        callStateRef.current = callState;
-    }, [callState]);
-
-    useEffect(() => {
-        if (!user) return;
-
-        console.log("[CallingContext] Initializing stable invite channel for user:", user.id);
-        const channel = supabase.channel(`calls:${user.id}`, {
-            config: { broadcast: { self: false } }
-        });
-
-        channel
-            .on("broadcast", { event: "call-invite" }, ({ payload }) => {
-                if (callStateRef.current === "idle") {
-                    setCallInfo(payload);
-                    setCallState("incoming");
-                }
-            })
-            .on("broadcast", { event: "call-accept" }, async () => {
-                if (callStateRef.current === "dialing") {
-                    if (missedCallTimeoutRef.current) {
-                        clearTimeout(missedCallTimeoutRef.current);
-                        missedCallTimeoutRef.current = null;
-                    }
-                    console.log("[CallingContext] Call accepted, initializing media...");
-                    setCallState("active");
-                    setCallStartTime(Date.now());
-                }
-            })
-            .on("broadcast", { event: "call-reject" }, () => {
-                if (callStateRef.current === "dialing") {
-                    logCallEvent("declined");
-                }
-                setCallState("idle");
-                setCallInfo(null);
-            })
-            .on("broadcast", { event: "call-end" }, async () => {
-                await handleCleanup();
-            })
-            .subscribe();
-
-        channelRef.current = channel;
-
-        return () => {
-            console.log("[CallingContext] Cleaning up stable invite channel");
-            supabase.removeChannel(channel);
-        };
-    }, [user?.id]); // Only depend on User ID
-
-    // Separate effect to handle media initialization when state transitions to active
-    useEffect(() => {
-        if (callState === "active" && callInfo && !clientRef.current) {
-            initializeMedia(callInfo.journeyId, callInfo.type);
-        }
-    }, [callState, callInfo]);
-
-    const logCallEvent = async (status: "missed" | "accepted" | "declined" | "finished", duration?: number) => {
+    const logCallEvent = useCallback(async (status: "missed" | "accepted" | "declined" | "finished", duration?: number) => {
         if (!callInfo || !user) return;
 
         try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const token = await getToken();
+
             const metadata = {
                 status,
                 type: callInfo.type,
@@ -168,21 +111,29 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                 : status === "declined" ? "Declined call"
                     : `${callInfo.type === "video" ? "Video" : "Audio"} Call`;
 
-            await supabase.from("journey_messages").insert({
-                journey_id: callInfo.journeyId,
-                sender_id: user.id,
-                sender_name: user.fullName || "Traveler",
-                sender_avatar: user.imageUrl,
-                content,
-                call_metadata: metadata
+            await fetch(`${apiUrl}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    journey_id: callInfo.journeyId,
+                    sender_id: user.id,
+                    sender_name: user.fullName || "Traveler",
+                    sender_avatar: user.imageUrl,
+                    content,
+                    call_metadata: metadata,
+                    is_system: false
+                })
             });
         } catch (error) {
-            console.error("[CallingContext] Error logging call event:", error);
+            console.error("[CallingContext] Error logging call event via API:", error);
         }
-    };
+    }, [callInfo, user, getToken]);
 
-    const handleCleanup = async () => {
-        if (callStartTime && callState === "active") {
+    const handleCleanup = useCallback(async () => {
+        if (callStartTime && callStateRef.current === "active") {
             const duration = Math.floor((Date.now() - callStartTime) / 1000);
             logCallEvent("finished", duration);
         }
@@ -225,19 +176,77 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
         setIsVideoOff(false);
         setIsScreenSharing(false);
 
-        // Remove session channel
         if (sessionChannelRef.current) {
             supabase.removeChannel(sessionChannelRef.current);
             sessionChannelRef.current = null;
         }
-    };
+    }, [callStartTime, logCallEvent]);
 
-    const initializeMedia = async (channelName: string, type: "audio" | "video") => {
+    const fetchParticipantsMetadata = useCallback(async (journeyId: string) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const journeyRes = await fetch(`${apiUrl}/journeys/${journeyId}`);
+            const journey = journeyRes.ok ? await journeyRes.json() : null;
+
+            const reqRes = await fetch(`${apiUrl}/requests/journey/${journeyId}/accepted`);
+            const requesters = reqRes.ok ? await reqRes.json() : [];
+
+            const metadata: ParticipantMetadata = {};
+            if (journey) {
+                metadata[journey.user_id] = { name: journey.user_name || "Owner", avatar: journey.user_avatar };
+            }
+            requesters?.forEach((r: any) => {
+                metadata[r.requester_id] = { name: r.requester_name || "Traveler", avatar: r.requester_avatar };
+            });
+
+            setParticipantsMetadata(prev => ({ ...prev, ...metadata }));
+        } catch (error) {
+            console.error("[CallingContext] Error fetching participants metadata via API:", error);
+        }
+    }, []);
+
+    // --- 2. MEDIA PIPELINE ---
+
+    const setupVideoPipeline = useCallback(async (track: ILocalVideoTrack) => {
+        const vbExtension = (window as any).vbExtension;
+        const beautyExtension = (window as any).beautyExtension;
+        if (!vbExtension || !beautyExtension) return;
+
+        try {
+            if (!vbProcessorRef.current) {
+                vbProcessorRef.current = vbExtension.createProcessor();
+                await vbProcessorRef.current.init();
+            }
+            if (!beautyProcessorRef.current) {
+                beautyProcessorRef.current = beautyExtension.createProcessor();
+            }
+
+            track.pipe(vbProcessorRef.current)
+                .pipe(beautyProcessorRef.current)
+                .pipe(track.processorDestination);
+
+            if (isBlurEnabled) {
+                await vbProcessorRef.current.setOptions({ type: 'blur', blurDegree: 2 });
+                await vbProcessorRef.current.enable();
+            }
+            if (isBeautyEnabled) {
+                await beautyProcessorRef.current.setOptions({
+                    lighteningLevel: 0.7,
+                    rednessLevel: 0.1,
+                    smoothnessLevel: 0.5,
+                    sharpeningLevel: 0.3
+                });
+                await beautyProcessorRef.current.enable();
+            }
+        } catch (error) {
+            console.error("[CallingContext] Pipeline setup failed:", error);
+        }
+    }, [isBlurEnabled, isBeautyEnabled]);
+
+    const initializeMedia = useCallback(async (channelName: string, type: "audio" | "video") => {
         if (!user) return;
 
-        // On-demand Agora Loading
         if (!AgoraRTC) {
-            console.log("[CallingContext] Dynamically importing Agora SDK...");
             const mod = await import("agora-rtc-sdk-ng");
             AgoraRTC = mod.default;
 
@@ -256,7 +265,7 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                     AgoraRTC.registerExtensions([vbExtension, beautyExtension]);
                 }
             } catch (err) {
-                console.warn("[CallingContext] Extensions failed, continuing with base Agora:", err);
+                console.warn("[CallingContext] Extensions failed:", err);
             }
         }
 
@@ -266,77 +275,42 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
 
             const updateRemoteUsers = () => {
                 const currentUserId = userRef.current?.id;
-                console.log("[CallingContext] updateRemoteUsers for currentUserId:", currentUserId);
-
                 const remoteParticipants = client.remoteUsers;
                 const seenBaseIds = new Set<string>();
 
                 const filtered = remoteParticipants.filter((u: IAgoraRTCRemoteUser) => {
                     const uidStr = u.uid.toString();
                     if (!currentUserId) return true;
-
-                    // 1. Filter out our own sessions
-                    const isOurSession = uidStr.startsWith(`${currentUserId}_`) || uidStr === currentUserId;
-                    if (isOurSession) return false;
-
-                    // 2. Deduplicate: only show one box per remote User ID
-                    // Extract base ID (everything before the last underscore)
+                    if (uidStr.startsWith(`${currentUserId}_`) || uidStr === currentUserId) return false;
                     const baseId = uidStr.includes("_") ? uidStr.substring(0, uidStr.lastIndexOf("_")) : uidStr;
-
-                    if (seenBaseIds.has(baseId)) {
-                        console.log("[CallingContext] Filtering out duplicate session for user:", baseId);
-                        return false;
-                    }
-
+                    if (seenBaseIds.has(baseId)) return false;
                     seenBaseIds.add(baseId);
                     return true;
                 });
-
-                console.log("[CallingContext] Final remote UIDs:", filtered.map((u: IAgoraRTCRemoteUser) => u.uid.toString()));
                 setRemoteUsers([...filtered]);
             };
 
-            client.on("user-joined", (remoteUser: IAgoraRTCRemoteUser) => {
-                console.log("[CallingContext] user-joined:", remoteUser.uid);
+            client.on("user-joined", updateRemoteUsers);
+            client.on("user-left", async () => {
                 updateRemoteUsers();
-            });
-
-            client.on("user-left", async (remoteUser: IAgoraRTCRemoteUser) => {
-                console.log("[CallingContext] user-left:", remoteUser.uid);
-                updateRemoteUsers();
-
-                // In a 1-on-1 app, if the partner leaves, the call is over
-                console.log("[CallingContext] Partner left, triggering local cleanup");
                 await handleCleanup();
             });
 
             client.on("user-published", async (remoteUser: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
                 const currentUserId = userRef.current?.id;
-                if (currentUserId && (remoteUser.uid.toString().startsWith(`${currentUserId}_`) || remoteUser.uid.toString() === currentUserId)) {
-                    console.log("[CallingContext] Skipping subscription for self-session:", remoteUser.uid);
-                    return;
-                }
+                if (currentUserId && (remoteUser.uid.toString().startsWith(`${currentUserId}_`) || remoteUser.uid.toString() === currentUserId)) return;
 
-                console.log("[CallingContext] user-published:", remoteUser.uid, mediaType);
                 await client.subscribe(remoteUser, mediaType);
-                if (mediaType === "audio") {
-                    remoteUser.audioTrack?.play();
-                }
+                if (mediaType === "audio") remoteUser.audioTrack?.play();
                 updateRemoteUsers();
             });
 
-            client.on("user-unpublished", (remoteUser: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
-                console.log("[CallingContext] user-unpublished:", remoteUser.uid, mediaType);
-                updateRemoteUsers();
-            });
+            client.on("user-unpublished", updateRemoteUsers);
 
             const sessionUid = `${user.id}_${Math.floor(Math.random() * 10000)}`;
-            console.log("[CallingContext] Joining with UID:", sessionUid);
             await client.join(AGORA_APP_ID, channelName, AGORA_TOKEN || null, sessionUid);
 
-            // Safety check: was the call ended while we were joining?
             if (callStateRef.current !== "active") {
-                console.log("[CallingContext] Call ended during join, leaving Agora channel.");
                 await client.leave();
                 return;
             }
@@ -350,11 +324,9 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                 localVideoTrackRef.current = videoTrack;
                 setLocalVideoTrack(videoTrack);
                 await setupVideoPipeline(videoTrack);
-
                 if (callStateRef.current === "active") {
                     await client.publish([audioTrack, videoTrack]);
                 } else {
-                    console.log("[CallingContext] Call ended, closing tracks...");
                     audioTrack.close();
                     videoTrack.close();
                 }
@@ -362,60 +334,25 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                 if (callStateRef.current === "active") {
                     await client.publish([audioTrack]);
                 } else {
-                    console.log("[CallingContext] Call ended, closing track...");
                     audioTrack.close();
                 }
                 setIsVideoOff(true);
             }
 
-            // JOIN SESSION CHANNEL for mid-call coordination (end-call, etc)
             const sessionChannel = supabase.channel(`call_session:${channelName}`);
             sessionChannelRef.current = sessionChannel;
-
-            sessionChannel
-                .on("broadcast", { event: "call-end" }, async () => {
-                    console.log("[CallingContext] Received call-end signal, cleaning up...");
-                    await handleCleanup();
-                })
-                .subscribe();
+            sessionChannel.on("broadcast", { event: "call-end" }, handleCleanup).subscribe();
 
         } catch (error) {
             console.error("[CallingContext] Failed to initialize media:", error);
             handleCleanup();
         }
-    };
+    }, [user, handleCleanup, setupVideoPipeline]);
 
-    const fetchParticipantsMetadata = async (journeyId: string) => {
-        try {
-            const { data: journey } = await supabase
-                .from("journeys")
-                .select("user_id, user_name, user_avatar")
-                .eq("id", journeyId)
-                .single();
+    // --- 3. CALL MANAGEMENT ---
 
-            const { data: requesters } = await supabase
-                .from("journey_requests")
-                .select("requester_id, requester_name, requester_avatar")
-                .eq("journey_id", journeyId)
-                .eq("status", "accepted");
-
-            const metadata: ParticipantMetadata = {};
-            if (journey) {
-                metadata[journey.user_id] = { name: journey.user_name || "Owner", avatar: journey.user_avatar };
-            }
-            requesters?.forEach(r => {
-                metadata[r.requester_id] = { name: r.requester_name || "Traveler", avatar: r.requester_avatar };
-            });
-
-            setParticipantsMetadata(prev => ({ ...prev, ...metadata }));
-        } catch (error) {
-            console.error("[CallingContext] Error fetching participants metadata:", error);
-        }
-    };
-
-    const startCall = async (journeyId: string, type: "audio" | "video") => {
+    const startCall = useCallback(async (journeyId: string, type: "audio" | "video") => {
         if (!user) return;
-
         setCallState("dialing");
         await fetchParticipantsMetadata(journeyId);
 
@@ -429,45 +366,25 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
         setCallInfo(info);
 
         try {
-            const { data: journey } = await supabase
-                .from("journeys")
-                .select("user_id")
-                .eq("id", journeyId)
-                .single();
+            const { data: journey } = await supabase.from("journeys").select("user_id").eq("id", journeyId).single();
+            const { data: participants } = await supabase.from("journey_requests").select("requester_id").eq("journey_id", journeyId).eq("status", "accepted");
 
-            const { data: participants } = await supabase
-                .from("journey_requests")
-                .select("requester_id")
-                .eq("journey_id", journeyId)
-                .eq("status", "accepted");
-
-            const targetUserIds = new Set([
-                journey?.user_id,
-                ...(participants?.map((p: any) => p.requester_id) || [])
-            ]);
-
+            const targetUserIds = new Set([journey?.user_id, ...(participants?.map((p: any) => p.requester_id) || [])]);
             targetUserIds.delete(user.id);
 
             for (const targetId of Array.from(targetUserIds)) {
                 if (!targetId) continue;
                 const targetChannel = supabase.channel(`calls:${targetId}`);
-                targetChannel.subscribe(async (status: string) => {
+                targetChannel.subscribe((status: string) => {
                     if (status === "SUBSCRIBED") {
-                        await targetChannel.send({
-                            type: "broadcast",
-                            event: "call-invite",
-                            payload: info
-                        });
-                        // Cleanup target channel immediately after sending
-                        setTimeout(() => {
-                            supabase.removeChannel(targetChannel);
-                        }, 2000);
+                        targetChannel.send({ type: "broadcast", event: "call-invite", payload: info });
+                        setTimeout(() => supabase.removeChannel(targetChannel), 2000);
                     }
                 });
             }
 
             missedCallTimeoutRef.current = setTimeout(async () => {
-                if (callState === "dialing") {
+                if (callStateRef.current === "dialing") {
                     logCallEvent("missed");
                     await handleCleanup();
                 }
@@ -477,88 +394,66 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
             setCallState("idle");
             setCallInfo(null);
         }
-    };
+    }, [user, fetchParticipantsMetadata, logCallEvent, handleCleanup]);
 
-    const acceptCall = async () => {
+    const acceptCall = useCallback(async () => {
         if (!callInfo || !user) return;
-
         if (missedCallTimeoutRef.current) {
             clearTimeout(missedCallTimeoutRef.current);
             missedCallTimeoutRef.current = null;
         }
-
         setCallState("active");
         setCallStartTime(Date.now());
         await fetchParticipantsMetadata(callInfo.journeyId);
 
-        // Notify caller
         const callerChannel = supabase.channel(`calls:${callInfo.callerId}`);
-        await callerChannel.subscribe(async (status) => {
+        await callerChannel.subscribe((status) => {
             if (status === "SUBSCRIBED") {
-                await callerChannel.send({
-                    type: "broadcast",
-                    event: "call-accept",
-                    payload: { acceptorId: user.id }
-                });
-                // Cleanup
-                setTimeout(() => {
-                    supabase.removeChannel(callerChannel);
-                }, 2000);
+                callerChannel.send({ type: "broadcast", event: "call-accept", payload: { acceptorId: user.id } });
+                setTimeout(() => supabase.removeChannel(callerChannel), 2000);
             }
         });
-
-        // Initialize media for the respondent
         await initializeMedia(callInfo.journeyId, callInfo.type);
-    };
+    }, [callInfo, user, fetchParticipantsMetadata, initializeMedia]);
 
-    const rejectCall = () => {
+    const rejectCall = useCallback(() => {
         if (callInfo) {
             const callerChannel = supabase.channel(`calls:${callInfo.callerId}`);
-            callerChannel.subscribe(async (status) => {
+            callerChannel.subscribe((status) => {
                 if (status === "SUBSCRIBED") {
-                    await callerChannel.send({
-                        type: "broadcast",
-                        event: "call-reject",
-                        payload: { rejectorId: user?.id }
-                    });
+                    callerChannel.send({ type: "broadcast", event: "call-reject", payload: { rejectorId: user?.id } });
                     logCallEvent("declined");
-                    setTimeout(() => {
-                        supabase.removeChannel(callerChannel);
-                    }, 2000);
+                    setTimeout(() => supabase.removeChannel(callerChannel), 2000);
                 }
             });
         }
         setCallState("idle");
         setCallInfo(null);
-    };
+    }, [callInfo, user?.id, logCallEvent]);
 
-    const endCall = async () => {
+    const endCall = useCallback(async () => {
         if (callInfo) {
-            // Signal to everyone in the session
             const sessionChannel = supabase.channel(`call_session:${callInfo.journeyId}`);
-            await sessionChannel.send({
-                type: "broadcast",
-                event: "call-end",
-                payload: { finisherId: user?.id }
-            });
+            await sessionChannel.send({ type: "broadcast", event: "call-end", payload: { finisherId: user?.id } });
         }
         await handleCleanup();
-    };
+    }, [callInfo, user?.id, handleCleanup]);
 
-    const toggleMute = () => {
+    // --- 4. TOGGLES ---
+
+    const toggleMute = useCallback(() => {
         if (localAudioTrackRef.current) {
             localAudioTrackRef.current.setEnabled(isMuted);
             setIsMuted(!isMuted);
         }
-    };
+    }, [isMuted]);
 
-    const toggleVideo = async () => {
+    const toggleVideo = useCallback(async () => {
         if (localVideoTrackRef.current) {
             const newState = !isVideoOff;
             await localVideoTrackRef.current.setEnabled(!newState);
             setIsVideoOff(newState);
-        } else if (callState === "active" && clientRef.current && AgoraRTC) {
-            // Upgrade Audio -> Video
+        } else if (callStateRef.current === "active" && clientRef.current && AgoraRTC) {
             try {
                 const videoTrack = await AgoraRTC.createCameraVideoTrack();
                 localVideoTrackRef.current = videoTrack;
@@ -570,14 +465,13 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                 console.error("[CallingContext] Failed to enable video:", error);
             }
         }
-    };
+    }, [isVideoOff, setupVideoPipeline]);
 
-    const toggleScreenShare = async () => {
+    const toggleScreenShare = useCallback(async () => {
         if (!clientRef.current || !AgoraRTC) return;
 
         try {
             if (isScreenSharing) {
-                // Stop screen share
                 if (localScreenTrackRef.current) {
                     await clientRef.current.unpublish(localScreenTrackRef.current);
                     localScreenTrackRef.current.stop();
@@ -586,97 +480,48 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
                     setLocalScreenTrack(null);
                 }
                 setIsScreenSharing(false);
-
-                // Resume camera if it was on
                 if (!isVideoOff && localVideoTrackRef.current) {
                     await clientRef.current.publish(localVideoTrackRef.current);
                 }
             } else {
-                // Start screen share
                 const screenTrack = await AgoraRTC.createScreenVideoTrack({
                     encoderConfig: "1080p_1",
                     optimizationMode: "detail",
                     screenSourceType: "window"
                 }, "auto");
 
-                // Handle user clicking "Stop Sharing" in browser
+                // Use ref or a separate handler to avoid recursive dependency
                 screenTrack.on("track-ended", () => {
-                    toggleScreenShare();
+                    // Manual trigger to stop sharing
+                    if (localScreenTrackRef.current) {
+                        clientRef.current?.unpublish(localScreenTrackRef.current);
+                        localScreenTrackRef.current.stop();
+                        localScreenTrackRef.current.close();
+                        localScreenTrackRef.current = null;
+                        setLocalScreenTrack(null);
+                        setIsScreenSharing(false);
+                    }
                 });
 
                 localScreenTrackRef.current = screenTrack;
                 setLocalScreenTrack(screenTrack);
                 setIsScreenSharing(true);
-
-                // Unpublish camera if active
                 if (localVideoTrackRef.current) {
                     await clientRef.current.unpublish(localVideoTrackRef.current);
                 }
-
                 await clientRef.current.publish(screenTrack);
             }
         } catch (error: any) {
             console.error("[CallingContext] Screen share failed:", error);
             setIsScreenSharing(false);
-
-            if (error.code === 'PERMISSION_DENIED' || error.name === 'NotAllowedError') {
-                console.warn("[CallingContext] User denied screen share permission or browser blocked it.");
-                // Provide high-visibility feedback if possible, or just log clearly
-                if (typeof window !== 'undefined') {
-                    // We don't have a direct toast here, but we can log a guide
-                    console.info("%cPRO TIP: Screen sharing requires HTTPS and OS-level Screen Recording permissions (System Settings > Privacy & Security).", "color: #3b82f6; font-weight: bold;");
-                }
-            } else {
-                console.error("[CallingContext] Unexpected screen sharing error:", error);
-            }
         }
-    };
+    }, [isScreenSharing, isVideoOff]);
 
-    const setupVideoPipeline = async (track: ILocalVideoTrack) => {
-        const vbExtension = (window as any).vbExtension;
-        const beautyExtension = (window as any).beautyExtension;
-        if (!vbExtension || !beautyExtension) return;
-
-        try {
-            if (!vbProcessorRef.current) {
-                vbProcessorRef.current = vbExtension.createProcessor();
-                await vbProcessorRef.current.init();
-            }
-            if (!beautyProcessorRef.current) {
-                beautyProcessorRef.current = beautyExtension.createProcessor();
-            }
-
-            // Establish the LINEAR pipe chain: Track -> Blur -> Beauty -> Destination
-            track.pipe(vbProcessorRef.current)
-                .pipe(beautyProcessorRef.current)
-                .pipe(track.processorDestination);
-
-            // Sync initial state
-            if (isBlurEnabled) {
-                await vbProcessorRef.current.setOptions({ type: 'blur', blurDegree: 2 });
-                await vbProcessorRef.current.enable();
-            }
-            if (isBeautyEnabled) {
-                await beautyProcessorRef.current.setOptions({
-                    lighteningLevel: 0.7,
-                    rednessLevel: 0.1,
-                    smoothnessLevel: 0.5,
-                    sharpeningLevel: 0.3
-                });
-                await beautyProcessorRef.current.enable();
-            }
-        } catch (error) {
-            console.error("[CallingContext] Pipeline setup failed:", error);
-        }
-    };
-
-    const toggleBlur = async () => {
+    const toggleBlur = useCallback(async () => {
         if (!vbProcessorRef.current) return;
-
         try {
-            if (isBlurEnabled) {
-                await vbProcessorRef.current.disable();
-            } else {
+            if (isBlurEnabled) await vbProcessorRef.current.disable();
+            else {
                 await vbProcessorRef.current.setOptions({ type: 'blur', blurDegree: 2 });
                 await vbProcessorRef.current.enable();
             }
@@ -684,51 +529,70 @@ export function CallingProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("[CallingContext] Failed to toggle blur:", error);
         }
-    };
+    }, [isBlurEnabled]);
 
-    const toggleBeauty = async () => {
+    const toggleBeauty = useCallback(async () => {
         if (!beautyProcessorRef.current) return;
-
         try {
-            if (isBeautyEnabled) {
-                await beautyProcessorRef.current.disable();
-            } else {
-                await beautyProcessorRef.current.setOptions({
-                    lighteningLevel: 0.7,
-                    rednessLevel: 0.1,
-                    smoothnessLevel: 0.5,
-                    sharpeningLevel: 0.3
-                });
+            if (isBeautyEnabled) await beautyProcessorRef.current.disable();
+            else {
+                await beautyProcessorRef.current.setOptions({ lighteningLevel: 0.7, rednessLevel: 0.1, smoothnessLevel: 0.5, sharpeningLevel: 0.3 });
                 await beautyProcessorRef.current.enable();
             }
             setIsBeautyEnabled(!isBeautyEnabled);
         } catch (error) {
             console.error("[CallingContext] Failed to toggle beauty:", error);
         }
-    };
+    }, [isBeautyEnabled]);
+
+    // --- 5. EFFECTS ---
+
+    useEffect(() => { userRef.current = user; }, [user]);
+    useEffect(() => { callStateRef.current = callState; }, [callState]);
+
+    useEffect(() => {
+        if (!user) return;
+        const channel = supabase.channel(`calls:${user.id}`, { config: { broadcast: { self: false } } });
+        channel
+            .on("broadcast", { event: "call-invite" }, ({ payload }) => {
+                if (callStateRef.current === "idle") {
+                    setCallInfo(payload);
+                    setCallState("incoming");
+                }
+            })
+            .on("broadcast", { event: "call-accept" }, () => {
+                if (callStateRef.current === "dialing") {
+                    if (missedCallTimeoutRef.current) {
+                        clearTimeout(missedCallTimeoutRef.current);
+                        missedCallTimeoutRef.current = null;
+                    }
+                    setCallState("active");
+                    setCallStartTime(Date.now());
+                }
+            })
+            .on("broadcast", { event: "call-reject" }, () => {
+                if (callStateRef.current === "dialing") logCallEvent("declined");
+                setCallState("idle");
+                setCallInfo(null);
+            })
+            .on("broadcast", { event: "call-end" }, handleCleanup)
+            .subscribe();
+
+        channelRef.current = channel;
+        return () => { supabase.removeChannel(channel); };
+    }, [user?.id, logCallEvent, handleCleanup]);
+
+    useEffect(() => {
+        if (callState === "active" && callInfo && !clientRef.current) {
+            initializeMedia(callInfo.journeyId, callInfo.type);
+        }
+    }, [callState, callInfo, initializeMedia]);
 
     return (
         <CallingContext.Provider value={{
-            callState,
-            callInfo,
-            localVideoTrack,
-            localAudioTrack,
-            localScreenTrack,
-            remoteUsers,
-            startCall,
-            acceptCall,
-            rejectCall,
-            endCall,
-            toggleMute,
-            toggleVideo,
-            toggleScreenShare,
-            toggleBlur,
-            toggleBeauty,
-            isMuted,
-            isVideoOff,
-            isScreenSharing,
-            isBlurEnabled,
-            isBeautyEnabled,
+            callState, callInfo, localVideoTrack, localAudioTrack, localScreenTrack, remoteUsers,
+            startCall, acceptCall, rejectCall, endCall, toggleMute, toggleVideo, toggleScreenShare,
+            toggleBlur, toggleBeauty, isMuted, isVideoOff, isScreenSharing, isBlurEnabled, isBeautyEnabled,
             participantsMetadata
         }}>
             {children}

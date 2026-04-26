@@ -106,7 +106,6 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         squadLocations,
         showNotification
     } = useMessages();
-    const { supabase } = useMessages() as any;
     const { user } = useUser();
     const [input, setInput] = useState("");
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -253,23 +252,16 @@ export function ChatWindow({ journeyId, onClose }: ChatWindowProps) {
         };
         loadParticipants();
 
-        // Listen for status changes
-        const channel = (supabase as any)
-            ?.channel(`chat_participants_${journeyId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'journey_requests', filter: `journey_id=eq.${journeyId}` }, () => {
+        const unsubscribe = subscribeToJourney(journeyId, {
+            onRequestsChange: () => {
+                console.log("[ChatWindow] Refreshing participants via Realtime");
                 loadParticipants();
-            })
-            .subscribe();
+            }
+        });
 
-        return () => {
-            if (channel) (supabase as any).removeChannel(channel);
-        };
-    }, [journeyId, getRequests, supabase]);
+        return unsubscribe;
+    }, [journeyId, getRequests, subscribeToJourney]);
 
-    useEffect(() => {
-        const unsubscribe = subscribeToJourney(journeyId);
-        return () => unsubscribe();
-    }, [journeyId, subscribeToJourney]);
 
     useEffect(() => {
         const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
