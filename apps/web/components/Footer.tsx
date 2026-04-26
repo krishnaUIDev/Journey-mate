@@ -10,7 +10,7 @@ interface FooterProps {
 
 export function Footer({ theme }: FooterProps) {
     return (
-        <footer className="bg-white dark:bg-black py-20 border-t border-gray-100 dark:border-white/5 transition-colors">
+        <footer className="bg-white dark:bg-black py-8 border-t border-gray-100 dark:border-white/5 transition-colors">
             <div className="max-w-7xl mx-auto px-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                     <div className="col-span-1 md:col-span-1">
@@ -63,7 +63,7 @@ export function Footer({ theme }: FooterProps) {
                             <li><Link href="/about" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.about" /></Link></li>
                             <li><Link href="/careers" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.careers" /></Link></li>
                             <li><Link href="/blog" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.blog" /></Link></li>
-                            <li><Link href="/press" className="text-gray-600 dark:text-offwhite/60 hover:text-forest dark:hover:text-sand text-sm transition-colors"><FormattedMessage id="footer.company.press" /></Link></li>
+
                         </ul>
                     </div>
 
@@ -77,11 +77,10 @@ export function Footer({ theme }: FooterProps) {
                         </ul>
                     </div>
                 </div>
-                <div className="pt-8 border-t border-gray-100 dark:border-white/5 flex flex-col md:row justify-between items-center gap-4">
+                <div className="pt-8 border-t border-gray-100 dark:border-white/5 flex justify-between items-center">
                     <p className="text-gray-400 dark:text-offwhite/30 text-xs">
                         © 2024 Journey-mate. <FormattedMessage id="footer.rights" />
                     </p>
-                    <div />
                 </div>
             </div>
         </footer>
