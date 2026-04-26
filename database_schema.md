@@ -5,6 +5,7 @@ This document provides a visualization of the data architecture supporting the J
 ## Entity Relationship Diagram
 
 ```mermaid
+%%{init: { 'theme': 'base', 'config': { 'er': { 'useMaxWidth': false }, 'fontSize': 20 } } }%%
 erDiagram
     journeys ||--o{ journey_itinerary : "organizes"
     journeys ||--o{ journey_souvenirs : "preserves"
