@@ -17,6 +17,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [v1.2.0] - 2026-04-26
+
+### Added
+- **Boarding Pass Live Preview**: Premium airline-inspired visualization with real-time field synchronization and holographic scanner animation.
+- **Real-Time Weather Pulse 🌦️**: Global, coordinate-based arrival forecasts via Open-Meteo API integration.
+- **Universal Scan Verification**: Scannable deep-link QR codes resolving to a dedicated virtual ticket landing page.
+- **Digital Wallet Support 💳**: Native "Add to Apple/Google Wallet" buttons with simulated pass generation.
+- **Traveler Storytelling (Blog)**: Community-driven blog hub with interactive trip orientation maps and author attribution.
+- **Dynamic Careers Engine**: Transitioned hiring directory to a fully database-backed management system.
+- **Smart Luggage Tracking**: Explicit luggage capacity fields and "Extra Space" trust badges for companion matching.
+
+### Fixed
+- **SSR Hydration Fix**: Resolved protocol/hostname mismatches in dynamic QR generation by deferring computation to client mount.
+- **Blog Security Policies**: Fixed RLS insert errors for community story publishing.
+- **Dark Mode Visibility**: Hardened contrast for labels and components across all premium dashboard views.
+- **Build Stabilization**: Resolved Ecmascript compilation errors in dynamic route imports.
+
+---
+
 ## [v1.1.0] - 2026-04-25
 
 ### Added

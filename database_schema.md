@@ -27,6 +27,8 @@ erDiagram
         text airline_name
         text airline_iata
         text contact_info
+        text contact_method "whatsapp | instagram | email"
+        text luggage_capacity "Extra KG available"
         text boarding_pass_url
         numeric user_rating
         boolean user_verified

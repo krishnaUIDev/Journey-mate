@@ -13,30 +13,29 @@ Journey-mate is a mission-driven, technical masterpiece designed to connect trav
 
 ## 🌟 Elite Features
 
+### ✈️ Boarding Pass Live Preview
+- **High-Fidelity Virtual Tickets**: Airline-inspired boarding pass visualization with real-time field synchronization.
+- **Real-Time Weather Pulse 🌦️**: Global, coordinate-based arrival forecasts using the Open-Meteo API.
+- **Universal Scan Loop 🔍**: Scannable deep-link QR codes that reconstruct tickets on any mobile device.
+- **Native Wallet Integration 💳**: One-tap "Add to Apple Wallet" and "Add to Google Wallet" buttons.
+
+### 📝 Traveler Storytelling (Blog)
+- **Rich Media Narratives**: Dynamic blogging system for travelers to share their stories.
+- **Interactive Orientation Maps 🗺️**: Integrated Leaflet maps with great-circle journey pathing.
+- **Traveler Attribution**: Premium author cards with community trust indicators.
+
 ### ⚡ Technical Excellence
-- **100/100 Lighthouse Suite**: Optimized for sub-2s Time-to-Interactive (TTI) and perfect SEO rankings.
-- **On-Demand Communication**: Agora RTC SDK is deferred and dynamically loaded only when a call starts, preserving a lightning-fast initial load.
-- **Nuclear Accessibility ♿**: 100% WCAG AA compliant color contrast, semantic heading hierarchy, and mandatory `aria-label` coverage.
+- **100/100 Lighthouse Suite**: Optimized for sub-2s TTI and perfect SEO rankings.
+- **On-Demand Communication**: Agora RTC SDK is deferred and dynamically loaded only when a call starts.
+- **Hydration-Safe SSR**: Advanced React pattern for stable dynamic asset rendering.
+- **Nuclear Accessibility ♿**: 100% WCAG AA compliant contrast and semantic hierarchy.
 
 ### 🤝 Strategic Pairing & Smart Tools
-- **Gated Pairing Flow**: Journey owners manage access via a real-time request system with AI-powered compatibility matching.
-- **AI Smart Drafts 🪄**: Instantly generate compelling journey descriptions using deep-learning magic.
-- **Smart Utilities Hub**:
-    - **Collaborative Expenses**: Real-time group cost sharing with frictionless editing and automated chat notifications.
-    - **Settlement Reconciliation**: Record peer-to-peer payments to zero out balances and settle group debts.
-    - **Flight Sync ✈️**: Integrated real-time flight tracking and synchronization across participant dashboards.
-    - **Security Vault 🔒**: Secure, time-gated emergency contact sharing that self-destructs 24h after landing.
-- **Rich Media Messaging**: Professional-grade chat with high-performance image attachments and voice notes.
-- **Custom Squads**: Dynamic group branding with personalized names and custom travel identities.
-
-### 🎥 Immersive Communication
-- **AI-Powered Calling**: Integrated video effects including background blur and beauty filters.
-- **Adaptive Grid**: Intelligent video layout manager that responds to participant counts and screen sizes.
-- **Floating Call Banners**: Stay connected while navigating the marketplace with persistent, minimized call controls.
-
-### 🌍 Universal Framework
-- **Multi-Language Support**: Fully internationalized (i18n) for **English** and **Spanish** travelers.
-- **Liquid UI**: A custom Tailwind v4 powered design system that scales from iPhone SE to 8K Ultra-Wide displays.
+- **Gated Pairing Flow**: Journey owners manage access via a real-time request system.
+- **AI Smart Drafts 🪄**: Instantly generate compelling journey descriptions using AI.
+- **Luggage Tracker 🧳**: Smart luggage capacity tracking and "Luggage Guard" trust badges.
+- **Collaborative Expenses**: Real-time group cost sharing and settlement reconciliation.
+- **Security Vault 🔒**: Secure, time-gated emergency contact sharing.
 
 ---
 
