@@ -11,7 +11,10 @@ import {
     CheckCircle as VerifiedIcon,
     AutoFixHigh as AIStatusIcon,
     Add as AddIcon,
-    Delete as DeleteIcon
+    Delete as DeleteIcon,
+    WhatsApp as WhatsAppIcon,
+    Instagram as InstagramIcon,
+    Email as MailIcon
 } from "@mui/icons-material";
 import { scanBoardingPass } from "../../actions/aiScanner";
 import { AirportAutocomplete } from "../components/AirportAutocomplete";
@@ -35,6 +38,7 @@ export default function PostJourneyPage() {
     const [date, setDate] = useState<Dayjs | null>(dayjs());
     const [flightNumber, setFlightNumber] = useState("");
     const [contactInfo, setContactInfo] = useState("");
+    const [contactMethod, setContactMethod] = useState<'whatsapp' | 'instagram' | 'email'>('whatsapp');
     const [description, setDescription] = useState("");
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -148,9 +152,40 @@ export default function PostJourneyPage() {
         }
 
         if (!contactInfo || contactInfo.trim().length < 3) {
-            setErrorMessage("Contact Details (WhatsApp, Email, or Instagram) are required so travelers can reach you.");
+            setErrorMessage(`Please enter your ${contactMethod} details so travelers can reach you.`);
             setSubmitting(false);
             return;
+        }
+
+        // Validate formats
+        if (contactMethod === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(contactInfo.trim())) {
+                setErrorMessage("Please enter a valid email address.");
+                setSubmitting(false);
+                return;
+            }
+        } else if (contactMethod === 'whatsapp') {
+            const digits = contactInfo.replace(/[^0-9]/g, '');
+            if (digits.length < 8) {
+                setErrorMessage("Please enter a valid WhatsApp number (at least 8 digits).");
+                setSubmitting(false);
+                return;
+            }
+        } else if (contactMethod === 'instagram') {
+            const handle = contactInfo.trim().replace('@', '');
+            if (handle.length < 2 || /[^a-zA-Z0-9._]/.test(handle)) {
+                setErrorMessage("Please enter a valid Instagram username (letters, numbers, dots, and underscores only).");
+                setSubmitting(false);
+                return;
+            }
+        }
+
+        let formattedContact = contactInfo.trim();
+        if (contactMethod === 'instagram' && !formattedContact.startsWith('@')) {
+            formattedContact = `@${formattedContact}`;
+        } else if (contactMethod === 'whatsapp') {
+            formattedContact = formattedContact.replace(/[^0-9]/g, '');
         }
 
         try {
@@ -163,7 +198,7 @@ export default function PostJourneyPage() {
                 airlineName,
                 airlineIata,
                 layovers: layovers.map(l => l.split(' (')[1]?.replace(')', '') || l),
-                contactInfo,
+                contactInfo: formattedContact,
                 description,
                 user: {
                     name: user?.fullName || "A Traveler",
@@ -433,13 +468,56 @@ export default function PostJourneyPage() {
                                 <span className="w-1 h-1 bg-sky-400 rounded-full" /> Additional Info
                             </label>
                             <div className="space-y-6">
-                                <div className="space-y-1.5">
+                                <div className="space-y-4">
                                     <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 900, color: 'text.secondary', ml: 1, fontSize: '10px', letterSpacing: '0.05em' }}>
-                                        Contact Details
+                                        Preferred Contact Method
                                     </Typography>
+
+                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                        {[
+                                            { id: 'whatsapp', icon: <WhatsAppIcon />, label: 'WhatsApp', color: '#22c55e' },
+                                            { id: 'instagram', icon: <InstagramIcon />, label: 'Instagram', color: '#dc2743' },
+                                            { id: 'email', icon: <MailIcon />, label: 'Email', color: '#3b82f6' }
+                                        ].map((method) => (
+                                            <Button
+                                                key={method.id}
+                                                variant={contactMethod === method.id ? "contained" : "outlined"}
+                                                onClick={() => {
+                                                    setContactMethod(method.id as any);
+                                                    setContactInfo(""); // Clear when switching for clarity
+                                                }}
+                                                startIcon={method.icon}
+                                                sx={{
+                                                    flex: 1,
+                                                    borderRadius: '1.25rem',
+                                                    textTransform: 'none',
+                                                    fontWeight: 800,
+                                                    py: 1,
+                                                    fontSize: '0.75rem',
+                                                    bgcolor: contactMethod === method.id ? method.color : 'transparent',
+                                                    color: contactMethod === method.id ? 'white' : 'text.primary',
+                                                    borderColor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.1)',
+                                                    '&:hover': {
+                                                        bgcolor: contactMethod === method.id ? method.color : 'rgba(0,0,0,0.05)',
+                                                        borderColor: method.color
+                                                    },
+                                                    '.dark &': {
+                                                        color: contactMethod === method.id ? 'white' : 'offwhite'
+                                                    }
+                                                }}
+                                            >
+                                                {method.label}
+                                            </Button>
+                                        ))}
+                                    </Box>
+
                                     <TextField
                                         fullWidth
-                                        placeholder="WhatsApp Number or Instagram Username"
+                                        placeholder={
+                                            contactMethod === 'whatsapp' ? "WhatsApp Number (e.g. +1...)" :
+                                                contactMethod === 'instagram' ? "Instagram Username (e.g. travel_buddy)" :
+                                                    "Email Address (e.g. name@example.com)"
+                                        }
                                         variant="standard"
                                         value={contactInfo}
                                         onChange={(e) => setContactInfo(e.target.value)}

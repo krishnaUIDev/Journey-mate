@@ -47,6 +47,8 @@ const RequestManager = dynamic(() => import('../../components/RequestManager').t
 import { useMessages } from '../../../../context/MessagesContext';
 import { ProfileBadge } from '../../components/ProfileBadge';
 import { KudosModal } from '../../components/KudosModal';
+import { KudosCabinet } from '../../components/KudosCabinet';
+import { getUserKudos } from '../../../actions/kudos';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
     ssr: false,
@@ -131,6 +133,7 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
     const [boardingPassFile, setBoardingPassFile] = useState<File | null>(null);
     const [boardingPassPreview, setBoardingPassPreview] = useState<string | null>(null);
     const [mutualCompanions, setMutualCompanions] = useState<string[]>([]);
+    const [allKudos, setAllKudos] = useState<Record<string, any[]>>({});
     const { getMutualCompanions, uploadChatImage } = useMessages();
 
     const fetchAcceptedParticipants = useCallback(async () => {
@@ -140,8 +143,18 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
             .select('requester_id, requester_name, requester_avatar')
             .eq('journey_id', id)
             .eq('status', 'accepted');
-        if (data) setAcceptedParticipants(data);
-    }, [id, supabase]);
+        if (data) {
+            setAcceptedParticipants(data);
+            // Fetch kudos for everyone once participants are loaded
+            const userIds = [journey?.userId, ...data.map((p: any) => p.requester_id)].filter(Boolean);
+            const kudosMap: Record<string, any[]> = {};
+            for (const uid of userIds) {
+                const k = await getUserKudos(uid);
+                kudosMap[uid] = k;
+            }
+            setAllKudos(kudosMap);
+        }
+    }, [id, supabase, journey?.userId]);
 
     const toggleChat = () => {
         const newState = !chatOpen;
@@ -733,33 +746,42 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                     </Box>
                                 ) : (isOwner || requestStatus === 'accepted' || isPastTrip) ? (
                                     <Stack spacing={2}>
-                                        <Button
-                                            fullWidth
-                                            variant="contained"
-                                            onClick={() => {
-                                                setSelectedReviewee({
-                                                    id: journey.userId!,
-                                                    name: journey.user.name,
-                                                    avatar: journey.user.avatar
-                                                });
-                                                setIsKudosModalOpen(true);
-                                            }}
-                                            startIcon={<KudosIcon />}
-                                            sx={{
-                                                bgcolor: '#fbbf24',
-                                                color: 'black',
-                                                borderRadius: '1rem',
-                                                py: 1.5,
-                                                fontWeight: 900,
-                                                textTransform: 'none',
-                                                fontSize: '0.95rem',
-                                                letterSpacing: '-0.02em',
-                                                boxShadow: '0 10px 20px -5px rgba(251, 191, 36, 0.3)',
-                                                '&:hover': { bgcolor: '#f59e0b' }
-                                            }}
-                                        >
-                                            Leave Kudos for {journey.user.name.split(' ')[0]}
-                                        </Button>
+                                        {!isOwner && (
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                onClick={() => {
+                                                    setSelectedReviewee({
+                                                        id: journey.userId!,
+                                                        name: journey.user.name,
+                                                        avatar: journey.user.avatar
+                                                    });
+                                                    setIsKudosModalOpen(true);
+                                                }}
+                                                startIcon={(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? <VerifiedIcon /> : <KudosIcon />}
+                                                disabled={(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id)}
+                                                sx={{
+                                                    bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#fbbf24',
+                                                    color: 'black',
+                                                    borderRadius: '1rem',
+                                                    py: 1.5,
+                                                    fontWeight: 900,
+                                                    textTransform: 'none',
+                                                    fontSize: '0.95rem',
+                                                    letterSpacing: '-0.02em',
+                                                    boxShadow: '0 10px 20px -5px rgba(251, 191, 36, 0.3)',
+                                                    '&:hover': { bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.400' : '#f59e0b' },
+                                                    '.dark &': {
+                                                        bgcolor: (allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id) ? 'slate.700' : '#fbbf24',
+                                                        color: 'black'
+                                                    }
+                                                }}
+                                            >
+                                                {(allKudos[journey.userId] || []).some(k => k.reviewer_id === user?.id)
+                                                    ? "Kudos Shared"
+                                                    : `Leave Kudos for ${journey.user.name.split(' ')[0]}`}
+                                            </Button>
+                                        )}
                                         <Button
                                             fullWidth
                                             variant="contained"
@@ -900,84 +922,163 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-700">
                                     <h2 className="text-[10px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-[0.2em] mb-4">CONNECT WITH OWNER</h2>
                                     <div className="flex flex-col gap-3">
-                                        {/* Detect if contact info is email, Instagram or phone */}
-                                        {journey.contactInfo.includes('@') && (
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                startIcon={<MailIcon sx={{ fontSize: 18 }} />}
-                                                onClick={() => window.open(`mailto:${journey.contactInfo}`, '_blank')}
-                                                sx={{
-                                                    bgcolor: 'white',
-                                                    color: '#09090b',
-                                                    borderRadius: '1rem',
-                                                    py: 1.5,
-                                                    fontWeight: 900,
-                                                    textTransform: 'none',
-                                                    fontSize: '0.85rem',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                                                    border: '1px solid',
-                                                    borderColor: 'slate.200',
-                                                    '&:hover': { bgcolor: '#f8fafc', borderColor: 'slate.300', scale: 1.02 },
-                                                    '.dark &': {
-                                                        bgcolor: '#334155',
-                                                        color: 'white',
-                                                        borderColor: 'white/10',
-                                                        '&:hover': { bgcolor: 'white/20', borderColor: 'white/20' }
-                                                    }
-                                                }}
-                                            >
-                                                Send Email
-                                            </Button>
-                                        )}
+                                        {(() => {
+                                            const contact = journey.contactInfo;
+                                            const cleanPhone = contact.replace(/[\s\-\+\(\)]/g, '');
+                                            const isEmail = contact.includes('@') && !contact.startsWith('@');
+                                            const isWhatsApp = /^\d+$/.test(cleanPhone) && cleanPhone.length > 5;
+                                            const isInsta = contact.startsWith('@') || (contact.length > 2 && !isEmail && !isWhatsApp);
 
-                                        {/* Instagram Check: if starts with @ or seems like a username (no dots, no spaces, no @ in middle) */}
-                                        {(journey.contactInfo.startsWith('@') || (!journey.contactInfo.includes('@') && !/^\d+$/.test(journey.contactInfo.replace(/[\s\-\+]/g, '')) && journey.contactInfo.length > 2)) && (
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                startIcon={<InstagramIcon sx={{ fontSize: 18 }} />}
-                                                onClick={() => window.open(`https://instagram.com/${journey.contactInfo.replace('@', '')}`, '_blank')}
-                                                sx={{
-                                                    background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                                                    color: 'white',
-                                                    borderRadius: '1rem',
-                                                    py: 1.5,
-                                                    fontWeight: 900,
-                                                    textTransform: 'none',
-                                                    fontSize: '0.85rem',
-                                                    boxShadow: '0 4px 12px rgba(220, 39, 67, 0.2)',
-                                                    '&:hover': { opacity: 0.9, scale: 1.02 }
-                                                }}
-                                            >
-                                                Instagram DM
-                                            </Button>
-                                        )}
+                                            return (
+                                                <>
+                                                    {isEmail && (
+                                                        <Button
+                                                            fullWidth
+                                                            variant="contained"
+                                                            startIcon={<MailIcon sx={{ fontSize: 18 }} />}
+                                                            onClick={() => window.open(`mailto:${contact}`, '_blank')}
+                                                            sx={{
+                                                                bgcolor: 'white',
+                                                                color: '#09090b',
+                                                                borderRadius: '1rem',
+                                                                py: 1.5,
+                                                                fontWeight: 900,
+                                                                textTransform: 'none',
+                                                                fontSize: '0.85rem',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                                                border: '1px solid',
+                                                                borderColor: 'slate.200',
+                                                                '&:hover': { bgcolor: '#f8fafc', borderColor: 'slate.300', scale: 1.02 },
+                                                                '.dark &': {
+                                                                    bgcolor: '#334155',
+                                                                    color: 'white',
+                                                                    borderColor: 'white/10',
+                                                                    '&:hover': { bgcolor: 'white/20', borderColor: 'white/20' }
+                                                                }
+                                                            }}
+                                                        >
+                                                            Send Email
+                                                        </Button>
+                                                    )}
 
-                                        {(/^\d+$/.test(journey.contactInfo.replace(/[\s\-\+]/g, '')) && journey.contactInfo.length > 5) && (
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                startIcon={<WhatsAppIcon sx={{ fontSize: 18 }} />}
-                                                onClick={() => window.open(`https://wa.me/${journey.contactInfo.replace(/[^0-9]/g, '')}`, '_blank')}
-                                                sx={{
-                                                    bgcolor: '#22c55e',
-                                                    color: 'white',
-                                                    borderRadius: '1rem',
-                                                    py: 1.5,
-                                                    fontWeight: 900,
-                                                    textTransform: 'none',
-                                                    fontSize: '0.85rem',
-                                                    boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)',
-                                                    '&:hover': { bgcolor: '#16a34a', scale: 1.02 }
-                                                }}
-                                            >
-                                                WhatsApp Chat
-                                            </Button>
-                                        )}
+                                                    {isInsta && (
+                                                        <Button
+                                                            fullWidth
+                                                            variant="contained"
+                                                            startIcon={<InstagramIcon sx={{ fontSize: 18 }} />}
+                                                            onClick={() => window.open(`https://instagram.com/${contact.replace('@', '')}`, '_blank')}
+                                                            sx={{
+                                                                background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                                                                color: 'white',
+                                                                borderRadius: '1rem',
+                                                                py: 1.5,
+                                                                fontWeight: 900,
+                                                                textTransform: 'none',
+                                                                fontSize: '0.85rem',
+                                                                boxShadow: '0 4px 12px rgba(220, 39, 67, 0.2)',
+                                                                '&:hover': { opacity: 0.9, scale: 1.02 }
+                                                            }}
+                                                        >
+                                                            Instagram DM
+                                                        </Button>
+                                                    )}
+
+                                                    {isWhatsApp && (
+                                                        <Button
+                                                            fullWidth
+                                                            variant="contained"
+                                                            startIcon={<WhatsAppIcon sx={{ fontSize: 18 }} />}
+                                                            onClick={() => window.open(`https://wa.me/${cleanPhone}`, '_blank')}
+                                                            sx={{
+                                                                bgcolor: '#22c55e',
+                                                                color: 'white',
+                                                                borderRadius: '1rem',
+                                                                py: 1.5,
+                                                                fontWeight: 900,
+                                                                textTransform: 'none',
+                                                                fontSize: '0.85rem',
+                                                                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.2)',
+                                                                '&:hover': { bgcolor: '#16a34a', scale: 1.02 }
+                                                            }}
+                                                        >
+                                                            WhatsApp Chat
+                                                        </Button>
+                                                    )}
+
+                                                    {!isEmail && !isInsta && !isWhatsApp && (
+                                                        <Button
+                                                            fullWidth
+                                                            variant="contained"
+                                                            startIcon={<ChatIcon sx={{ fontSize: 18 }} />}
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(contact);
+                                                                showNotification("Contact info copied to clipboard!", "success");
+                                                            }}
+                                                            sx={{
+                                                                bgcolor: 'white',
+                                                                color: '#09090b',
+                                                                borderRadius: '1rem',
+                                                                py: 1.5,
+                                                                fontWeight: 900,
+                                                                textTransform: 'none',
+                                                                fontSize: '0.85rem',
+                                                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                                                border: '1px solid',
+                                                                borderColor: 'slate.200',
+                                                                '&:hover': { bgcolor: '#f8fafc', borderColor: 'slate.300', scale: 1.02 },
+                                                                '.dark &': {
+                                                                    bgcolor: '#334155',
+                                                                    color: 'white',
+                                                                    borderColor: 'white/10',
+                                                                    '&:hover': { bgcolor: 'white/20', borderColor: 'white/20' }
+                                                                }
+                                                            }}
+                                                        >
+                                                            Copy: {contact}
+                                                        </Button>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
+
+                            {/* Companion Trust Wall */}
+                            {(() => {
+                                const ownerId = journey?.userId;
+                                const ownerReviews = ownerId ? (allKudos[ownerId] || []) : [];
+                                const hasReviews = ownerReviews.length > 0 || acceptedParticipants.some(p => (allKudos[p.requester_id]?.length || 0) > 0);
+
+                                if (!ownerId || !hasReviews) return null;
+
+                                return (
+                                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-[2rem] p-6 border border-slate-100 dark:border-white/5">
+                                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                            <KudosIcon sx={{ fontSize: 14, color: '#fbbf24' }} /> COMPANION TRUST WALL
+                                        </h2>
+                                        <Stack spacing={4}>
+                                            {ownerReviews.length > 0 && (
+                                                <KudosCabinet
+                                                    reviews={ownerReviews}
+                                                    userName={journey?.user?.name || 'Owner'}
+                                                />
+                                            )}
+                                            {acceptedParticipants.map(p => {
+                                                const pReviews = allKudos[p.requester_id] || [];
+                                                if (pReviews.length === 0) return null;
+                                                return (
+                                                    <KudosCabinet
+                                                        key={p.requester_id}
+                                                        reviews={pReviews}
+                                                        userName={p.requester_name || 'Companion'}
+                                                    />
+                                                );
+                                            })}
+                                        </Stack>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Details Section */}
                             <div className="space-y-6">

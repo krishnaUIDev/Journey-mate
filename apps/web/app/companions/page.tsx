@@ -32,15 +32,54 @@ export default function CompanionsPage() {
         async function fetchProfiles() {
             try {
                 if (!supabase) return;
-                const { data, error } = await supabase
+
+                // 1. Fetch from user_profiles (all, not just verified)
+                const { data: profileData, error: profileError } = await supabase
                     .from('user_profiles')
                     .select('*')
-                    .eq('is_verified', true)
                     .order('avg_rating', { ascending: false })
-                    .limit(6);
+                    .limit(12);
 
-                if (error) throw error;
-                if (data) setProfiles(data);
+                if (profileError) throw profileError;
+
+                let aggregatedProfiles: CompanionProfile[] = profileData || [];
+
+                // 2. Fallback: if we have few profiles, fetch unique users from journeys
+                if (aggregatedProfiles.length < 6) {
+                    const { data: journeyData, error: journeyError } = await (supabase as any)
+                        .from('journeys')
+                        .select('user_id, user_name, user_avatar, user_rating, user_verified, user_verification_tier')
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+
+                    if (!journeyError && journeyData) {
+                        // De-duplicate by user_id
+                        const seenIds = new Set(aggregatedProfiles.map(p => p.id));
+                        const additionalProfiles: CompanionProfile[] = [];
+
+                        for (const item of journeyData) {
+                            if (item.user_id && !seenIds.has(item.user_id)) {
+                                seenIds.add(item.user_id);
+                                additionalProfiles.push({
+                                    id: item.user_id,
+                                    username: item.user_name || 'Traveler',
+                                    avatar_url: item.user_avatar || '',
+                                    avg_rating: item.user_rating || 5.0,
+                                    review_count: 0,
+                                    languages: ['English'], // Default
+                                    specialty: 'Companion', // Default
+                                    is_verified: item.user_verified || false
+                                });
+                                // Limit additional profiles to avoid overwhelming
+                                if (additionalProfiles.length >= 8) break;
+                            }
+                        }
+
+                        aggregatedProfiles = [...aggregatedProfiles, ...additionalProfiles];
+                    }
+                }
+
+                setProfiles(aggregatedProfiles.slice(0, 12));
             } catch (err) {
                 console.error("Error fetching companion profiles:", err);
             } finally {
@@ -66,7 +105,7 @@ export default function CompanionsPage() {
             <main className="min-h-screen bg-white dark:bg-black transition-colors">
                 <Header theme={theme} toggleTheme={toggleTheme} locale={locale} handleLocaleChange={handleLocaleChange} />
 
-                <Box sx={{ py: { xs: 6, md: 10 }, bgcolor: 'rgba(59,130,246,0.02)' }}>
+                <Box sx={{ pt: 4, pb: { xs: 6, md: 10 }, bgcolor: 'rgba(59,130,246,0.02)' }}>
                     <Container maxWidth="lg">
                         <Stack spacing={2} sx={{ mb: 5, textAlign: 'center', alignItems: 'center' }}>
                             <Typography variant="overline" sx={{ fontWeight: 900, color: "#3B82F6", letterSpacing: 4, width: '100%' }}>
@@ -155,18 +194,6 @@ export default function CompanionsPage() {
 
                                                 <Chip label={mate.specialty || 'General'} sx={{ fontWeight: 800, bgcolor: '#0f172a', color: 'white', borderRadius: '0.75rem', '.dark &': { bgcolor: 'rgba(255,255,255,0.1)' } }} />
 
-                                                <Button
-                                                    variant="outlined"
-                                                    fullWidth
-                                                    sx={{
-                                                        borderRadius: '1.25rem', py: 1.5, fontWeight: 900,
-                                                        borderColor: 'rgba(0,0,0,0.1)', color: 'text.primary',
-                                                        '&:hover': { bgcolor: 'rgba(0,0,0,0.02)', borderColor: 'rgba(0,0,0,0.2)' },
-                                                        '.dark &': { color: 'white', borderColor: 'rgba(255,255,255,0.1)' }
-                                                    }}
-                                                >
-                                                    View Profile
-                                                </Button>
                                             </Stack>
                                         </Paper>
                                     </Grid>
@@ -174,20 +201,6 @@ export default function CompanionsPage() {
                             </Grid>
                         )}
 
-                        <Box sx={{ mt: 6, textAlign: 'center' }}>
-                            <Button
-                                variant="contained"
-                                size="large"
-                                startIcon={<SearchIcon />}
-                                sx={{
-                                    bgcolor: '#3B82F6', px: 6, py: 2.5, borderRadius: '2rem',
-                                    fontWeight: 900, textTransform: 'none', fontSize: '1.1rem',
-                                    '&:hover': { bgcolor: '#2563EB' }
-                                }}
-                            >
-                                Browse All Mates
-                            </Button>
-                        </Box>
                     </Container>
                 </Box>
 

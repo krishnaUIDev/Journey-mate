@@ -40,6 +40,7 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
     const [type, setType] = useState<'positive' | 'neutral' | 'negative'>('positive');
     const [submitting, setSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleAISuggest = async () => {
         setIsGenerating(true);
@@ -80,6 +81,7 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
 
     const handleSubmit = async () => {
         if (!content.trim()) return;
+        setError(null);
         setSubmitting(true);
         try {
             await submitKudos({
@@ -90,8 +92,9 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
                 type
             });
             onClose();
-        } catch (error) {
-            console.error(error);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || "Failed to submit kudos.");
         } finally {
             setSubmitting(false);
         }
@@ -110,6 +113,22 @@ export function KudosModal({ open, onClose, journeyId, revieweeId, revieweeName,
                 <Typography variant="body2" sx={{ mb: 3, opacity: 0.7, '.dark &': { color: 'slate.300' } }}>
                     Share your experience with <b>{revieweeName}</b> to help the community build trust.
                 </Typography>
+
+                {error && (
+                    <Box sx={{
+                        mb: 3,
+                        p: 2,
+                        borderRadius: '1rem',
+                        bgcolor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        color: '#ef4444',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        textAlign: 'center'
+                    }}>
+                        {error}
+                    </Box>
+                )}
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, mb: 3 }}>
                     <Avatar src={revieweeAvatar} sx={{ width: 64, height: 64, border: '3px solid #fbbf24' }} />

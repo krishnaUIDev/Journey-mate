@@ -11,6 +11,22 @@ export async function submitKudos(review: {
 }) {
     if (!supabase) throw new Error("Supabase is not initialized.");
 
+    // Security & Logic checks
+    if (review.reviewer_id === review.reviewee_id) {
+        throw new Error("You cannot give kudos to yourself.");
+    }
+
+    const { data: existing } = await (supabase as any)
+        .from('user_reviews')
+        .select('id')
+        .eq('reviewer_id', review.reviewer_id)
+        .eq('reviewee_id', review.reviewee_id)
+        .limit(1);
+
+    if (existing && existing.length > 0) {
+        throw new Error("You have already given kudos to this user.");
+    }
+
     try {
         const { error } = await (supabase as any)
             .from('user_reviews')
@@ -18,13 +34,27 @@ export async function submitKudos(review: {
 
         if (error) throw error;
 
-        // Optionally update the reviewee's rating in user_profiles
-        // This would require a more complex calculation in a real app,
-        // but for now, we just log it and rely on the UI to aggregate.
-
         return { success: true };
     } catch (error: any) {
-        console.error("Kudos Error:", error);
-        throw new Error("Failed to submit kudos.");
+        console.error("Kudos Submit Error:", error);
+        throw new Error(error.message || "Failed to submit kudos.");
+    }
+}
+
+export async function getUserKudos(userId: string) {
+    if (!supabase) throw new Error("Supabase is not initialized.");
+
+    try {
+        const { data, error } = await (supabase as any)
+            .from('user_reviews')
+            .select('*')
+            .eq('reviewee_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error: any) {
+        console.error("Kudos Fetch Error:", error);
+        return [];
     }
 }
