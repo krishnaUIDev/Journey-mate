@@ -51,6 +51,8 @@ import { useMessages } from '../../../../context/MessagesContext';
 import { ProfileBadge } from '../../components/ProfileBadge';
 import { KudosModal } from '../../components/KudosModal';
 import { KudosCabinet } from '../../components/KudosCabinet';
+import { ItineraryTimeline } from '../../components/ItineraryTimeline';
+import { SouvenirWall } from '../../components/SouvenirWall';
 import { getUserKudos } from '../../../actions/kudos';
 
 const JourneyMap = dynamic(() => import("../../components/JourneyMap"), {
@@ -1066,11 +1068,11 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 if (!ownerId || !hasReviews) return null;
 
                                 return (
-                                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-[2rem] p-6 border border-slate-100 dark:border-white/5">
-                                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-[1.5rem] p-4 border border-slate-100 dark:border-white/5">
+                                        <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                             <KudosIcon sx={{ fontSize: 14, color: '#fbbf24' }} /> COMPANION TRUST WALL
                                         </h2>
-                                        <Stack spacing={4}>
+                                        <Stack spacing={3}>
                                             {ownerReviews.length > 0 && (
                                                 <KudosCabinet
                                                     reviews={ownerReviews}
@@ -1093,11 +1095,27 @@ export default function JourneyDetailPage({ params }: { params: Promise<{ id: st
                                 );
                             })()}
 
+                            {/* Collaborative Itinerary & Souvenirs */}
+                            {(isOwner || requestStatus === 'accepted') && (
+                                <div className="space-y-4 py-2 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                    <ItineraryTimeline
+                                        journeyId={journey.id}
+                                        userId={user?.id || ""}
+                                        isCompanion={true}
+                                    />
+                                    <SouvenirWall
+                                        journeyId={journey.id}
+                                        userId={user?.id || ""}
+                                        isCompanion={true}
+                                    />
+                                </div>
+                            )}
+
                             {/* Details Section */}
-                            <div className="space-y-6">
-                                <div className="p-6 bg-sky-50/50 dark:bg-sky-900/10 rounded-[2.5rem] border border-sky-100/50 dark:border-sky-800/30">
-                                    <h2 className="text-[10px] font-black text-sky-700 dark:text-sky-400 uppercase tracking-[0.2em] mb-4">MATCH NOTES</h2>
-                                    <p className="text-xl font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                            <div className="space-y-3">
+                                <div className="p-4 bg-sky-50/50 dark:bg-sky-900/10 rounded-[1.5rem] border border-sky-100/50 dark:border-sky-800/30">
+                                    <h2 className="text-[10px] font-black text-sky-700 dark:text-sky-400 uppercase tracking-[0.2em] mb-2">MATCH NOTES</h2>
+                                    <p className="text-base font-medium text-slate-700 dark:text-slate-300 leading-relaxed italic">
                                         "{journey.description}"
                                     </p>
                                 </div>
