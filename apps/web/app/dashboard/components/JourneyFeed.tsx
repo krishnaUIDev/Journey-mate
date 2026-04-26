@@ -228,93 +228,85 @@ export function JourneyFeed() {
                                 className={`bg-white dark:bg-white/5 rounded-[1.25rem] overflow-hidden border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-xl transition-all group cursor-pointer active:scale-[0.98] relative flex items-center p-3 gap-3 ${isPast ? 'opacity-80 grayscale-[0.2]' : ''}`}
                             >
                                 {/* Header / Route Icon - More Compact */}
-                                <div className="flex-shrink-0 w-12 h-12 bg-gray-50 dark:bg-white/5 rounded-xl flex flex-col items-center justify-center border border-gray-100 dark:border-white/10">
-                                    <span className="text-[9px] font-black text-emerald-800 dark:text-sand leading-none">{journey.from.slice(0, 3)}</span>
-                                    <div className="h-px w-4 bg-gray-300 dark:bg-gray-700 my-1 relative">
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t border-r border-gray-300 dark:border-gray-700 w-1 h-1" />
-                                    </div>
-                                    <span className="text-[9px] font-black text-emerald-900 dark:text-offwhite leading-none">{journey.to.slice(0, 3)}</span>
-                                </div>
+                                {(() => {
+                                    const fromCity = journey.from.split(' (')[0];
+                                    const fromCode = journey.from.match(/\(([^)]+)\)/)?.[1] || journey.from.slice(0, 3).toUpperCase();
+                                    const toCity = journey.to.split(' (')[0];
+                                    const toCode = journey.to.match(/\(([^)]+)\)/)?.[1] || journey.to.slice(0, 3).toUpperCase();
+                                    return (
+                                        <div className="flex-shrink-0 w-12 bg-gray-50 dark:bg-white/5 rounded-xl flex flex-col items-center justify-center border border-gray-100 dark:border-white/10 py-2 gap-0.5">
+                                            <Tooltip title={fromCity} placement="left" arrow>
+                                                <span className="text-[9px] font-black text-emerald-800 dark:text-sand leading-none cursor-default">{fromCode}</span>
+                                            </Tooltip>
+                                            <div className="h-px w-4 bg-gray-300 dark:bg-gray-700 my-1 relative">
+                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 rotate-45 border-t border-r border-gray-300 dark:border-gray-700 w-1 h-1" />
+                                            </div>
+                                            <Tooltip title={toCity} placement="left" arrow>
+                                                <span className="text-[9px] font-black text-emerald-900 dark:text-offwhite leading-none cursor-default">{toCode}</span>
+                                            </Tooltip>
+                                            {journey.layovers && journey.layovers.length > 0 && (
+                                                <span className="text-[7px] font-black text-sand-dark dark:text-sand uppercase leading-none mt-1 text-center px-1 truncate w-full text-center">
+                                                    {journey.layovers.length === 1 ? `via ${journey.layovers[0]}` : `${journey.layovers.length} stops`}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <h3 className="font-black text-navy dark:text-white truncate text-base leading-tight">
+                                    {/* Route title + single status pill */}
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <h3 className="font-black text-navy dark:text-white truncate text-sm leading-tight">
                                             {journey.from.split(' (')[0]} → {journey.to.split(' (')[0]}
                                         </h3>
-                                        <div className="flex gap-1.5 items-center">
-                                            {isOwner && (
-                                                <span className="px-2 py-0.5 rounded-full bg-navy/10 dark:bg-sand/10 text-navy dark:text-sand text-[8px] font-black uppercase tracking-widest border border-navy/5 dark:border-sand/5">
-                                                    Your Trip
-                                                </span>
-                                            )}
-                                            <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${journey.status === 'ongoing'
-                                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
-                                                : journey.status === 'cancelled'
-                                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
-                                                    : isPast
-                                                        ? 'bg-slate-100 dark:bg-white/10 text-slate-600'
-                                                        : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400'
-                                                }`}>
-                                                {journey.status === 'ongoing' ? 'Ongoing' : journey.status === 'cancelled' ? 'Cancelled' : isPast ? 'Past' : 'NEW'}
-                                            </span>
-                                            {myRequests[journey.id] && (
-                                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${myRequests[journey.id] === 'accepted'
-                                                    ? 'bg-blue-500/10 text-blue-500'
-                                                    : myRequests[journey.id] === 'pending'
-                                                        ? 'bg-orange-500/10 text-orange-500'
-                                                        : 'bg-red-500/10 text-red-500'
-                                                    }`}>
-                                                    {myRequests[journey.id]}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${myRequests[journey.id] === 'accepted' ? 'bg-blue-500/10 text-blue-500'
+                                            : myRequests[journey.id] === 'pending' ? 'bg-orange-500/10 text-orange-500'
+                                                : journey.status === 'ongoing' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+                                                    : journey.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'
+                                                        : isPast ? 'bg-slate-100 dark:bg-white/10 text-slate-500'
+                                                            : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                            }`}>
+                                            {myRequests[journey.id] || (journey.status === 'ongoing' ? 'Live' : journey.status === 'cancelled' ? 'Cancelled' : isPast ? 'Past' : 'Open')}
+                                        </span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2">
-                                        <span>{dayjs(journey.date).format('MMM DD')}</span>
-                                        <span className="opacity-50">•</span>
-                                        {journey.layovers && journey.layovers.length > 0 && (
+                                    {/* Date + airline row */}
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mb-2">
+                                        <span className="text-gray-500 dark:text-gray-400">{dayjs(journey.date).format('MMM DD')}</span>
+                                        {(journey.airlineIata || journey.flightNumber) && (
                                             <>
-                                                <span className="text-sand-dark dark:text-sand font-black text-[9px] uppercase">
-                                                    {journey.layovers.length === 1
-                                                        ? `via ${journey.layovers[0]}`
-                                                        : `${journey.layovers.length} stops`}
-                                                </span>
-                                                <span className="opacity-50">•</span>
+                                                <span>·</span>
+                                                <div className="flex items-center gap-1">
+                                                    <div className="relative w-3 h-3 flex-shrink-0">
+                                                        <Image
+                                                            src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
+                                                            alt=""
+                                                            fill
+                                                            className="object-contain"
+                                                            sizes="12px"
+                                                        />
+                                                    </div>
+                                                    <span className="uppercase tracking-wide">{journey.flightNumber || journey.airlineName}</span>
+                                                </div>
                                             </>
                                         )}
-                                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/5">
-                                            {(journey.airlineIata || journey.flightNumber) && (
-                                                <div className="relative w-3.5 h-3.5">
-                                                    <Image
-                                                        src={`https://www.gstatic.com/flights/airline_logos/70px/${journey.airlineIata || journey.flightNumber?.match(/^[A-Z0-9]{2}/)?.[0]}.png`}
-                                                        alt={`${journey.airlineName || 'Airline'} Logo`}
-                                                        fill
-                                                        className="object-contain"
-                                                        sizes="14px"
-                                                    />
-                                                </div>
-                                            )}
-                                            <span className="text-[10px] uppercase tracking-wider truncate max-w-[80px]">
-                                                {journey.airlineName || journey.flightNumber}
-                                            </span>
-                                        </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <div className="relative w-6 h-6 rounded-lg overflow-hidden border border-gray-200 dark:border-white/10">
+                                    {/* User row */}
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 dark:border-white/10 flex-shrink-0">
                                             <Image
-                                                src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=64&width=64&fit=crop` : journey.user.avatar}
-                                                alt={`${journey.user.name}'s profile picture`}
+                                                src={journey.user.avatar?.includes('clerk.com') ? `${journey.user.avatar}?height=40&width=40&fit=crop` : journey.user.avatar}
+                                                alt=""
                                                 fill
                                                 className="object-cover"
-                                                sizes="24px"
+                                                sizes="20px"
                                             />
                                         </div>
-                                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">{journey.user.name}</span>
-                                        <span className="text-[10px] font-black text-emerald-800 dark:text-sand">
-                                            {journey.user.rating > 0 ? `★ ${journey.user.rating.toFixed(1)}` : 'NEW MEMBER'}
-                                        </span>
+                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 truncate">{journey.user.name}</span>
+                                        {journey.user.rating > 0 && (
+                                            <span className="text-[9px] font-black text-amber-500 flex-shrink-0">★ {journey.user.rating.toFixed(1)}</span>
+                                        )}
                                     </div>
                                 </div>
 
