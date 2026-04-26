@@ -60,7 +60,7 @@ export default function PricingPage() {
             <main className="min-h-screen bg-white dark:bg-black transition-colors">
                 <Header theme={theme} toggleTheme={toggleTheme} locale={locale} handleLocaleChange={handleLocaleChange} />
 
-                <Box sx={{ py: { xs: 10, md: 15 }, textAlign: 'center' }}>
+                <Box sx={{ py: { xs: 6, md: 8 }, textAlign: 'center' }}>
                     <Container maxWidth="md">
                         <Stack spacing={3} sx={{ mb: 10 }}>
                             <Typography variant="overline" sx={{ fontWeight: 900, color: "#3B82F6", letterSpacing: 4 }}>

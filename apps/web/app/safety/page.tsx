@@ -62,7 +62,7 @@ export default function SafetyPage() {
             <main className="min-h-screen bg-white dark:bg-black transition-colors">
                 <Header theme={theme} toggleTheme={toggleTheme} locale={locale} handleLocaleChange={handleLocaleChange} />
 
-                <Box sx={{ py: { xs: 10, md: 20 }, bgcolor: '#0f172a', color: 'white' }}>
+                <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: '#0f172a', color: 'white' }}>
                     <Container maxWidth="lg">
                         <Grid container spacing={8} sx={{ alignItems: 'center' }}>
                             <Grid size={{ xs: 12, md: 6 }}>
@@ -109,7 +109,7 @@ export default function SafetyPage() {
                     </Container>
                 </Box>
 
-                <Box sx={{ py: 15 }}>
+                <Box sx={{ py: 8 }}>
                     <Container maxWidth="lg">
                         <Grid container spacing={4}>
                             {safetyFeatures.map((feature, index) => (
