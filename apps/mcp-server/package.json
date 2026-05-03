@@ -1,0 +1,19 @@
+{
+  "name": "mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "dev": "node --watch --experimental-strip-types src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "5.9.2"
+  }
+}
